@@ -28,7 +28,7 @@ jobs:
             COMMITS="Sin detalles de commits disponibles."
           fi
 
-          PAYLOAD=$(jq -n \
+          PAYLOAD=$(jq -n \ 
             --arg username "Ministerio de Seguridad" \
             --arg title "📢 Nueva actualización" \
             --arg repo "$REPO" \
