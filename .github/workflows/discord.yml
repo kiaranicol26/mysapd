@@ -15,7 +15,6 @@ jobs:
       - name: Send Discord Embed
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-          REPO: ${{ github.repository }}
           BRANCH: ${{ github.ref_name }}
           EVENT: ${{ toJSON(github.event) }}
         run: |
