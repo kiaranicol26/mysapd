@@ -190,7 +190,7 @@ export function LoginView() {
                     WestZone Roleplay
                   </p>
                   <p className="mt-1 text-center text-[10px] text-slate-400 font-bold">
-                    SAN ANDREAS POLICE DEPARTMENT © 2026
+                    SAN ANDREAS POLICE DEPARTMENT © 2026 - By Pokaim (Kendo)
                   </p>
                 </div>
               </div>
