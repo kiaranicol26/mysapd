@@ -10,6 +10,7 @@ export type Session = {
   can_edit_files?: boolean;
   can_edit_pd?: boolean;
   role?: string | null;
+  secciones?: string[];
 
 
   avatar_url?: string | null;
@@ -28,7 +29,14 @@ export function getSession(): Session | null {
       localStorage.removeItem(KEY);
       return null;
     }
-    return JSON.parse(raw) as Session;
+    const s = JSON.parse(raw) as Session;
+    // Sessions from before per-section access must log in again to receive their sections.
+    if (!Array.isArray(s.secciones)) {
+      localStorage.removeItem(KEY);
+      localStorage.removeItem("instructor_token");
+      return null;
+    }
+    return s;
   } catch {
     return null;
   }

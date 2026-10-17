@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import { limpiarSecciones } from "@/lib/secciones";
 
 export type Claims = {
   id: string;
@@ -9,7 +10,7 @@ export type Claims = {
   files?: boolean;
   pd?: boolean;
   role?: string | null;
-
+  sec?: string[];
   exp: number;
 };
 
@@ -41,6 +42,44 @@ const TABLES = new Set([
 ]);
 
 const PUBLIC_BG_KEY = "site_background_url";
+export const LOGIN_COLUMNS =
+  "id, name, is_alto_mando, can_delete, can_emit_rnap, can_edit_files, can_edit_pd, role, avatar_url, descripcion, secciones";
+
+/** Builds the browser session and signed token from a fresh instructors row. */
+export function buildLogin(r: any) {
+  const alto = !!r.is_alto_mando;
+  const session = {
+    id: r.id as string,
+    name: r.name as string,
+    is_alto_mando: alto,
+    can_delete: alto || !!r.can_delete,
+    can_emit_rnap: alto || !!r.can_emit_rnap,
+    can_edit_files: alto || !!r.can_edit_files,
+    can_edit_pd: alto || !!r.can_edit_pd,
+    avatar_url: (r.avatar_url ?? null) as string | null,
+    role: (r.role ?? null) as string | null,
+    descripcion: (r.descripcion ?? null) as string | null,
+    secciones: limpiarSecciones(r.secciones) as string[],
+  };
+  const token = issueToken({
+    id: session.id, name: session.name, alto, del: session.can_delete, rnap: session.can_emit_rnap,
+    files: session.can_edit_files, pd: session.can_edit_pd, role: session.role, sec: session.secciones,
+  });
+  return { session, token };
+}
+
+/** Re-reads permissions so changes made by Alto Mando apply immediately. */
+export async function freshClaims(claims: Claims | null, admin: { from: (t: string) => any }): Promise<Claims | null> {
+  if (!claims) return null;
+  const { data: r } = await admin.from("instructors").select(LOGIN_COLUMNS).eq("id", claims.id).maybeSingle();
+  if (!r) return null;
+  const alto = !!r.is_alto_mando;
+  return {
+    ...claims, name: r.name, alto, del: alto || !!r.can_delete, rnap: alto || !!r.can_emit_rnap,
+    files: alto || !!r.can_edit_files, pd: alto || !!r.can_edit_pd, role: r.role ?? null, sec: limpiarSecciones(r.secciones),
+  };
+}
+
 const PROFILE_FIELDS = new Set(["name", "avatar_url", "descripcion"]);
 
 function secret(): string {
@@ -96,6 +135,10 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
   if (!TABLES.has(spec.table)) deny("Tabla no permitida");
   const write = spec.op !== "select";
   const alto = !!claims?.alto;
+  const need = (sec: string) => {
+    if (!claims) deny();
+    if (!alto && !claims.sec?.includes(sec)) deny("Sin acceso a este apartado");
+  };
 
   switch (spec.table) {
     case "salary_months":
@@ -147,6 +190,7 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
 
     case "forum_posts": {
       if (!claims) deny();
+      need("forum");
       if (spec.op === "select" || spec.op === "insert") return spec;
       // Alto Mando y Cúpula editan cualquier fichero; el autor edita el suyo.
       if (alto || claims.role === "Cupula") return spec;
@@ -157,6 +201,7 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
     case "records":
     case "rnap_certificates":
       if (!claims) deny();
+      need(spec.table === "records" ? "exsapd" : spec.table === "aspirantes" ? "aspirantes" : "rnap");
       if (spec.op === "delete" && !claims.del) deny("Sin permiso para borrar");
       return spec;
 
