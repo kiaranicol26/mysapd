@@ -13,6 +13,7 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { DiscordLogin } from "@/components/DiscordLogin";
 
 export function LoginView() {
   const [id, setId] = useState("");
@@ -169,6 +170,8 @@ export function LoginView() {
                   {loading ? "VERIFICANDO..." : "INGRESAR AL SISTEMA"}
                 </Button>
               </form>
+
+              <DiscordLogin />
 
               <Button asChild variant="outline"
                 className="mt-4 h-11 w-full rounded-none border-blue-300 bg-white text-blue-800 font-bold tracking-wider hover:bg-blue-50">

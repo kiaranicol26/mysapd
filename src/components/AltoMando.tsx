@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { getBackground, setBackground, fileToCompressedDataUrl } from "@/lib/appearance";
 import { toast } from "sonner";
+import { SECCIONES } from "@/lib/secciones";
 import { Trash2, Shield, Webhook, FileText, Image as ImageIcon } from "lucide-react";
 
 
@@ -28,6 +29,8 @@ type Instructor = {
   can_emit_rnap: boolean;
   can_edit_files: boolean;
   can_edit_pd: boolean;
+  secciones: string[] | null;
+  discord_username: string | null;
 
   created_at: string;
   created_by: string | null;
@@ -162,6 +165,15 @@ export function AltoMando({ session }: { session: Session }) {
     const { error } = await db.from("instructors").update({ [field]: value } as any).eq("id", i.id);
     if (error) { toast.error(error.message); loadAll(); return; }
     await logAction(db, session, "UPDATE_PERM", { id: i.id, name: i.name, field, value });
+  }
+
+  async function toggleSeccion(i: Instructor, key: string) {
+    const cur = i.secciones ?? [];
+    const next = cur.includes(key) ? cur.filter(k => k !== key) : [...cur, key];
+    setInstructors(prev => prev.map(x => x.id === i.id ? { ...x, secciones: next } : x));
+    const { error } = await db.from("instructors").update({ secciones: next } as any).eq("id", i.id);
+    if (error) { toast.error(error.message); loadAll(); return; }
+    await logAction(db, session, "UPDATE_SECCIONES", { id: i.id, name: i.name, secciones: next });
   }
 
   return (
@@ -342,6 +354,7 @@ export function AltoMando({ session }: { session: Session }) {
                   <th className="p-3 text-center border border-blue-500 uppercase font-bold">Emitir RNAP</th>
                   <th className="p-3 text-center border border-blue-500 uppercase font-bold">Editar Archivos</th>
                   <th className="p-3 text-center border border-blue-500 uppercase font-bold">Registro PD</th>
+                  <th className="p-3 text-left border border-blue-500 uppercase font-bold">Apartados visibles</th>
 
                   <th className="p-3 text-left border border-blue-500 uppercase font-bold">Creado por</th>
                   <th className="p-3 border border-blue-500 w-10" />
@@ -351,7 +364,7 @@ export function AltoMando({ session }: { session: Session }) {
                 {instructors.map(i => (
                   <tr key={i.id} className="border-t border-slate-200 hover:bg-blue-50 transition-colors">
                     <td className="p-3 font-mono text-slate-700 border border-slate-200">{i.id}</td>
-                    <td className="p-3 text-slate-700 border border-slate-200">{i.name}</td>
+                    <td className="p-3 text-slate-700 border border-slate-200">{i.name}{i.discord_username && <span className="block text-[11px] text-slate-400">@{i.discord_username}</span>}</td>
                     <td className="p-3 border border-slate-200">
                       {i.role === "Comisario" ? (
                         <span className="inline-flex items-center gap-2 text-blue-700 font-semibold">
@@ -389,6 +402,24 @@ export function AltoMando({ session }: { session: Session }) {
                         onCheckedChange={v => togglePerm(i, "can_edit_pd", v)}
                       />
                     </td>
+                    <td className="p-2 border border-slate-200 min-w-[260px]">
+                      {i.is_alto_mando ? (
+                        <span className="text-xs text-slate-500 font-bold">Todos</span>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {SECCIONES.map(sec => {
+                            const on = (i.secciones ?? []).includes(sec.key);
+                            return (
+                              <button key={sec.key} type="button" onClick={() => toggleSeccion(i, sec.key)}
+                                aria-pressed={on}
+                                className={`px-2 py-0.5 text-[11px] font-bold border ${on ? "bg-blue-600 text-white border-blue-700" : "bg-white text-slate-500 border-slate-300"}`}>
+                                {sec.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </td>
 
                     <td className="p-3 text-slate-500 border border-slate-200">{i.created_by ?? "—"}</td>
                     <td className="p-3 text-center border border-slate-200">
@@ -402,7 +433,7 @@ export function AltoMando({ session }: { session: Session }) {
                 ))}
                 {instructors.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="p-10 text-center text-slate-400 uppercase tracking-widest">
+                    <td colSpan={9} className="p-10 text-center text-slate-400 uppercase tracking-widest">
                       Sin personal autorizado.
                     </td>
                   </tr>
