@@ -163,6 +163,33 @@ export type Database = {
         }
         Relationships: []
       }
+      discord_verifications: {
+        Row: {
+          attempts: number
+          code_hash: string
+          created_at: string
+          discord_id: string
+          discord_username: string
+          expires_at: string
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          created_at?: string
+          discord_id: string
+          discord_username: string
+          expires_at: string
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          created_at?: string
+          discord_id?: string
+          discord_username?: string
+          expires_at?: string
+        }
+        Relationships: []
+      }
       forum_posts: {
         Row: {
           adjuntos: Json
@@ -215,10 +242,13 @@ export type Database = {
           created_at: string
           created_by: string | null
           descripcion: string | null
+          discord_id: string | null
+          discord_username: string | null
           id: string
           is_alto_mando: boolean
           name: string
           role: string
+          secciones: string[]
         }
         Insert: {
           avatar_url?: string | null
@@ -229,10 +259,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descripcion?: string | null
+          discord_id?: string | null
+          discord_username?: string | null
           id: string
           is_alto_mando?: boolean
           name: string
           role?: string
+          secciones?: string[]
         }
         Update: {
           avatar_url?: string | null
@@ -243,10 +276,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descripcion?: string | null
+          discord_id?: string | null
+          discord_username?: string | null
           id?: string
           is_alto_mando?: boolean
           name?: string
           role?: string
+          secciones?: string[]
         }
         Relationships: []
       }

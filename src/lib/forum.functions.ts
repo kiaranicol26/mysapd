@@ -14,9 +14,11 @@ const uploadSchema = z.object({
 export const uploadForumFile = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => uploadSchema.parse(data))
   .handler(async ({ data }) => {
-    const { verifyToken } = await import("@/lib/dbAuth.server");
-    const claims = verifyToken(data.token ?? null);
+    const { verifyToken, freshClaims } = await import("@/lib/dbAuth.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const claims = await freshClaims(verifyToken(data.token ?? null), supabaseAdmin as any);
     if (!claims) return { ok: false as const, error: "No autorizado" };
+    if (!claims.alto && !claims.sec?.includes("forum")) return { ok: false as const, error: "Sin acceso al Forum" };
 
     const bytes = Buffer.from(data.base64, "base64");
     if (bytes.byteLength > MAX_BYTES) return { ok: false as const, error: "El archivo supera los 5MB" };
@@ -24,7 +26,6 @@ export const uploadForumFile = createServerFn({ method: "POST" })
     const safe = data.filename.replace(/[^\w.\-]+/g, "_").slice(-80);
     const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safe}`;
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.storage
       .from("forum")
       .upload(path, bytes, { contentType: data.mime || "application/octet-stream", upsert: false });

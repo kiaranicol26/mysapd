@@ -13,5 +13,5 @@ export const Route = createFileRoute("/registro-policias")({
       { property: "og:description", content: "Carnets oficiales del personal del San Andreas Police Department por rango, placa y división." },
     ],
   }),
-  component: () => <Protected>{s => <RegistroPdView session={s} />}</Protected>,
+  component: () => <Protected seccion="registro">{s => <RegistroPdView session={s} />}</Protected>,
 });

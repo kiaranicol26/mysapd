@@ -228,7 +228,7 @@ export function CertCard({ data, downloadable = false }: { data: Form; downloada
         className="relative w-full mx-auto select-none"
         style={{ aspectRatio: "1357 / 1920", containerType: "inline-size" }}
       >
-        <img src={tpl.url} alt="Certificado" className="absolute inset-0 w-full h-full" draggable={false} />
+        <img src={tpl} alt="Certificado" className="absolute inset-0 w-full h-full" draggable={false} />
 
         {/* Persona a certificar */}
         <Centered top="44.5%" size="4.6cqw" spacing="0.06em">

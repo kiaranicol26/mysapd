@@ -13,5 +13,5 @@ export const Route = createFileRoute("/forum")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: () => <Protected>{s => <ForumView session={s} />}</Protected>,
+  component: () => <Protected seccion="forum">{s => <ForumView session={s} />}</Protected>,
 });

@@ -13,5 +13,5 @@ export const Route = createFileRoute("/policias")({
       { property: "og:description", content: "Lista de agentes activos del San Andreas Police Department." },
     ],
   }),
-  component: () => <Protected>{s => <ListaPdView session={s} />}</Protected>,
+  component: () => <Protected seccion="lista">{s => <ListaPdView session={s} />}</Protected>,
 });

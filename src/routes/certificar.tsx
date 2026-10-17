@@ -13,5 +13,5 @@ export const Route = createFileRoute("/certificar")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: () => <Protected>{s => <CertificarView session={s} />}</Protected>,
+  component: () => <Protected seccion="certificar">{s => <CertificarView session={s} />}</Protected>,
 });
