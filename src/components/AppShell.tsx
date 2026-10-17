@@ -7,20 +7,21 @@ import { getBackground } from "@/lib/appearance";
 import { LogOut, Shield, LogIn, UserRound } from "lucide-react";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { puedeVer } from "@/lib/secciones";
 
-const TABS = [
-  { to: "/exsapd", label: "EX POLICÍAS", public: false, alto: false },
-  { to: "/aspirantes", label: "ASPIRANTES", public: false, alto: false },
-  { to: "/rnap", label: "R.N.A.P", public: false, alto: false },
-  { to: "/certificar", label: "CERTIFICAR", public: false, alto: false },
-  { to: "/registro-policias", label: "REGISTRO PD", public: false, alto: false },
-  { to: "/policias", label: "LISTA PD", public: false, alto: false },
+const TABS: { to: string; label: string; public: boolean; alto: boolean; sec?: string }[] = [
+  { to: "/exsapd", label: "EX POLICÍAS", public: false, alto: false, sec: "exsapd" },
+  { to: "/aspirantes", label: "ASPIRANTES", public: false, alto: false, sec: "aspirantes" },
+  { to: "/rnap", label: "R.N.A.P", public: false, alto: false, sec: "rnap" },
+  { to: "/certificar", label: "CERTIFICAR", public: false, alto: false, sec: "certificar" },
+  { to: "/registro-policias", label: "REGISTRO PD", public: false, alto: false, sec: "registro" },
+  { to: "/policias", label: "LISTA PD", public: false, alto: false, sec: "lista" },
 
-  { to: "/forum", label: "FORUM", public: false, alto: false },
+  { to: "/forum", label: "FORUM", public: false, alto: false, sec: "forum" },
   { to: "/salario", label: "SALARIO", public: true, alto: false },
   { to: "/perfil", label: "myPERFIL", public: false, alto: false },
   { to: "/alto-mando", label: "ALTO MANDO", public: false, alto: true },
-] as const;
+];
 
 export function AppShell({
   session,
@@ -47,7 +48,8 @@ export function AppShell({
 
   const tabs = TABS.filter(t => {
     if (!session) return t.public;
-    return t.alto ? session.is_alto_mando : true;
+    if (t.alto) return session.is_alto_mando;
+    return t.public || puedeVer(session, t.sec);
   });
 
   return (
@@ -119,7 +121,7 @@ export function AppShell({
               {tabs.map(t => (
                 <Link
                   key={t.to}
-                  to={t.to}
+                  to={t.to as any}
                   activeProps={{ className: "text-blue-700 bg-blue-50" }}
                   inactiveProps={{ className: "text-slate-500 hover:text-blue-700 hover:bg-blue-50/50" }}
                   className="relative flex-1 px-4 lg:px-6 py-3 text-center font-display font-extrabold uppercase tracking-[0.2em] text-xs lg:text-sm transition-all border-r border-blue-200 last:border-r-0"

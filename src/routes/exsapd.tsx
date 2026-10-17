@@ -13,5 +13,5 @@ export const Route = createFileRoute("/exsapd")({
       { property: "og:description", content: "Registro de ex policías del San Andreas Police Department." },
     ],
   }),
-  component: () => <Protected>{s => <RecordsTable session={s} />}</Protected>,
+  component: () => <Protected seccion="exsapd">{s => <RecordsTable session={s} />}</Protected>,
 });

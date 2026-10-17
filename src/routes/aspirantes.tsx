@@ -13,5 +13,5 @@ export const Route = createFileRoute("/aspirantes")({
       { property: "og:description", content: "Seguimiento de aspirantes a ingresar al SAPD." },
     ],
   }),
-  component: () => <Protected>{s => <AspirantesTable session={s} />}</Protected>,
+  component: () => <Protected seccion="aspirantes">{s => <AspirantesTable session={s} />}</Protected>,
 });

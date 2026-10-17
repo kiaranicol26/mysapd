@@ -13,5 +13,5 @@ export const Route = createFileRoute("/rnap")({
       { property: "og:description", content: "Registro Nacional de Antecedentes Policiales del SAPD." },
     ],
   }),
-  component: () => <Protected>{s => <RnapView session={s} />}</Protected>,
+  component: () => <Protected seccion="rnap">{s => <RnapView session={s} />}</Protected>,
 });
