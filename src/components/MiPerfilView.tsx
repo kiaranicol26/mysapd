@@ -131,7 +131,7 @@ export function MiPerfilView({ session }: { session: Session }) {
             {discordUser && (
               <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                 <input type="checkbox" checked={syncNick} onChange={e => setSyncNick(e.target.checked)} />
-                Cambiar también mi apodo en Discord
+                Cambiar también mi apodo en Discord (tu [TAG] de rango se mantiene solo)
               </label>
             )}
           </div>

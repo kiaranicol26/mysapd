@@ -125,7 +125,12 @@ export const syncDiscordNick = createServerFn({ method: "POST" })
       let done = 0;
       for (const g of guilds) {
         try {
-          await discord(`guilds/${g.id}/members/${row.discord_id}`, { method: "PATCH", body: JSON.stringify({ nick: data.nick }) });
+          const m = await discord(`guilds/${g.id}/members/${row.discord_id}`);
+          const actual: string = m?.nick || m?.user?.global_name || m?.user?.username || "";
+          const tag = actual.match(/^\s*(\[[^\]]+\])/)?.[1];
+          const limpio = data.nick.replace(/^\s*\[[^\]]+\]\s*/, "");
+          const nick = (tag ? `${tag} ${limpio}` : data.nick).slice(0, 32);
+          await discord(`guilds/${g.id}/members/${row.discord_id}`, { method: "PATCH", body: JSON.stringify({ nick }) });
           done++;
         } catch { /* no está en ese servidor o falta permiso */ }
       }
