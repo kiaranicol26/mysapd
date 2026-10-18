@@ -235,10 +235,12 @@ export type Database = {
       instructors: {
         Row: {
           avatar_url: string | null
+          banner_url: string | null
           can_delete: boolean
           can_edit_files: boolean
           can_edit_pd: boolean
           can_emit_rnap: boolean
+          color_perfil: string | null
           created_at: string
           created_by: string | null
           descripcion: string | null
@@ -247,15 +249,18 @@ export type Database = {
           id: string
           is_alto_mando: boolean
           name: string
+          pronombres: string | null
           role: string
           secciones: string[]
         }
         Insert: {
           avatar_url?: string | null
+          banner_url?: string | null
           can_delete?: boolean
           can_edit_files?: boolean
           can_edit_pd?: boolean
           can_emit_rnap?: boolean
+          color_perfil?: string | null
           created_at?: string
           created_by?: string | null
           descripcion?: string | null
@@ -264,15 +269,18 @@ export type Database = {
           id: string
           is_alto_mando?: boolean
           name: string
+          pronombres?: string | null
           role?: string
           secciones?: string[]
         }
         Update: {
           avatar_url?: string | null
+          banner_url?: string | null
           can_delete?: boolean
           can_edit_files?: boolean
           can_edit_pd?: boolean
           can_emit_rnap?: boolean
+          color_perfil?: string | null
           created_at?: string
           created_by?: string | null
           descripcion?: string | null
@@ -281,6 +289,7 @@ export type Database = {
           id?: string
           is_alto_mando?: boolean
           name?: string
+          pronombres?: string | null
           role?: string
           secciones?: string[]
         }

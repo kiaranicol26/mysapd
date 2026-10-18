@@ -1,0 +1,1 @@
+ALTER TABLE public.instructors ADD COLUMN IF NOT EXISTS banner_url text, ADD COLUMN IF NOT EXISTS color_perfil text, ADD COLUMN IF NOT EXISTS pronombres text;
