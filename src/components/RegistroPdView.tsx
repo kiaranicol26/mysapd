@@ -64,13 +64,14 @@ export function RegistroPdView({ session }: { session: Session }) {
     if (!data) return;
     const map: Record<string, string> = {};
     (data as any[]).forEach(u => {
+      if (u?.name) map[String(u.name).trim().toLowerCase()] = u.avatar_url || "";
       if (u?.name && u?.avatar_url) map[String(u.name).trim().toLowerCase()] = u.avatar_url;
     });
     setAvatars(map);
   }
 
   const fotoDe = (m: PdMember) =>
-    avatars[m.nombre.trim().toLowerCase()] ?? m.foto ?? null;
+    avatars[m.nombre.trim().toLowerCase()] || m.foto || null;
 
   useEffect(() => { load(); loadAvatars(); }, []);
 
@@ -133,7 +134,7 @@ export function RegistroPdView({ session }: { session: Session }) {
   }
 
   const groups = useMemo(() => {
-    const filtered = members.filter(m =>
+    const filtered = members.filter(m => m.nombre.trim().toLowerCase() in avatars).filter(m =>
       (m.nombre + " " + (m.rango ?? "") + " " + (m.placa ?? "") + " " + (m.division ?? ""))
         .toLowerCase()
         .includes(q.toLowerCase()),
@@ -146,7 +147,7 @@ export function RegistroPdView({ session }: { session: Session }) {
     const sinRango = filtered.filter(m => !RANGOS.includes((m.rango ?? "") as any));
     if (sinRango.length) known.push({ rango: "—", label: "Sin rango asignado", items: sinRango });
     return known.filter(g => g.items.length > 0);
-  }, [members, q]);
+  }, [members, q, avatars]);
 
   return (
     <div className="space-y-4">
