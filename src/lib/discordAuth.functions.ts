@@ -109,3 +109,29 @@ export const verifyDiscordCode = createServerFn({ method: "POST" })
     await supabaseAdmin.from("discord_verifications").delete().eq("discord_id", v.discord_id);
     return { ok: true as const, ...buildLogin(row) };
   });
+
+/** Cambia el apodo del usuario en los servidores de Discord donde está el bot. */
+export const syncDiscordNick = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ token: z.string().max(4096), nick: z.string().trim().min(1).max(32) }).parse(d))
+  .handler(async ({ data }) => {
+    const { verifyToken } = await import("@/lib/dbAuth.server");
+    const claims = verifyToken(data.token);
+    if (!claims) return { ok: false as const, error: "Sesión inválida" };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row } = await supabaseAdmin.from("instructors").select("discord_id").eq("id", claims.id).maybeSingle();
+    if (!row?.discord_id) return { ok: false as const, error: "Tu cuenta no tiene Discord vinculado" };
+    try {
+      const guilds = (await discord("users/@me/guilds?limit=200")) as { id: string }[];
+      let done = 0;
+      for (const g of guilds) {
+        try {
+          await discord(`guilds/${g.id}/members/${row.discord_id}`, { method: "PATCH", body: JSON.stringify({ nick: data.nick }) });
+          done++;
+        } catch { /* no está en ese servidor o falta permiso */ }
+      }
+      if (!done) return { ok: false as const, error: "El bot no pudo cambiar tu apodo (necesita 'Gestionar apodos' y un rol más alto que el tuyo; al dueño del servidor no se le puede cambiar)" };
+      return { ok: true as const };
+    } catch {
+      return { ok: false as const, error: "No se pudo contactar a Discord" };
+    }
+  });
