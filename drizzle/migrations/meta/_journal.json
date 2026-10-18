@@ -8,6 +8,13 @@
       "when": 1792258216724,
       "tag": "0000_discord_registration_permissions",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792356862750,
+      "tag": "0001_profile_banner",
+      "breakpoints": true
     }
   ]
 }

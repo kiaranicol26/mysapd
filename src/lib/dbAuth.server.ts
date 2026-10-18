@@ -80,7 +80,7 @@ export async function freshClaims(claims: Claims | null, admin: { from: (t: stri
   };
 }
 
-const PROFILE_FIELDS = new Set(["name", "avatar_url", "descripcion"]);
+const PROFILE_FIELDS = new Set(["name", "avatar_url", "descripcion", "banner_url", "color_perfil", "pronombres"]);
 
 function secret(): string {
   const s = process.env["SUPABASE_SERVICE_ROLE_KEY"] || process.env["SUPABASE_DB_URL"];
