@@ -39,6 +39,14 @@ type Draft = {
   division_rango: string;
 };
 
+const ROLES = [
+  { value: "Comisario", label: "Comisario (Alto Mando)", plural: "Comisarios" },
+  { value: "Cupula", label: "Cúpula", plural: "Cúpulas" },
+  { value: "Instructor", label: "Instructor", plural: "Instructores" },
+  { value: "Usuario", label: "Usuario", plural: "Usuarios" },
+];
+const roleKey = (r: string | null) => (ROLES.some(x => x.value === r) ? r! : "Usuario");
+
 const emptyDraft: Draft = {
   nombre: "", rango: "Oficial", foto: "", placa: "",
   division: "Ninguna", division_rango: "Miembro",
@@ -51,6 +59,7 @@ export function RegistroPdView({ session }: { session: Session }) {
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [saving, setSaving] = useState(false);
   const [avatars, setAvatars] = useState<Record<string, string>>({});
+  const [users, setUsers] = useState<{ id: string; name: string; avatar_url: string | null; role: string | null }[]>([]);
 
   const canEdit = !!session.is_alto_mando || !!session.can_edit_pd;
 
@@ -60,8 +69,9 @@ export function RegistroPdView({ session }: { session: Session }) {
   }
 
   async function loadAvatars() {
-    const { data } = await db.from("instructors").select("name, avatar_url");
+    const { data } = await db.from("instructors").select("id, name, avatar_url, role");
     if (!data) return;
+    setUsers(data as any);
     const map: Record<string, string> = {};
     (data as any[]).forEach(u => {
       if (u?.name) map[String(u.name).trim().toLowerCase()] = u.avatar_url || "";
@@ -134,20 +144,26 @@ export function RegistroPdView({ session }: { session: Session }) {
   }
 
   const groups = useMemo(() => {
-    const filtered = members.filter(m => m.nombre.trim().toLowerCase() in avatars).filter(m =>
-      (m.nombre + " " + (m.rango ?? "") + " " + (m.placa ?? "") + " " + (m.division ?? ""))
-        .toLowerCase()
-        .includes(q.toLowerCase()),
-    );
-    const known = RANGOS.map(r => ({
-      rango: r as string,
-      label: RANGO_PLURAL[r] ?? r,
-      items: sortByRango(filtered.filter(m => (m.rango ?? "") === r), m => m.rango, m => m.nombre),
-    }));
-    const sinRango = filtered.filter(m => !RANGOS.includes((m.rango ?? "") as any));
-    if (sinRango.length) known.push({ rango: "—", label: "Sin rango asignado", items: sinRango });
-    return known.filter(g => g.items.length > 0);
-  }, [members, q, avatars]);
+    const byName = new Map(members.map(m => [m.nombre.trim().toLowerCase(), m]));
+    const rows = users
+      .map(u => ({ u, m: byName.get(u.name.trim().toLowerCase()) }))
+      .filter(({ u, m }) =>
+        (u.name + " " + (u.role ?? "") + " " + (m?.rango ?? "") + " " + (m?.placa ?? "") + " " + (m?.division ?? ""))
+          .toLowerCase().includes(q.toLowerCase()));
+    return ROLES.map(r => ({
+      rango: r.value, label: r.plural,
+      items: sortByRango(rows.filter(x => roleKey(x.u.role) === r.value), x => x.m?.rango ?? null, x => x.u.name),
+    })).filter(g => g.items.length > 0);
+  }, [members, q, users]);
+
+  async function changeRole(u: { id: string; name: string }, role: string) {
+    const alto = role === "Comisario";
+    const { error } = await db.from("instructors").update({ role, is_alto_mando: alto, ...(alto ? { can_delete: true, can_emit_rnap: true } : {}) } as any).eq("id", u.id);
+    if (error) return toast.error(error.message);
+    await logAction(db, session, "UPDATE_ROLE", { id: u.id, role });
+    toast.success(`${u.name} ahora es ${role}`);
+    loadAvatars();
+  }
 
   return (
     <div className="space-y-4">
@@ -169,7 +185,7 @@ export function RegistroPdView({ session }: { session: Session }) {
             <div className="ml-auto flex items-center gap-3">
               <div className="flex items-center gap-2 px-3 py-2 bg-blue-700 text-white">
                 <BadgeCheck className="w-4 h-4" />
-                <span className="font-mono font-bold">{members.length}</span>
+                <span className="font-mono font-bold">{users.length}</span>
                 <span className="text-[10px] uppercase tracking-widest font-bold">Carnets</span>
               </div>
               {canEdit && (
@@ -199,33 +215,43 @@ export function RegistroPdView({ session }: { session: Session }) {
             <span className="ml-auto font-mono font-bold text-xs">{g.items.length}</span>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {g.items.map(m => (
-              <Card key={m.id} className="overflow-hidden border-2 border-blue-300 bg-white rounded-none shadow-sm">
+            {g.items.map(({ u, m }) => (
+              <Card key={u.id} className="overflow-hidden border-2 border-blue-300 bg-white rounded-none shadow-sm">
                 <div className="h-1 bg-blue-700" />
                 <div className="p-3 flex gap-3">
                   <div className="w-20 h-20 shrink-0 border-2 border-blue-300 bg-blue-50 flex items-center justify-center overflow-hidden">
-                    {fotoDe(m) ? (
-                      <img src={fotoDe(m)!} alt={m.nombre} className="w-full h-full object-cover" />
+                    {(u.avatar_url || m?.foto) ? (
+                      <img src={(u.avatar_url || m?.foto)!} alt={u.name} className="w-full h-full object-cover" />
                     ) : (
                       <UserRound className="w-8 h-8 text-blue-300" />
                     )}
                   </div>
                   <div className="min-w-0 space-y-1">
-                    <p className="font-mono font-black text-slate-900 truncate">{m.nombre}</p>
+                    <p className="font-mono font-black text-slate-900 truncate">{u.name}</p>
                     <p className="text-[11px] uppercase tracking-widest font-extrabold text-blue-700">
-                      {m.rango ?? "Sin rango"}
+                      {m?.rango ?? "Sin rango"}
                     </p>
                     <p className="text-[11px] font-bold text-slate-600">
-                      Placa: <span className="font-mono">{m.placa || "—"}</span>
+                      Placa: <span className="font-mono">{m?.placa || "—"}</span>
                     </p>
                     <p className="text-[11px] font-bold text-slate-600 truncate">
-                      {m.division && m.division !== "Ninguna"
+                      {m?.division && m.division !== "Ninguna"
                         ? `${m.division} · ${m.division_rango ?? "—"}`
                         : "Sin división"}
                     </p>
                   </div>
                 </div>
-                {canEdit && (
+                {session.is_alto_mando && (
+                  <div className="border-t border-blue-200 p-2">
+                    <Select value={roleKey(u.role)} onValueChange={v => changeRole(u, v)}>
+                      <SelectTrigger className="h-8 rounded-none text-xs font-bold"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {ROLES.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                {canEdit && m && (
                   <div className="flex border-t border-blue-200">
                     <Button variant="ghost" onClick={() => openEdit(m)}
                       className="flex-1 rounded-none h-9 text-blue-700 hover:bg-blue-50 font-bold text-xs uppercase">
