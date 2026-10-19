@@ -67,3 +67,14 @@ export function DiscordRoles({ targetId, canManage, onName }: { targetId?: strin
     </div>
   );
 }
+
+/** Carga los roles solo al desplegar, para no consultar Discord por cada fila. */
+export function LazyDiscordRoles({ targetId }: { targetId: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <details className="mt-1" onToggle={e => setOpen((e.target as HTMLDetailsElement).open)}>
+      <summary className="text-[11px] font-bold cursor-pointer text-primary">Roles de Discord</summary>
+      {open && <div className="mt-1"><DiscordRoles targetId={targetId} canManage /></div>}
+    </details>
+  );
+}

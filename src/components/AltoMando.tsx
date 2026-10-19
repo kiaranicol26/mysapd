@@ -17,7 +17,7 @@ import {
 import { getBackground, setBackground, fileToCompressedDataUrl } from "@/lib/appearance";
 import { toast } from "sonner";
 import { SECCIONES } from "@/lib/secciones";
-import { DiscordRoles } from "@/components/DiscordRoles";
+import { LazyDiscordRoles } from "@/components/DiscordRoles";
 import { Trash2, Shield, Webhook, FileText, Image as ImageIcon } from "lucide-react";
 
 
@@ -368,10 +368,7 @@ export function AltoMando({ session }: { session: Session }) {
                     <td className="p-3 text-slate-700 border border-slate-200">{i.name}{i.discord_username && (
                       <>
                         <span className="block text-[11px] text-slate-400">@{i.discord_username}</span>
-                        <details className="mt-1">
-                          <summary className="text-[11px] font-bold cursor-pointer text-blue-700">Roles de Discord</summary>
-                          <div className="mt-1"><DiscordRoles targetId={i.id} canManage /></div>
-                        </details>
+                        <LazyDiscordRoles targetId={i.id} />
                       </>
                     )}</td>
                     <td className="p-3 border border-slate-200">
