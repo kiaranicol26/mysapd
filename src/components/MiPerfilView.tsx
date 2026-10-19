@@ -4,6 +4,7 @@ import { setSession, logAction, type Session } from "@/lib/session";
 import { fileToCompressedDataUrl } from "@/lib/appearance";
 import { SECCIONES } from "@/lib/secciones";
 import { syncDiscordNick } from "@/lib/discordAuth.functions";
+import { DiscordRoles } from "@/components/DiscordRoles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -96,6 +97,15 @@ export function MiPerfilView({ session }: { session: Session }) {
               <div className="border-t pt-2">
                 <p className={label}>Sobre mí</p>
                 <p className="text-sm text-foreground whitespace-pre-wrap">{descripcion}</p>
+              </div>
+            )}
+            {discordUser && (
+              <div className="border-t pt-2">
+                <p className={label}>Roles en Discord</p>
+                <div className="mt-1">
+                  <DiscordRoles targetId={session.id} canManage={session.is_alto_mando}
+                    onName={n => { if (n !== session.name) { setName(n); setSession({ ...session, name: n }); } }} />
+                </div>
               </div>
             )}
             <div className="border-t pt-2">
