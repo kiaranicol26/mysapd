@@ -16,6 +16,7 @@ async function discord(path: string, init?: RequestInit) {
     console.error(`Discord ${path} [${res.status}]: ${await res.text()}`);
     throw new Error(`Discord ${res.status}`);
   }
+  if (res.status === 204) return null;
   return res.json();
 }
 
