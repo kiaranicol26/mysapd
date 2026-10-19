@@ -21,7 +21,7 @@ type PdMember = {
   nombre: string;
   rango: string | null;
   foto: string | null;
-  descripcion: string | null;
+  placa: string | null;
   division: string | null;
   division_rango: string | null;
   sueldo_defecto: number;
@@ -34,7 +34,7 @@ type Draft = {
   nombre: string;
   rango: string;
   foto: string;
-  descripcion: string;
+  placa: string;
   division: string;
   division_rango: string;
 };
@@ -48,7 +48,7 @@ const ROLES = [
 const roleKey = (r: string | null) => (ROLES.some(x => x.value === r) ? r! : "Usuario");
 
 const emptyDraft: Draft = {
-  nombre: "", rango: "Oficial", foto: "", descripcion: "",
+  nombre: "", rango: "Oficial", foto: "", placa: "",
   division: "Ninguna", division_rango: "Miembro",
 };
 
@@ -96,7 +96,7 @@ export function RegistroPdView({ session }: { session: Session }) {
       nombre: m.nombre,
       rango: m.rango ?? "Oficial",
       foto: m.foto ?? "",
-      descripcion: m.descripcion ?? "",
+      placa: m.placa ?? "",
       division: m.division ?? "Ninguna",
       division_rango: m.division_rango ?? "Miembro",
     });
@@ -120,7 +120,7 @@ export function RegistroPdView({ session }: { session: Session }) {
       nombre,
       rango: draft.rango || null,
       foto: draft.foto.trim() || null,
-      descripcion: draft.descripcion.trim() || null,
+      placa: draft.placa.trim() || null,
       division: draft.division || null,
       division_rango: draft.division === "Ninguna" ? null : draft.division_rango || null,
     };
@@ -148,7 +148,7 @@ export function RegistroPdView({ session }: { session: Session }) {
     const rows = users
       .map(u => ({ u, m: byName.get(u.name.trim().toLowerCase()) }))
       .filter(({ u, m }) =>
-        (u.name + " " + (u.role ?? "") + " " + (m?.rango ?? "") + " " + (m?.descripcion ?? "") + " " + (m?.division ?? ""))
+        (u.name + " " + (u.role ?? "") + " " + (m?.rango ?? "") + " " + (m?.placa ?? "") + " " + (m?.division ?? ""))
           .toLowerCase().includes(q.toLowerCase()));
     return ROLES.map(r => ({
       rango: r.value, label: r.plural,
@@ -232,7 +232,7 @@ export function RegistroPdView({ session }: { session: Session }) {
                       {m?.rango ?? "Sin rango"}
                     </p>
                     <p className="text-[11px] font-bold text-slate-600">
-                      Placa: <span className="font-mono">{m?.descripcion || "—"}</span>
+                      Placa: <span className="font-mono">{m?.placa || "—"}</span>
                     </p>
                     <p className="text-[11px] font-bold text-slate-600 truncate">
                       {m?.division && m.division !== "Ninguna"
@@ -317,8 +317,8 @@ export function RegistroPdView({ session }: { session: Session }) {
                   {RANGOS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Input placeholder="Número de placa" value={draft.descripcion}
-                onChange={e => setDraft(d => ({ ...d, descripcion: e.target.value }))}
+              <Input placeholder="Número de placa" value={draft.placa}
+                onChange={e => setDraft(d => ({ ...d, placa: e.target.value }))}
                 className="h-10 rounded-none border-blue-300 bg-white font-mono font-bold text-slate-800" />
               <Select value={draft.division} onValueChange={v => setDraft(d => ({ ...d, division: v }))}>
                 <SelectTrigger className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800">
