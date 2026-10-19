@@ -17,6 +17,7 @@ import {
 import { getBackground, setBackground, fileToCompressedDataUrl } from "@/lib/appearance";
 import { toast } from "sonner";
 import { SECCIONES } from "@/lib/secciones";
+import { DiscordRoles } from "@/components/DiscordRoles";
 import { Trash2, Shield, Webhook, FileText, Image as ImageIcon } from "lucide-react";
 
 
@@ -364,7 +365,15 @@ export function AltoMando({ session }: { session: Session }) {
                 {instructors.map(i => (
                   <tr key={i.id} className="border-t border-slate-200 hover:bg-blue-50 transition-colors">
                     <td className="p-3 font-mono text-slate-700 border border-slate-200">{i.id}</td>
-                    <td className="p-3 text-slate-700 border border-slate-200">{i.name}{i.discord_username && <span className="block text-[11px] text-slate-400">@{i.discord_username}</span>}</td>
+                    <td className="p-3 text-slate-700 border border-slate-200">{i.name}{i.discord_username && (
+                      <>
+                        <span className="block text-[11px] text-slate-400">@{i.discord_username}</span>
+                        <details className="mt-1">
+                          <summary className="text-[11px] font-bold cursor-pointer text-blue-700">Roles de Discord</summary>
+                          <div className="mt-1"><DiscordRoles targetId={i.id} canManage /></div>
+                        </details>
+                      </>
+                    )}</td>
                     <td className="p-3 border border-slate-200">
                       {i.role === "Comisario" ? (
                         <span className="inline-flex items-center gap-2 text-blue-700 font-semibold">
