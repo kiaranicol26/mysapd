@@ -21,7 +21,7 @@ type PdMember = {
   nombre: string;
   rango: string | null;
   foto: string | null;
-  placa: string | null;
+  descripcion: string | null;
   division: string | null;
   division_rango: string | null;
   sueldo_defecto: number;
@@ -34,7 +34,7 @@ type Draft = {
   nombre: string;
   rango: string;
   foto: string;
-  placa: string;
+  descripcion: string;
   division: string;
   division_rango: string;
 };
@@ -48,7 +48,7 @@ const ROLES = [
 const roleKey = (r: string | null) => (ROLES.some(x => x.value === r) ? r! : "Usuario");
 
 const emptyDraft: Draft = {
-  nombre: "", rango: "Oficial", foto: "", placa: "",
+  nombre: "", rango: "Oficial", foto: "", descripcion: "",
   division: "Ninguna", division_rango: "Miembro",
 };
 
