@@ -140,3 +140,89 @@ export const syncDiscordNick = createServerFn({ method: "POST" })
       return { ok: false as const, error: "No se pudo contactar a Discord" };
     }
   });
+
+type DRole = { id: string; name: string; color: number; position: number; managed: boolean };
+
+async function authed(token: string) {
+  const { verifyToken, freshClaims } = await import("@/lib/dbAuth.server");
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const claims = await freshClaims(verifyToken(token), supabaseAdmin as any);
+  return { claims, supabaseAdmin };
+}
+
+/** Busca al miembro en los servidores del bot y devuelve servidor, miembro y roles asignables. */
+async function memberContext(discordId: string) {
+  const guilds = (await discord("users/@me/guilds?limit=200")) as { id: string }[];
+  for (const g of guilds) {
+    try {
+      const m = await discord(`guilds/${g.id}/members/${discordId}`);
+      const roles = (await discord(`guilds/${g.id}/roles`)) as DRole[];
+      const me = await discord(`users/@me`);
+      const botM = await discord(`guilds/${g.id}/members/${me.id}`);
+      const botTop = Math.max(0, ...roles.filter(r => botM.roles.includes(r.id)).map(r => r.position));
+      return { guildId: g.id, member: m, roles, botTop };
+    } catch { /* no está en ese servidor */ }
+  }
+  return null;
+}
+
+const fmtRole = (r: DRole, botTop: number) => ({
+  id: r.id, name: r.name, color: r.color ? `#${r.color.toString(16).padStart(6, "0")}` : null,
+  editable: !r.managed && r.position < botTop && r.name !== "@everyone",
+});
+
+/** Lee el perfil de Discord: sincroniza el nombre (sin [TAG]) hacia la web y devuelve los roles. */
+export const getDiscordInfo = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ token: z.string().max(4096), targetId: z.string().max(40).optional() }).parse(d))
+  .handler(async ({ data }) => {
+    const { claims, supabaseAdmin } = await authed(data.token);
+    if (!claims) return { ok: false as const, error: "Sesión inválida" };
+    const target = data.targetId ?? claims.id;
+    if (target !== claims.id && !claims.alto) return { ok: false as const, error: "Sin permiso" };
+    const { data: row } = await supabaseAdmin.from("instructors").select("name, discord_id").eq("id", target).maybeSingle();
+    if (!row?.discord_id) return { ok: false as const, error: "Sin Discord vinculado" };
+    try {
+      const ctx = await memberContext(row.discord_id);
+      if (!ctx) return { ok: false as const, error: "No está en el servidor de Discord" };
+      const raw: string = ctx.member.nick || ctx.member.user?.global_name || ctx.member.user?.username || "";
+      const limpio = raw.replace(/^\s*\[[^\]]+\]\s*/, "").trim().slice(0, 60);
+      let name = row.name as string;
+      if (limpio && limpio !== name) {
+        await supabaseAdmin.from("instructors").update({ name: limpio }).eq("id", target);
+        name = limpio;
+      }
+      const all = ctx.roles.filter(r => r.name !== "@everyone").sort((a, b) => b.position - a.position);
+      return {
+        ok: true as const, name,
+        roles: all.filter(r => ctx.member.roles.includes(r.id)).map(r => fmtRole(r, ctx.botTop)),
+        allRoles: claims.alto ? all.map(r => fmtRole(r, ctx.botTop)) : [],
+      };
+    } catch {
+      return { ok: false as const, error: "No se pudo contactar a Discord" };
+    }
+  });
+
+/** Alto Mando: da o quita un rol de Discord a un usuario. */
+export const setDiscordRole = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({
+    token: z.string().max(4096), targetId: z.string().max(40), roleId: z.string().regex(/^\d+$/), add: z.boolean(),
+  }).parse(d))
+  .handler(async ({ data }) => {
+    const { claims, supabaseAdmin } = await authed(data.token);
+    if (!claims?.alto) return { ok: false as const, error: "Solo Alto Mando" };
+    const { data: row } = await supabaseAdmin.from("instructors").select("discord_id, name").eq("id", data.targetId).maybeSingle();
+    if (!row?.discord_id) return { ok: false as const, error: "Sin Discord vinculado" };
+    try {
+      const ctx = await memberContext(row.discord_id);
+      const role = ctx?.roles.find(r => r.id === data.roleId);
+      if (!ctx || !role || !fmtRole(role, ctx.botTop).editable) return { ok: false as const, error: "El bot no puede gestionar ese rol" };
+      await discord(`guilds/${ctx.guildId}/members/${row.discord_id}/roles/${data.roleId}`, { method: data.add ? "PUT" : "DELETE" });
+      await supabaseAdmin.from("logs").insert({
+        instructor_id: claims.id, instructor_name: claims.name, action: data.add ? "DISCORD_ROL_DADO" : "DISCORD_ROL_QUITADO",
+        details: { usuario: row.name, rol: role.name },
+      });
+      return { ok: true as const };
+    } catch {
+      return { ok: false as const, error: "Discord rechazó el cambio (revisá que el bot tenga 'Gestionar roles')" };
+    }
+  });
