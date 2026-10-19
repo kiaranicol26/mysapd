@@ -173,7 +173,8 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
       if (spec.op === "select") {
         if (alto) return spec;
         const cols = (spec.columns ?? "*").split(",").map(c => c.trim()).filter(Boolean);
-        const publicCols = new Set(["id", "name", "avatar_url", "descripcion", "role"]);
+        const publicCols = new Set(["id", "name", "avatar_url", "descripcion", "role", "banner_url", "color_perfil", "pronombres",
+          "discord_username", "is_alto_mando", "can_delete", "can_emit_rnap", "can_edit_files", "can_edit_pd", "secciones"]);
         if (cols.length > 0 && cols.every(c => publicCols.has(c))) return spec;
         return { ...spec, filters: [{ type: "eq", column: "id", value: claims.id }] };
       }
