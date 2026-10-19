@@ -40,10 +40,10 @@ type Draft = {
 };
 
 const ROLES = [
-  { value: "Comisario", label: "Comisario (Alto Mando)", plural: "Comisarios" },
-  { value: "Cupula", label: "Cúpula", plural: "Cúpulas" },
+  { value: "Comisario", label: "Encargado de SAPD", plural: "Comisarios" },
+  { value: "Cupula", label: "Cúpula", plural: "Cúpula Administrativa" },
   { value: "Instructor", label: "Instructor", plural: "Instructores" },
-  { value: "Usuario", label: "Usuario", plural: "Usuarios" },
+  { value: "Usuario", label: "Agente", plural: "Agentes" },
 ];
 const roleKey = (r: string | null) => (ROLES.some(x => x.value === r) ? r! : "Usuario");
 
