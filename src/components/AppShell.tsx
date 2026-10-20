@@ -1,44 +1,50 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
 import { logAction, setSession, type Session } from "@/lib/session";
 import { getBackground } from "@/lib/appearance";
-import { LogOut, Shield, LogIn, UserRound } from "lucide-react";
+import {
+  LogOut, Shield, LogIn, UserRound, Archive, GraduationCap, FileSearch, Award, IdCard, ListOrdered,
+  MessagesSquare, Wallet, Crown, PanelLeftClose, PanelLeftOpen, Menu, type LucideIcon,
+} from "lucide-react";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { puedeVer } from "@/lib/secciones";
 
-const TABS: { to: string; label: string; public: boolean; alto: boolean; sec?: string }[] = [
-  { to: "/exsapd", label: "EX POLICÍAS", public: false, alto: false, sec: "exsapd" },
-  { to: "/aspirantes", label: "ASPIRANTES", public: false, alto: false, sec: "aspirantes" },
-  { to: "/rnap", label: "R.N.A.P", public: false, alto: false, sec: "rnap" },
-  { to: "/certificar", label: "CERTIFICAR", public: false, alto: false, sec: "certificar" },
-  { to: "/registro-policias", label: "REGISTRO PD", public: false, alto: false, sec: "registro" },
-  { to: "/policias", label: "LISTA PD", public: false, alto: false, sec: "lista" },
+type Tab = { to: string; label: string; icon: LucideIcon; public: boolean; alto: boolean; sec?: string; group: string };
 
-  { to: "/forum", label: "FORUM", public: false, alto: false, sec: "forum" },
-  { to: "/salario", label: "SALARIO", public: true, alto: false },
-  { to: "/perfil", label: "myPERFIL", public: false, alto: false },
-  { to: "/alto-mando", label: "ALTO MANDO", public: false, alto: true },
+const TABS: Tab[] = [
+  { to: "/perfil", label: "myPerfil", icon: UserRound, public: false, alto: false, group: "Cuenta" },
+  { to: "/exsapd", label: "Ex Policías", icon: Archive, public: false, alto: false, sec: "exsapd", group: "Gestión" },
+  { to: "/aspirantes", label: "Aspirantes", icon: GraduationCap, public: false, alto: false, sec: "aspirantes", group: "Gestión" },
+  { to: "/rnap", label: "R.N.A.P", icon: FileSearch, public: false, alto: false, sec: "rnap", group: "Gestión" },
+  { to: "/certificar", label: "Certificar", icon: Award, public: false, alto: false, sec: "certificar", group: "Gestión" },
+  { to: "/registro-policias", label: "Registro PD", icon: IdCard, public: false, alto: false, sec: "registro", group: "Personal" },
+  { to: "/policias", label: "Lista PD", icon: ListOrdered, public: false, alto: false, sec: "lista", group: "Personal" },
+  { to: "/salario", label: "Salario", icon: Wallet, public: true, alto: false, group: "Personal" },
+  { to: "/forum", label: "Forum", icon: MessagesSquare, public: false, alto: false, sec: "forum", group: "Comunidad" },
+  { to: "/alto-mando", label: "Alto Mando", icon: Crown, public: false, alto: true, group: "Administración" },
 ];
 
-export function AppShell({
-  session,
-  children,
-}: {
-  session: Session | null;
-  children: ReactNode;
-}) {
+export function AppShell({ session, children }: { session: Session | null; children: ReactNode }) {
   const [bg, setBg] = useState("");
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
+    setCollapsed(localStorage.getItem("sapd_sidebar") === "1");
     const load = () => getBackground().then(setBg).catch(() => {});
     load();
     window.addEventListener("background-change", load);
     return () => window.removeEventListener("background-change", load);
   }, []);
+
+  function toggleCollapse() {
+    const v = !collapsed;
+    setCollapsed(v);
+    localStorage.setItem("sapd_sidebar", v ? "1" : "0");
+  }
 
   async function handleLogout() {
     await logAction(db, session, "LOGOUT");
@@ -51,91 +57,103 @@ export function AppShell({
     if (t.alto) return session.is_alto_mando;
     return t.public || puedeVer(session, t.sec);
   });
+  const groups = [...new Set(tabs.map(t => t.group))];
+  const narrow = collapsed && !mobileOpen;
 
-  return (
-    <div
-      className="relative min-h-screen bg-slate-200 bg-center bg-cover bg-fixed font-semibold"
-      style={bg ? { backgroundImage: `url(${bg})` } : undefined}
-    >
-      {bg && <div className="absolute inset-0 bg-slate-900/40" />}
-
-      <div className="relative">
-        <header className="border-b-2 border-blue-300 bg-white/95 backdrop-blur shadow-sm">
-          <div className="w-full px-4 lg:px-6 pt-4 pb-2 relative">
-            <div className="flex flex-col items-center text-center">
-              <p className="text-blue-700 text-[10px] lg:text-xs uppercase font-bold tracking-[0.35em]">
-                San Andreas Police Department
-              </p>
-              <div className="flex items-center gap-3 mt-1">
-                <img src={sapdLogo.url} alt="SAPD" className="w-10 h-10 object-contain" />
-                <h1 className="text-2xl lg:text-3xl font-black uppercase tracking-wide text-slate-900 font-display">
-                  Welcome to <span className="text-blue-700">mySAPD</span>
-                </h1>
-              </div>
-              <p className="text-[11px] text-slate-500 font-mono mt-1">
-                {session ? (
-                  <>
-                    {session.id} · {session.name}
-                    {session.is_alto_mando && (
-                      <span className="ml-2 inline-flex items-center gap-1 text-blue-700 font-semibold">
-                        <Shield className="w-3 h-3" /> Alto Mando
-                      </span>
-                    )}
-                  </>
-                ) : (
-                  "Invitado · solo lectura"
-                )}
-              </p>
-            </div>
-
-            <div className="absolute top-3 right-4 lg:right-6 flex items-center gap-2">
-              <ThemeToggle />
-              <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 bg-blue-600 text-white border border-blue-700">
-                {session?.avatar_url ? (
-                  <img src={session.avatar_url} alt={session.name}
-                    className="w-6 h-6 object-cover border border-blue-200" />
-                ) : (
-                  <span className="w-6 h-6 flex items-center justify-center border border-blue-200 bg-blue-500">
-                    <UserRound className="w-3.5 h-3.5" />
-                  </span>
-                )}
-                <span className="text-[11px] font-bold">{session ? session.name : "Invitado"}</span>
-              </div>
-              {session ? (
-                <Button variant="outline" size="sm" onClick={handleLogout}
-                  className="rounded-none border-blue-300 bg-white text-slate-700 hover:bg-blue-50 h-8">
-                  <LogOut className="w-4 h-4 mr-1" /> Salir
-                </Button>
-              ) : (
-                <Button asChild variant="outline" size="sm"
-                  className="rounded-none border-blue-300 bg-white text-slate-700 hover:bg-blue-50 h-8">
-                  <Link to="/login"><LogIn className="w-4 h-4 mr-1" /> Iniciar sesión</Link>
-                </Button>
-              )}
-            </div>
+  const sidebar = (
+    <aside className={`flex flex-col h-full bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-all duration-200 ${narrow ? "w-[72px]" : "w-64"}`}>
+      <div className="flex items-center gap-3 px-4 h-16 border-b border-sidebar-border">
+        <img src={sapdLogo.url} alt="SAPD" className="w-9 h-9 object-contain shrink-0" />
+        {!narrow && (
+          <div className="min-w-0">
+            <p className="font-display font-black text-lg leading-none">my<span className="text-primary">SAPD</span></p>
+            <p className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground mt-1 truncate">San Andreas PD</p>
           </div>
+        )}
+      </div>
 
-
-          <nav className="w-full px-4 lg:px-6">
-            <div className="flex items-stretch gap-0 border-t-2 border-blue-600">
-              {tabs.map(t => (
-                <Link
-                  key={t.to}
-                  to={t.to as any}
-                  activeProps={{ className: "text-blue-700 bg-blue-50" }}
-                  inactiveProps={{ className: "text-slate-500 hover:text-blue-700 hover:bg-blue-50/50" }}
-                  className="relative flex-1 px-4 lg:px-6 py-3 text-center font-display font-extrabold uppercase tracking-[0.2em] text-xs lg:text-sm transition-all border-r border-blue-200 last:border-r-0"
-                >
-                  {t.label}
+      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-4">
+        {groups.map(g => (
+          <div key={g}>
+            {!narrow && <p className="px-3 mb-1 text-[10px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground">{g}</p>}
+            <div className="space-y-0.5">
+              {tabs.filter(t => t.group === g).map(t => (
+                <Link key={t.to} to={t.to as any} onClick={() => setMobileOpen(false)} title={t.label}
+                  activeProps={{ className: "bg-primary text-primary-foreground shadow-sm" }}
+                  inactiveProps={{ className: "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" }}
+                  className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-bold transition-colors ${narrow ? "justify-center" : ""}`}>
+                  <t.icon className="w-[18px] h-[18px] shrink-0" />
+                  {!narrow && <span className="truncate">{t.label}</span>}
                 </Link>
               ))}
             </div>
-          </nav>
-        </header>
+          </div>
+        ))}
+      </nav>
 
+      <div className="border-t border-sidebar-border p-2 space-y-2">
+        <div className={`flex items-center gap-2 rounded-md bg-sidebar-accent/60 p-2 ${narrow ? "justify-center" : ""}`}>
+          <div className="w-9 h-9 rounded-full overflow-hidden bg-muted flex items-center justify-center shrink-0">
+            {session?.avatar_url ? <img src={session.avatar_url} alt={session.name} className="w-full h-full object-cover" /> : <UserRound className="w-4 h-4 text-muted-foreground" />}
+          </div>
+          {!narrow && (
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-extrabold truncate">{session ? session.name : "Invitado"}</p>
+              <p className="text-[11px] text-muted-foreground truncate flex items-center gap-1">
+                {session?.is_alto_mando ? <><Shield className="w-3 h-3" /> Alto Mando</> : session ? session.role || "Usuario" : "Solo lectura"}
+              </p>
+            </div>
+          )}
+        </div>
+        <div className={`flex gap-1 ${narrow ? "flex-col items-center" : ""}`}>
+          <ThemeToggle />
+          {session ? (
+            <button onClick={handleLogout} title="Salir"
+              className="flex-1 flex items-center justify-center gap-2 h-9 rounded-md text-sm font-bold hover:bg-destructive/10 hover:text-destructive transition-colors px-2">
+              <LogOut className="w-4 h-4" />{!narrow && "Salir"}
+            </button>
+          ) : (
+            <Link to="/login" title="Iniciar sesión" className="flex-1 flex items-center justify-center gap-2 h-9 rounded-md text-sm font-bold hover:bg-sidebar-accent px-2">
+              <LogIn className="w-4 h-4" />{!narrow && "Iniciar sesión"}
+            </Link>
+          )}
+          <button onClick={toggleCollapse} title={collapsed ? "Expandir" : "Contraer"}
+            className="hidden lg:flex items-center justify-center w-9 h-9 rounded-md hover:bg-sidebar-accent">
+            {collapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
+
+  return (
+    <div className="relative min-h-screen bg-background bg-center bg-cover bg-fixed font-semibold"
+      style={bg ? { backgroundImage: `url(${bg})` } : undefined}>
+      {bg && <div className="fixed inset-0 bg-background/40 pointer-events-none" />}
+
+      <div className="hidden lg:block fixed inset-y-0 left-0 z-30">{sidebar}</div>
+
+      {mobileOpen && (
+        <div className="lg:hidden fixed inset-0 z-40 flex">
+          {sidebar}
+          <button className="flex-1 bg-foreground/40" aria-label="Cerrar menú" onClick={() => setMobileOpen(false)} />
+        </div>
+      )}
+
+      <div className={`relative transition-all duration-200 ${collapsed ? "lg:pl-[72px]" : "lg:pl-64"}`}>
+        <header className="sticky top-0 z-20 h-16 flex items-center gap-3 px-4 lg:px-6 bg-card/90 backdrop-blur border-b">
+          <button className="lg:hidden w-9 h-9 flex items-center justify-center rounded-md hover:bg-muted" aria-label="Abrir menú" onClick={() => setMobileOpen(true)}>
+            <Menu className="w-5 h-5" />
+          </button>
+          <div>
+            <p className="text-primary text-[10px] uppercase font-bold tracking-[0.3em]">San Andreas Police Department</p>
+            <h1 className="font-display font-black text-lg lg:text-xl leading-tight text-foreground">
+              Welcome to <span className="text-primary">mySAPD</span>
+            </h1>
+          </div>
+        </header>
         <main className="w-full p-4 lg:p-6">{children}</main>
       </div>
     </div>
   );
 }
-
