@@ -249,9 +249,11 @@ export type Database = {
           id: string
           is_alto_mando: boolean
           name: string
+          placa: string | null
           pronombres: string | null
           role: string
           secciones: string[]
+          sync_avatar: boolean
         }
         Insert: {
           avatar_url?: string | null
@@ -269,9 +271,11 @@ export type Database = {
           id: string
           is_alto_mando?: boolean
           name: string
+          placa?: string | null
           pronombres?: string | null
           role?: string
           secciones?: string[]
+          sync_avatar?: boolean
         }
         Update: {
           avatar_url?: string | null
@@ -289,9 +293,11 @@ export type Database = {
           id?: string
           is_alto_mando?: boolean
           name?: string
+          placa?: string | null
           pronombres?: string | null
           role?: string
           secciones?: string[]
+          sync_avatar?: boolean
         }
         Relationships: []
       }

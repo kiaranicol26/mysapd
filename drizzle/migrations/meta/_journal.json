@@ -15,6 +15,13 @@
       "when": 1792356862750,
       "tag": "0001_profile_banner",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792458699804,
+      "tag": "0002_discord_avatar_placa",
+      "breakpoints": true
     }
   ]
 }
