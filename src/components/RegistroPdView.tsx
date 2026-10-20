@@ -70,7 +70,7 @@ export function RegistroPdView({ session }: { session: Session }) {
   }
 
   async function loadAvatars() {
-    const { data } = await db.from("instructors").select("id, name, avatar_url, role, descripcion, banner_url, color_perfil, pronombres, discord_username, is_alto_mando, can_delete, can_emit_rnap, can_edit_files, can_edit_pd, secciones");
+    const { data } = await db.from("instructors").select("id, name, avatar_url, role, descripcion, banner_url, color_perfil, pronombres, discord_username, is_alto_mando, can_delete, can_emit_rnap, can_edit_files, can_edit_pd, secciones, placa");
     if (!data) return;
     setUsers(data as any);
     const map: Record<string, string> = {};
@@ -221,7 +221,7 @@ export function RegistroPdView({ session }: { session: Session }) {
                 extra={m && (
                   <div className="border-t pt-2 text-sm text-foreground">
                     <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Registro PD</p>
-                    <p className="font-bold">{m.rango ?? "Sin rango"} · Placa {m.placa || "—"}</p>
+                    <p className="font-bold">{m.rango ?? "Sin rango"} · Placa {(u as any).placa || m.placa || "—"}</p>
                     <p className="text-xs text-muted-foreground">{m.division && m.division !== "Ninguna" ? `${m.division} · ${m.division_rango ?? "—"}` : "Sin división"}</p>
                   </div>
                 )}

@@ -22,11 +22,14 @@ export function MiPerfilView({ session }: { session: Session }) {
   const [pronombres, setPronombres] = useState("");
   const [discordUser, setDiscordUser] = useState<string | null>(null);
   const [syncNick, setSyncNick] = useState(true);
+  const [placa, setPlaca] = useState("");
+  const [placaOrig, setPlacaOrig] = useState("");
+  const [syncAvatar, setSyncAvatar] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     db.from("instructors")
-      .select("name, avatar_url, descripcion, banner_url, color_perfil, pronombres, discord_username")
+      .select("name, avatar_url, descripcion, banner_url, color_perfil, pronombres, discord_username, placa, sync_avatar")
       .eq("id", session.id)
       .maybeSingle()
       .then(({ data }) => {
@@ -39,6 +42,8 @@ export function MiPerfilView({ session }: { session: Session }) {
         setColor(d.color_perfil ?? "#5865f2");
         setPronombres(d.pronombres ?? "");
         setDiscordUser(d.discord_username ?? null);
+        setPlaca(d.placa ?? ""); setPlacaOrig(d.placa ?? "");
+        setSyncAvatar(d.sync_avatar ?? true);
       });
   }, [session.id]);
 
@@ -53,13 +58,15 @@ export function MiPerfilView({ session }: { session: Session }) {
     const { error } = await db.from("instructors").update({
       name: n, avatar_url: avatar.trim() || null, descripcion: descripcion.trim() || null,
       banner_url: banner.trim() || null, color_perfil: color, pronombres: pronombres.trim() || null,
+      placa: placa.trim() || null, sync_avatar: syncAvatar,
     } as any).eq("id", session.id);
     if (error) { setSaving(false); return toast.error("No se pudo guardar"); }
     setSession({ ...session, name: n, avatar_url: avatar.trim() || null, descripcion: descripcion.trim() || null });
     await logAction(db, session, "PERFIL_ACTUALIZADO", { id: session.id });
     toast.success("Perfil actualizado");
-    if (discordUser && syncNick && n !== session.name) {
-      const r = await syncDiscordNick({ data: { token: getToken() ?? "", nick: n.slice(0, 32) } });
+    if (discordUser && syncNick && (n !== session.name || placa.trim() !== placaOrig)) {
+      const r = await syncDiscordNick({ data: { token: getToken() ?? "", nick: n.slice(0, 32), placa: placa.trim() || undefined } });
+      if (r.ok) setPlacaOrig(placa.trim());
       r.ok ? toast.success("Apodo actualizado en Discord") : toast.error(r.error);
     }
     setSaving(false);
@@ -87,7 +94,7 @@ export function MiPerfilView({ session }: { session: Session }) {
           <div className="mt-2 rounded-md bg-muted/60 p-3 space-y-3">
             <div>
               <p className="text-xl font-extrabold text-foreground leading-tight">{name || "Sin nombre"}</p>
-              <p className="text-sm text-muted-foreground">{discordUser ? `@${discordUser}` : session.id}{pronombres && ` · ${pronombres}`}</p>
+              <p className="text-sm text-muted-foreground">{discordUser ? `@${discordUser}` : "Sin Discord"}{placa && ` · Placa #${placa}`}{pronombres && ` · ${pronombres}`}</p>
             </div>
             <div className="border-t pt-2">
               <p className={label}>Rango</p>
@@ -104,7 +111,12 @@ export function MiPerfilView({ session }: { session: Session }) {
                 <p className={label}>Roles en Discord</p>
                 <div className="mt-1">
                   <DiscordRoles targetId={session.id} canManage={session.is_alto_mando}
-                    onName={n => { if (n !== session.name) { setName(n); setSession({ ...session, name: n }); } }} />
+                    onName={i => {
+                      setName(i.name); setPlaca(i.placa ?? ""); setPlacaOrig(i.placa ?? "");
+                      if (syncAvatar && i.avatar_url) setAvatar(i.avatar_url);
+                      if (i.name !== session.name || (syncAvatar && i.avatar_url && i.avatar_url !== session.avatar_url))
+                        setSession({ ...session, name: i.name, avatar_url: syncAvatar && i.avatar_url ? i.avatar_url : session.avatar_url });
+                    }} />
                 </div>
               </div>
             )}
@@ -146,6 +158,11 @@ export function MiPerfilView({ session }: { session: Session }) {
             )}
           </div>
           <div>
+            <label className={label}>Número de placa</label>
+            <Input value={placa} maxLength={6} inputMode="numeric" placeholder="0000" onChange={e => setPlaca(e.target.value.replace(/\D/g, ""))} className={inp} />
+            <p className="mt-1 text-[11px] text-muted-foreground">Es el #0000 al final de tu apodo de Discord.</p>
+          </div>
+          <div>
             <label className={label}>Pronombres</label>
             <Input value={pronombres} maxLength={40} placeholder="ella/él..." onChange={e => setPronombres(e.target.value)} className={inp} />
           </div>
@@ -154,6 +171,12 @@ export function MiPerfilView({ session }: { session: Session }) {
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className={label}>Foto de perfil</label>
+            {discordUser && (
+              <label className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                <input type="checkbox" checked={syncAvatar} onChange={e => setSyncAvatar(e.target.checked)} />
+                Usar mi avatar de Discord (se actualiza solo)
+              </label>
+            )}
             <div className="mt-1 flex gap-2">
               <Input value={avatar.startsWith("data:") ? "" : avatar} placeholder={avatar.startsWith("data:") ? "Imagen subida" : "https://..."} onChange={e => setAvatar(e.target.value)} className="h-10 rounded-none" />
               <label className="flex h-10 px-3 items-center border cursor-pointer hover:bg-muted">
