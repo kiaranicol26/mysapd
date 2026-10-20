@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { db } from "@/lib/db";
+import { ProfileCard, type ProfileUser } from "@/components/ProfileCard";
 import { Session, logAction } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,7 +70,7 @@ export function RegistroPdView({ session }: { session: Session }) {
   }
 
   async function loadAvatars() {
-    const { data } = await db.from("instructors").select("id, name, avatar_url, role");
+    const { data } = await db.from("instructors").select("id, name, avatar_url, role, descripcion, banner_url, color_perfil, pronombres, discord_username, is_alto_mando, can_delete, can_emit_rnap, can_edit_files, can_edit_pd, secciones");
     if (!data) return;
     setUsers(data as any);
     const map: Record<string, string> = {};
@@ -216,31 +217,15 @@ export function RegistroPdView({ session }: { session: Session }) {
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {g.items.map(({ u, m }) => (
-              <Card key={u.id} className="overflow-hidden border-2 border-blue-300 bg-white rounded-none shadow-sm">
-                <div className="h-1 bg-blue-700" />
-                <div className="p-3 flex gap-3">
-                  <div className="w-20 h-20 shrink-0 border-2 border-blue-300 bg-blue-50 flex items-center justify-center overflow-hidden">
-                    {(u.avatar_url || m?.foto) ? (
-                      <img src={(u.avatar_url || m?.foto)!} alt={u.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <UserRound className="w-8 h-8 text-blue-300" />
-                    )}
+              <ProfileCard key={u.id} u={u as ProfileUser} foto={m?.foto}
+                extra={m && (
+                  <div className="border-t pt-2 text-sm text-foreground">
+                    <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Registro PD</p>
+                    <p className="font-bold">{m.rango ?? "Sin rango"} · Placa {m.placa || "—"}</p>
+                    <p className="text-xs text-muted-foreground">{m.division && m.division !== "Ninguna" ? `${m.division} · ${m.division_rango ?? "—"}` : "Sin división"}</p>
                   </div>
-                  <div className="min-w-0 space-y-1">
-                    <p className="font-mono font-black text-slate-900 truncate">{u.name}</p>
-                    <p className="text-[11px] uppercase tracking-widest font-extrabold text-blue-700">
-                      {m?.rango ?? "Sin rango"}
-                    </p>
-                    <p className="text-[11px] font-bold text-slate-600">
-                      Placa: <span className="font-mono">{m?.placa || "—"}</span>
-                    </p>
-                    <p className="text-[11px] font-bold text-slate-600 truncate">
-                      {m?.division && m.division !== "Ninguna"
-                        ? `${m.division} · ${m.division_rango ?? "—"}`
-                        : "Sin división"}
-                    </p>
-                  </div>
-                </div>
+                )}
+                footer={<>
                 {session.is_alto_mando && (
                   <div className="border-t border-blue-200 p-2">
                     <Select value={roleKey(u.role)} onValueChange={v => changeRole(u, v)}>
@@ -263,7 +248,7 @@ export function RegistroPdView({ session }: { session: Session }) {
                     </Button>
                   </div>
                 )}
-              </Card>
+                </>} />
             ))}
           </div>
         </div>
