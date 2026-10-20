@@ -113,7 +113,7 @@ export const verifyDiscordCode = createServerFn({ method: "POST" })
 
 /** Cambia el apodo del usuario en los servidores de Discord donde está el bot. */
 export const syncDiscordNick = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({ token: z.string().max(4096), nick: z.string().trim().min(1).max(32) }).parse(d))
+  .inputValidator((d: unknown) => z.object({ token: z.string().max(4096), nick: z.string().trim().min(1).max(32), placa: z.string().trim().regex(/^\d{0,6}$/).optional() }).parse(d))
   .handler(async ({ data }) => {
     const { verifyToken } = await import("@/lib/dbAuth.server");
     const claims = verifyToken(data.token);
@@ -129,8 +129,9 @@ export const syncDiscordNick = createServerFn({ method: "POST" })
           const m = await discord(`guilds/${g.id}/members/${row.discord_id}`);
           const actual: string = m?.nick || m?.user?.global_name || m?.user?.username || "";
           const tag = actual.match(/^\s*(\[[^\]]+\])/)?.[1];
-          const limpio = data.nick.replace(/^\s*\[[^\]]+\]\s*/, "");
-          const nick = (tag ? `${tag} ${limpio}` : data.nick).slice(0, 32);
+          const base = data.nick.replace(/^\s*\[[^\]]+\]\s*/, "").replace(/\s*#\d+\s*$/, "");
+          const suf = data.placa ? ` #${data.placa}` : "";
+          const nick = `${tag ? `${tag} ` : ""}${base.slice(0, 32 - suf.length - (tag ? tag.length + 1 : 0))}${suf}`;
           await discord(`guilds/${g.id}/members/${row.discord_id}`, { method: "PATCH", body: JSON.stringify({ nick }) });
           done++;
         } catch { /* no está en ese servidor o falta permiso */ }
@@ -180,21 +181,28 @@ export const getDiscordInfo = createServerFn({ method: "POST" })
     if (!claims) return { ok: false as const, error: "Sesión inválida" };
     const target = data.targetId ?? claims.id;
     if (target !== claims.id && !claims.alto) return { ok: false as const, error: "Sin permiso" };
-    const { data: row } = await supabaseAdmin.from("instructors").select("name, discord_id").eq("id", target).maybeSingle();
+    const { data: row } = await supabaseAdmin.from("instructors").select("name, discord_id, placa, sync_avatar, avatar_url").eq("id", target).maybeSingle();
     if (!row?.discord_id) return { ok: false as const, error: "Sin Discord vinculado" };
     try {
       const ctx = await memberContext(row.discord_id);
       if (!ctx) return { ok: false as const, error: "No está en el servidor de Discord" };
       const raw: string = ctx.member.nick || ctx.member.user?.global_name || ctx.member.user?.username || "";
-      const limpio = raw.replace(/^\s*\[[^\]]+\]\s*/, "").trim().slice(0, 60);
+      const sinTag = raw.replace(/^\s*\[[^\]]+\]\s*/, "");
+      const placa = sinTag.match(/#(\d+)\s*$/)?.[1] ?? null;
+      const limpio = sinTag.replace(/\s*#\d+\s*$/, "").trim().slice(0, 60);
+      const u = ctx.member.user;
+      const avatar = ctx.member.avatar
+        ? `https://cdn.discordapp.com/guilds/${ctx.guildId}/users/${u.id}/avatars/${ctx.member.avatar}.png?size=512`
+        : u?.avatar ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=512` : null;
       let name = row.name as string;
-      if (limpio && limpio !== name) {
-        await supabaseAdmin.from("instructors").update({ name: limpio }).eq("id", target);
-        name = limpio;
-      }
+      const patch: Record<string, unknown> = {};
+      if (limpio && limpio !== name) { patch.name = limpio; name = limpio; }
+      if (placa !== row.placa) patch.placa = placa;
+      if (row.sync_avatar && avatar && avatar !== row.avatar_url) patch.avatar_url = avatar;
+      if (Object.keys(patch).length) await supabaseAdmin.from("instructors").update(patch).eq("id", target);
       const all = ctx.roles.filter(r => r.name !== "@everyone").sort((a, b) => b.position - a.position);
       return {
-        ok: true as const, name,
+        ok: true as const, name, placa, avatar_url: (patch.avatar_url as string | undefined) ?? row.avatar_url,
         roles: all.filter(r => ctx.member.roles.includes(r.id)).map(r => fmtRole(r, ctx.botTop)),
         allRoles: claims.alto ? all.map(r => fmtRole(r, ctx.botTop)) : [],
       };
