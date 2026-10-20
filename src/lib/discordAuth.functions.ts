@@ -195,14 +195,14 @@ export const getDiscordInfo = createServerFn({ method: "POST" })
         ? `https://cdn.discordapp.com/guilds/${ctx.guildId}/users/${u.id}/avatars/${ctx.member.avatar}.png?size=512`
         : u?.avatar ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=512` : null;
       let name = row.name as string;
-      const patch: Record<string, unknown> = {};
+      const patch: { name?: string; placa?: string | null; avatar_url?: string } = {};
       if (limpio && limpio !== name) { patch.name = limpio; name = limpio; }
       if (placa !== row.placa) patch.placa = placa;
       if (row.sync_avatar && avatar && avatar !== row.avatar_url) patch.avatar_url = avatar;
       if (Object.keys(patch).length) await supabaseAdmin.from("instructors").update(patch).eq("id", target);
       const all = ctx.roles.filter(r => r.name !== "@everyone").sort((a, b) => b.position - a.position);
       return {
-        ok: true as const, name, placa, avatar_url: (patch.avatar_url as string | undefined) ?? row.avatar_url,
+        ok: true as const, name, placa, avatar_url: patch.avatar_url ?? row.avatar_url,
         roles: all.filter(r => ctx.member.roles.includes(r.id)).map(r => fmtRole(r, ctx.botTop)),
         allRoles: claims.alto ? all.map(r => fmtRole(r, ctx.botTop)) : [],
       };
