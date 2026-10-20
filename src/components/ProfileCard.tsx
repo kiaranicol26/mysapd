@@ -5,7 +5,7 @@ import { Check, X, UserRound } from "lucide-react";
 export type ProfileUser = {
   id: string; name: string; avatar_url: string | null; role: string | null;
   descripcion?: string | null; banner_url?: string | null; color_perfil?: string | null; pronombres?: string | null;
-  discord_username?: string | null; is_alto_mando?: boolean; can_delete?: boolean; can_emit_rnap?: boolean;
+  discord_username?: string | null; placa?: string | null; is_alto_mando?: boolean; can_delete?: boolean; can_emit_rnap?: boolean;
   can_edit_files?: boolean; can_edit_pd?: boolean; secciones?: string[] | null;
 };
 
@@ -22,7 +22,7 @@ export function ProfileCard({ u, foto, extra, footer }: { u: ProfileUser; foto?:
     { label: "Editar archivos", on: !!u.can_edit_files },
     { label: "Editar Registro PD", on: !!u.can_edit_pd },
   ];
-  const sub = [u.discord_username ? `@${u.discord_username}` : null, u.pronombres].filter(Boolean).join(" · ");
+  const sub = [u.discord_username ? `@${u.discord_username}` : null, u.placa ? `Placa #${u.placa}` : null, u.pronombres].filter(Boolean).join(" · ");
   return (
     <div className="overflow-hidden rounded-lg border bg-card shadow-lg flex flex-col">
       <div className="h-20 bg-cover bg-center" style={{ backgroundColor: color, backgroundImage: u.banner_url ? `url(${u.banner_url})` : undefined }} />
