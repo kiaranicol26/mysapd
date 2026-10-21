@@ -1,23 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-const GATEWAY = "https://connector-gateway.lovable.dev/discord";
+import { FACTION_GUILD_ID, REGISTRATION_MEMBERSHIP_ERROR, LOGIN_MEMBERSHIP_ERROR } from "./discordMembership";
 const usernameSchema = z.string().trim().toLowerCase().min(2).max(32).regex(/^[a-z0-9_.]+$/, "Usuario de Discord inválido");
-
 async function discord(path: string, init?: RequestInit) {
-  const lovable = process.env["LOVABLE_API_KEY"];
-  const key = process.env["DISCORD_API_KEY"];
-  if (!lovable || !key) throw new Error("El bot de Discord no está configurado");
-  const res = await fetch(`${GATEWAY}/${path}`, {
-    ...init,
-    headers: { Authorization: `Bearer ${lovable}`, "X-Connection-Api-Key": key, "Content-Type": "application/json" },
-  });
-  if (!res.ok) {
-    console.error(`Discord ${path} [${res.status}]: ${await res.text()}`);
-    throw new Error(`Discord ${res.status}`);
-  }
-  if (res.status === 204) return null;
-  return res.json();
+  const gateway = await import("./discordGateway.server");
+  return gateway.discord(path, init);
 }
 
 async function hashCode(discordId: string, code: string) {
@@ -27,12 +15,9 @@ async function hashCode(discordId: string, code: string) {
 }
 
 async function findMember(username: string): Promise<{ id: string; username: string } | null> {
-  const guilds = (await discord("users/@me/guilds?limit=200")) as { id: string }[];
-  for (const g of guilds) {
-    const members = (await discord(`guilds/${g.id}/members/search?query=${encodeURIComponent(username)}&limit=25`)) as any[];
-    const m = members.find(x => x.user?.username?.toLowerCase() === username && !x.user?.bot);
-    if (m) return { id: m.user.id, username: m.user.username };
-  }
+  const members = (await discord(`guilds/${FACTION_GUILD_ID}/members/search?query=${encodeURIComponent(username)}&limit=25`)) as any[];
+  const m = members.find(x => x.user?.username?.toLowerCase() === username && !x.user?.bot);
+  if (m) return { id: m.user.id, username: m.user.username };
   return null;
 }
 
@@ -42,7 +27,7 @@ export const requestDiscordCode = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     try {
       const member = await findMember(data.username);
-      if (!member) return { ok: false as const, error: "No encontramos ese usuario en el servidor de Discord" };
+      if (!member) return { ok: false as const, error: REGISTRATION_MEMBERSHIP_ERROR };
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { data: prev } = await supabaseAdmin.from("discord_verifications").select("created_at").eq("discord_id", member.id).maybeSingle();
       if (prev && Date.now() - new Date(prev.created_at).getTime() < 60_000)
@@ -95,6 +80,13 @@ export const verifyDiscordCode = createServerFn({ method: "POST" })
     }
 
     let { data: row } = await supabaseAdmin.from("instructors").select(LOGIN_COLUMNS).eq("discord_id", v.discord_id).maybeSingle();
+    const { factionMember, checkInstructorMembership } = await import("./discordGateway.server");
+    try {
+      const allowed = row ? await checkInstructorMembership(row, supabaseAdmin as any) : !!(await factionMember(v.discord_id));
+      if (!allowed) return { ok: false as const, error: row ? LOGIN_MEMBERSHIP_ERROR : REGISTRATION_MEMBERSHIP_ERROR };
+    } catch {
+      return { ok: false as const, error: "No se pudo verificar Discord. Intentá nuevamente en unos momentos." };
+    }
     if (!row) {
       if (!data.name) return { ok: false as const, needsName: true as const };
       const { randomBytes } = await import("crypto");
@@ -115,14 +107,13 @@ export const verifyDiscordCode = createServerFn({ method: "POST" })
 export const syncDiscordNick = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ token: z.string().max(4096), nick: z.string().trim().min(1).max(32), placa: z.string().trim().regex(/^\d{0,6}$/).optional() }).parse(d))
   .handler(async ({ data }) => {
-    const { verifyToken } = await import("@/lib/dbAuth.server");
-    const claims = verifyToken(data.token);
+    const { claims } = await authed(data.token);
     if (!claims) return { ok: false as const, error: "Sesión inválida" };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row } = await supabaseAdmin.from("instructors").select("discord_id").eq("id", claims.id).maybeSingle();
     if (!row?.discord_id) return { ok: false as const, error: "Tu cuenta no tiene Discord vinculado" };
     try {
-      const guilds = (await discord("users/@me/guilds?limit=200")) as { id: string }[];
+      const guilds = [{ id: FACTION_GUILD_ID }];
       let done = 0;
       for (const g of guilds) {
         try {
@@ -154,18 +145,13 @@ async function authed(token: string) {
 
 /** Busca al miembro en los servidores del bot y devuelve servidor, miembro y roles asignables. */
 async function memberContext(discordId: string) {
-  const guilds = (await discord("users/@me/guilds?limit=200")) as { id: string }[];
-  for (const g of guilds) {
-    try {
-      const m = await discord(`guilds/${g.id}/members/${discordId}`);
-      const roles = (await discord(`guilds/${g.id}/roles`)) as DRole[];
-      const me = await discord(`users/@me`);
-      const botM = await discord(`guilds/${g.id}/members/${me.id}`);
-      const botTop = Math.max(0, ...roles.filter(r => botM.roles.includes(r.id)).map(r => r.position));
-      return { guildId: g.id, member: m, roles, botTop };
-    } catch { /* no está en ese servidor */ }
-  }
-  return null;
+  const m = await discord(`guilds/${FACTION_GUILD_ID}/members/${discordId}`);
+  if (!m) return null;
+  const roles = (await discord(`guilds/${FACTION_GUILD_ID}/roles`)) as DRole[];
+  const me = await discord("users/@me");
+  const botM = await discord(`guilds/${FACTION_GUILD_ID}/members/${me.id}`);
+  const botTop = Math.max(0, ...roles.filter(r => botM?.roles.includes(r.id)).map(r => r.position));
+  return { guildId: FACTION_GUILD_ID, member: m, roles, botTop };
 }
 
 const fmtRole = (r: DRole, botTop: number) => ({
