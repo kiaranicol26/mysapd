@@ -32,6 +32,8 @@ type Instructor = {
   can_edit_pd: boolean;
   secciones: string[] | null;
   discord_username: string | null;
+  discord_id: string | null;
+  discord_inhabilitado: boolean;
 
   created_at: string;
   created_by: string | null;
@@ -52,6 +54,7 @@ export function AltoMando({ session }: { session: Session }) {
   const [newId, setNewId] = useState("");
   const [newName, setNewName] = useState("");
   const [newRole, setNewRole] = useState("Instructor");
+  const [newDiscordId, setNewDiscordId] = useState("");
 
   const [webhook, setWebhook] = useState("");
   const [savingHook, setSavingHook] = useState(false);
@@ -138,6 +141,7 @@ export function AltoMando({ session }: { session: Session }) {
     const isAlto = newRole === "Comisario";
     const { error } = await db.from("instructors").insert({
       id, name,
+      discord_id: newDiscordId.trim(),
       is_alto_mando: isAlto,
       role: newRole,
       can_delete: isAlto,
@@ -147,7 +151,7 @@ export function AltoMando({ session }: { session: Session }) {
     if (error) return toast.error(error.message);
     await logAction(db, session, "CREATE_ID", { id, name, role: newRole });
     toast.success(`ID ${id} (${name}) creado como ${newRole}`);
-    setNewId(""); setNewName(""); setNewRole("Instructor");
+    setNewId(""); setNewName(""); setNewRole("Instructor"); setNewDiscordId("");
     loadAll();
   }
 
@@ -196,13 +200,14 @@ export function AltoMando({ session }: { session: Session }) {
               </h2>
             </div>
           </div>
-          <form onSubmit={createInstructor} className="grid gap-3 md:grid-cols-4">
+          <form onSubmit={createInstructor} className="grid gap-3 md:grid-cols-5">
             <Input placeholder="ID de acceso" value={newId}
               onChange={e => setNewId(e.target.value)}
               className="h-11 rounded-none border-blue-300 bg-white text-slate-800 font-mono uppercase focus:border-blue-600" />
             <Input placeholder="Nombre" value={newName}
               onChange={e => setNewName(e.target.value)}
               className="h-11 rounded-none border-blue-300 bg-white text-slate-800 focus:border-blue-600" />
+            <Input placeholder="ID de Discord" aria-label="ID de Discord del nuevo usuario" required inputMode="numeric" value={newDiscordId} onChange={e => setNewDiscordId(e.target.value.replace(/\D/g, ""))} />
             <Select value={newRole} onValueChange={setNewRole}>
               <SelectTrigger className="h-11 rounded-none border-blue-300 bg-white text-slate-800">
                 <SelectValue placeholder="Rol" />
@@ -365,7 +370,16 @@ export function AltoMando({ session }: { session: Session }) {
                 {instructors.map(i => (
                   <tr key={i.id} className="border-t border-slate-200 hover:bg-blue-50 transition-colors">
                     <td className="p-3 font-mono text-slate-700 border border-slate-200">{i.id}</td>
-                    <td className="p-3 text-slate-700 border border-slate-200">{i.name}{i.discord_username && (
+                    <td className="p-3 text-slate-700 border border-slate-200">{i.name}
+                      {i.discord_inhabilitado && <span className="mt-1 block w-fit border border-destructive/30 bg-destructive/10 px-2 py-1 text-xs font-bold text-destructive">Inhabilitado</span>}
+                      <Input aria-label={`ID de Discord de ${i.name}`} placeholder="Vincular ID de Discord" defaultValue={i.discord_id ?? ""} key={`${i.id}-${i.discord_id ?? ""}`} inputMode="numeric" className="mt-2 min-w-40 text-xs" onBlur={async e => {
+                        const discordId = e.target.value.trim();
+                        if (discordId === (i.discord_id ?? "")) return;
+                        if (!/^\d{17,20}$/.test(discordId)) { toast.error("ID de Discord inválido"); return; }
+                        const { error } = await db.from("instructors").update({ discord_id: discordId }).eq("id", i.id);
+                        if (error) toast.error(error.message); else { toast.success("Discord vinculado"); loadAll(); }
+                      }} />
+                      {i.discord_username && (
                       <>
                         <span className="block text-[11px] text-slate-400">@{i.discord_username}</span>
                         <LazyDiscordRoles targetId={i.id} />

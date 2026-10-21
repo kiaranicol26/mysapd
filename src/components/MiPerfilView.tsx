@@ -146,6 +146,10 @@ export function MiPerfilView({ session }: { session: Session }) {
       {/* Editor */}
       <div className="rounded-lg border bg-card p-6 space-y-5">
         <h2 className="font-display font-extrabold uppercase tracking-widest text-sm text-foreground">Editar perfil</h2>
+        <div className="border-b pb-4">
+          <p className={label}>Mi ID de acceso</p>
+          <p className="mt-1 break-all font-mono font-bold text-foreground">{session.id}</p>
+        </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className={label}>Nombre</label>

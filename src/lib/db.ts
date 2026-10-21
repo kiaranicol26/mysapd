@@ -1,4 +1,6 @@
 import { dbQuery } from "@/lib/data.functions";
+import { LOGIN_MEMBERSHIP_ERROR } from "@/lib/discordMembership";
+import { toast } from "sonner";
 
 const TOKEN_KEY = "instructor_token";
 
@@ -92,6 +94,10 @@ class Builder implements PromiseLike<Result> {
     try {
       const res = (await dbQuery({ data: { ...this.spec, token: getToken() } })) as Result;
       if (res?.error?.message === "No autorizado") handleUnauthorized();
+      if (res?.error?.message === LOGIN_MEMBERSHIP_ERROR) {
+        if (typeof window !== "undefined" && localStorage.getItem("instructor_session")) toast.error(LOGIN_MEMBERSHIP_ERROR);
+        handleUnauthorized();
+      }
       return res;
     } catch (e) {
       return { data: null, error: { message: (e as Error).message || "Error de red" } };

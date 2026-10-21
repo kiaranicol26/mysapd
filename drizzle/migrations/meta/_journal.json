@@ -22,6 +22,13 @@
       "when": 1792458699804,
       "tag": "0002_discord_avatar_placa",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792557258745,
+      "tag": "0003_discord_membership_status_and_pd_link",
+      "breakpoints": true
     }
   ]
 }

@@ -43,7 +43,7 @@ const TABLES = new Set([
 
 const PUBLIC_BG_KEY = "site_background_url";
 export const LOGIN_COLUMNS =
-  "id, name, is_alto_mando, can_delete, can_emit_rnap, can_edit_files, can_edit_pd, role, avatar_url, descripcion, secciones";
+  "id, name, is_alto_mando, can_delete, can_emit_rnap, can_edit_files, can_edit_pd, role, avatar_url, descripcion, secciones, discord_id, discord_inhabilitado";
 
 /** Builds the browser session and signed token from a fresh instructors row. */
 export function buildLogin(r: any) {
@@ -73,6 +73,9 @@ export async function freshClaims(claims: Claims | null, admin: { from: (t: stri
   if (!claims) return null;
   const { data: r } = await admin.from("instructors").select(LOGIN_COLUMNS).eq("id", claims.id).maybeSingle();
   if (!r) return null;
+  const { checkInstructorMembership } = await import("./discordGateway.server");
+  const { LOGIN_MEMBERSHIP_ERROR } = await import("./discordMembership");
+  if (!(await checkInstructorMembership(r, admin))) throw new Error(LOGIN_MEMBERSHIP_ERROR);
   const alto = !!r.is_alto_mando;
   return {
     ...claims, name: r.name, alto, del: alto || !!r.can_delete, rnap: alto || !!r.can_emit_rnap,
@@ -174,7 +177,7 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
         if (alto) return spec;
         const cols = (spec.columns ?? "*").split(",").map(c => c.trim()).filter(Boolean);
         const publicCols = new Set(["id", "name", "avatar_url", "descripcion", "role", "banner_url", "color_perfil", "pronombres", "placa",
-          "discord_username", "is_alto_mando", "can_delete", "can_emit_rnap", "can_edit_files", "can_edit_pd", "secciones"]);
+          "discord_username", "is_alto_mando", "can_delete", "can_emit_rnap", "can_edit_files", "can_edit_pd", "secciones", "discord_inhabilitado"]);
         if (cols.length > 0 && cols.every(c => publicCols.has(c))) return spec;
         return { ...spec, filters: [{ type: "eq", column: "id", value: claims.id }] };
       }
@@ -217,6 +220,22 @@ type AdminClient = {
 
 export async function runQuery(spec: QuerySpec, claims: Claims | null, admin: AdminClient) {
   const safe = authorize(spec, claims);
+  if (safe.table === "instructors" && ["insert", "upsert", "update"].includes(safe.op)) {
+    const values = Array.isArray(safe.values) ? safe.values : [safe.values];
+    const { factionMember } = await import("./discordGateway.server");
+    const { membershipDisabled, REGISTRATION_MEMBERSHIP_ERROR } = await import("./discordMembership");
+    for (const value of values) {
+      if (!value || typeof value !== "object") deny("Datos inválidos");
+      if (safe.op !== "update" || Object.hasOwn(value, "discord_id")) {
+        if (typeof value.discord_id !== "string" || !/^\d{17,20}$/.test(value.discord_id)) deny(REGISTRATION_MEMBERSHIP_ERROR);
+        const member = await factionMember(value.discord_id);
+        if (membershipDisabled(member, value.discord_id)) deny(REGISTRATION_MEMBERSHIP_ERROR);
+        value.discord_username = member.user.username;
+        value.discord_inhabilitado = false;
+        value.discord_checked_at = new Date().toISOString();
+      }
+    }
+  }
   let q = admin.from(safe.table) as any;
 
   if (safe.op === "select") q = q.select(safe.columns ?? "*");

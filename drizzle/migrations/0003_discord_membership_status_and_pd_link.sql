@@ -1,0 +1,5 @@
+ALTER TABLE public.instructors ADD COLUMN IF NOT EXISTS discord_inhabilitado boolean NOT NULL DEFAULT false;
+ALTER TABLE public.instructors ADD COLUMN IF NOT EXISTS discord_checked_at timestamptz;
+ALTER TABLE public.pd_members ADD COLUMN IF NOT EXISTS instructor_id text REFERENCES public.instructors(id) ON DELETE SET NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS pd_members_instructor_id_unique ON public.pd_members(instructor_id) WHERE instructor_id IS NOT NULL;
+UPDATE public.pd_members p SET instructor_id = i.id FROM public.instructors i WHERE lower(trim(p.nombre)) = lower(trim(i.name)) AND p.instructor_id IS NULL AND (SELECT count(*) FROM public.instructors x WHERE lower(trim(x.name)) = lower(trim(p.nombre))) = 1 AND (SELECT count(*) FROM public.pd_members x WHERE lower(trim(x.nombre)) = lower(trim(p.nombre))) = 1;

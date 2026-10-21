@@ -7,6 +7,7 @@ export type ProfileUser = {
   descripcion?: string | null; banner_url?: string | null; color_perfil?: string | null; pronombres?: string | null;
   discord_username?: string | null; placa?: string | null; is_alto_mando?: boolean; can_delete?: boolean; can_emit_rnap?: boolean;
   can_edit_files?: boolean; can_edit_pd?: boolean; secciones?: string[] | null;
+  discord_inhabilitado?: boolean;
 };
 
 const label = "text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground";
@@ -33,6 +34,7 @@ export function ProfileCard({ u, foto, extra, footer }: { u: ProfileUser; foto?:
         <div className="mt-2 rounded-md bg-muted/60 p-3 space-y-2">
           <div>
             <p className="text-lg font-extrabold text-foreground leading-tight">{u.name}</p>
+            {u.discord_inhabilitado && <span className="inline-flex border border-destructive/30 bg-destructive/10 px-2 py-1 text-xs font-bold text-destructive">Inhabilitado</span>}
             {sub && <p className="text-sm text-muted-foreground">{sub}</p>}
           </div>
           <div className="border-t pt-2">

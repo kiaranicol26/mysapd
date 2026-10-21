@@ -29,8 +29,17 @@ export const dbQuery = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { verifyToken, runQuery, freshClaims } = await import("@/lib/dbAuth.server");
     const { token, ...spec } = data;
-    const claims = await freshClaims(verifyToken(token ?? null), supabaseAdmin as any);
     try {
+      const claims = await freshClaims(verifyToken(token ?? null), supabaseAdmin as any);
+      if (spec.table === "instructors" && spec.op === "select" && claims) {
+        const { checkInstructorMembership } = await import("./discordGateway.server");
+        const { data: allRows } = await supabaseAdmin.from("instructors").select("id, discord_id, discord_checked_at");
+        const rows = allRows?.filter(row => !row.discord_checked_at || Date.now() - new Date(row.discord_checked_at).getTime() > 60_000);
+        // Reconcile on staff-list reads; outages never mark people as departed.
+        for (let start = 0; rows && start < rows.length; start += 5) {
+          await Promise.all(rows.slice(start, start + 5).map(row => checkInstructorMembership(row, supabaseAdmin as any).catch(() => null)));
+        }
+      }
       return await runQuery(spec as any, claims, supabaseAdmin as any);
     } catch (e) {
       return { data: null, error: { message: (e as Error).message || "No autorizado" } };
@@ -43,6 +52,13 @@ export const loginWithId = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { buildLogin, LOGIN_COLUMNS } = await import("@/lib/dbAuth.server");
     const { data: row } = await supabaseAdmin.from("instructors").select(LOGIN_COLUMNS).eq("id", data.id).maybeSingle();
-    if (!row) return { ok: false as const };
-    return { ok: true as const, ...buildLogin(row) };
+    if (!row) return { ok: false as const, error: "ID no encontrado" };
+    const { checkInstructorMembership } = await import("./discordGateway.server");
+    const { LOGIN_MEMBERSHIP_ERROR } = await import("./discordMembership");
+    try {
+      if (!(await checkInstructorMembership(row, supabaseAdmin as any))) return { ok: false as const, error: LOGIN_MEMBERSHIP_ERROR };
+      return { ok: true as const, ...buildLogin(row) };
+    } catch {
+      return { ok: false as const, error: "No se pudo verificar Discord. Intentá nuevamente en unos momentos." };
+    }
   });
