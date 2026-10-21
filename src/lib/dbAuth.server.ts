@@ -220,6 +220,22 @@ type AdminClient = {
 
 export async function runQuery(spec: QuerySpec, claims: Claims | null, admin: AdminClient) {
   const safe = authorize(spec, claims);
+  if (safe.table === "instructors" && ["insert", "upsert", "update"].includes(safe.op)) {
+    const values = Array.isArray(safe.values) ? safe.values : [safe.values];
+    const { factionMember } = await import("./discordGateway.server");
+    const { membershipDisabled, REGISTRATION_MEMBERSHIP_ERROR } = await import("./discordMembership");
+    for (const value of values) {
+      if (!value || typeof value !== "object") deny("Datos inválidos");
+      if (safe.op !== "update" || Object.hasOwn(value, "discord_id")) {
+        if (typeof value.discord_id !== "string" || !/^\d{17,20}$/.test(value.discord_id)) deny(REGISTRATION_MEMBERSHIP_ERROR);
+        const member = await factionMember(value.discord_id);
+        if (membershipDisabled(member, value.discord_id)) deny(REGISTRATION_MEMBERSHIP_ERROR);
+        value.discord_username = member.user.username;
+        value.discord_inhabilitado = false;
+        value.discord_checked_at = new Date().toISOString();
+      }
+    }
+  }
   let q = admin.from(safe.table) as any;
 
   if (safe.op === "select") q = q.select(safe.columns ?? "*");
