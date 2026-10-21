@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { db } from "@/lib/db";
 import { ProfileCard, type ProfileUser } from "@/components/ProfileCard";
+import { personnelForUser } from "@/lib/pdProfile";
 import { Session, logAction } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,7 @@ import { Trash2, Plus, Pencil, BadgeCheck, UserRound, Upload } from "lucide-reac
 
 type PdMember = {
   id: string;
+  instructor_id: string | null;
   nombre: string;
   rango: string | null;
   foto: string | null;
@@ -32,6 +34,7 @@ type PdMember = {
 
 type Draft = {
   id?: string;
+  instructor_id?: string;
   nombre: string;
   rango: string;
   foto: string;
@@ -46,7 +49,7 @@ const ROLES = [
   { value: "Instructor", label: "Instructor", plural: "Instructores" },
   { value: "Usuario", label: "Agente", plural: "Agentes" },
 ];
-const roleKey = (r: string | null) => (ROLES.some(x => x.value === r) ? r! : "Usuario");
+const roleKey = (r: string | null) => (r && ROLES.some(x => x.value === r) ? r : "Usuario");
 
 const emptyDraft: Draft = {
   nombre: "", rango: "Oficial", foto: "", placa: "",
@@ -70,7 +73,7 @@ export function RegistroPdView({ session }: { session: Session }) {
   }
 
   async function loadAvatars() {
-    const { data } = await db.from("instructors").select("id, name, avatar_url, role, descripcion, banner_url, color_perfil, pronombres, discord_username, is_alto_mando, can_delete, can_emit_rnap, can_edit_files, can_edit_pd, secciones, placa");
+    const { data } = await db.from("instructors").select("id, name, avatar_url, role, descripcion, banner_url, color_perfil, pronombres, discord_username, is_alto_mando, can_delete, can_emit_rnap, can_edit_files, can_edit_pd, secciones, placa, discord_inhabilitado");
     if (!data) return;
     setUsers(data as any);
     const map: Record<string, string> = {};
@@ -91,15 +94,16 @@ export function RegistroPdView({ session }: { session: Session }) {
     setOpen(true);
   }
 
-  function openEdit(m: PdMember) {
+  function openEdit(u: { id: string; name: string }, m?: PdMember) {
     setDraft({
-      id: m.id,
-      nombre: m.nombre,
-      rango: m.rango ?? "Oficial",
-      foto: m.foto ?? "",
-      placa: m.placa ?? "",
-      division: m.division ?? "Ninguna",
-      division_rango: m.division_rango ?? "Miembro",
+      id: m?.id,
+      instructor_id: u.id,
+      nombre: u.name,
+      rango: m?.rango ?? "Oficial",
+      foto: m?.foto ?? "",
+      placa: m?.placa ?? "",
+      division: m?.division ?? "Ninguna",
+      division_rango: m?.division_rango ?? "Miembro",
     });
     setOpen(true);
   }
@@ -119,6 +123,7 @@ export function RegistroPdView({ session }: { session: Session }) {
     setSaving(true);
     const values = {
       nombre,
+      ...(draft.instructor_id ? { instructor_id: draft.instructor_id } : {}),
       rango: draft.rango || null,
       foto: draft.foto.trim() || null,
       placa: draft.placa.trim() || null,
@@ -145,9 +150,8 @@ export function RegistroPdView({ session }: { session: Session }) {
   }
 
   const groups = useMemo(() => {
-    const byName = new Map(members.map(m => [m.nombre.trim().toLowerCase(), m]));
     const rows = users
-      .map(u => ({ u, m: byName.get(u.name.trim().toLowerCase()) }))
+      .map(u => ({ u, m: personnelForUser(members, u) }))
       .filter(({ u, m }) =>
         (u.name + " " + (u.role ?? "") + " " + (m?.rango ?? "") + " " + (m?.placa ?? "") + " " + (m?.division ?? ""))
           .toLowerCase().includes(q.toLowerCase()));
@@ -236,16 +240,16 @@ export function RegistroPdView({ session }: { session: Session }) {
                     </Select>
                   </div>
                 )}
-                {canEdit && m && (
+                {canEdit && (
                   <div className="flex border-t border-blue-200">
-                    <Button variant="ghost" onClick={() => openEdit(m)}
+                    <Button variant="ghost" onClick={() => openEdit(u, m)}
                       className="flex-1 rounded-none h-9 text-blue-700 hover:bg-blue-50 font-bold text-xs uppercase">
                       <Pencil className="w-3.5 h-3.5 mr-1" /> Editar
                     </Button>
-                    <Button variant="ghost" onClick={() => remove(m)}
+                    {m && <Button variant="ghost" onClick={() => remove(m)}
                       className="rounded-none h-9 w-10 hover:bg-red-100">
                       <Trash2 className="w-4 h-4 text-red-600" />
-                    </Button>
+                    </Button>}
                   </div>
                 )}
                 </>} />
@@ -264,7 +268,7 @@ export function RegistroPdView({ session }: { session: Session }) {
         <DialogContent className="rounded-none border-2 border-blue-300 bg-white">
           <DialogHeader>
             <DialogTitle className="font-display font-black uppercase tracking-wide text-slate-900">
-              {draft.id ? "Editar policía" : "Nuevo policía"}
+              {draft.instructor_id || draft.id ? "Editar policía" : "Nuevo policía"}
             </DialogTitle>
           </DialogHeader>
 
@@ -290,6 +294,7 @@ export function RegistroPdView({ session }: { session: Session }) {
             </div>
 
             <Input placeholder="Nombre_Apellido" value={draft.nombre}
+              disabled={!!draft.instructor_id}
               onChange={e => setDraft(d => ({ ...d, nombre: e.target.value }))}
               className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800" />
 
