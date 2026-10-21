@@ -34,12 +34,12 @@ export function LoginView() {
 
     setLoading(true);
 
-    const res = await loginWithId({ data: { id: id.trim() } });
+    const res = await loginWithId({ data: { id: id.trim() } }).catch(() => ({ ok: false as const, error: "No se pudo verificar Discord. Intentá nuevamente." }));
 
     setLoading(false);
 
     if (!res.ok) {
-      toast.error("ID no encontrado");
+      toast.error(res.error);
       return;
     }
 
