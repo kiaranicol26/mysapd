@@ -33,7 +33,8 @@ export const dbQuery = createServerFn({ method: "POST" })
       const claims = await freshClaims(verifyToken(token ?? null), supabaseAdmin as any);
       if (spec.table === "instructors" && spec.op === "select" && claims) {
         const { checkInstructorMembership } = await import("./discordGateway.server");
-        const { data: rows } = await supabaseAdmin.from("instructors").select("id, discord_id");
+        const { data: allRows } = await supabaseAdmin.from("instructors").select("id, discord_id, discord_checked_at");
+        const rows = allRows?.filter(row => !row.discord_checked_at || Date.now() - new Date(row.discord_checked_at).getTime() > 60_000);
         // Reconcile on staff-list reads; outages never mark people as departed.
         for (let start = 0; rows && start < rows.length; start += 5) {
           await Promise.all(rows.slice(start, start + 5).map(row => checkInstructorMembership(row, supabaseAdmin as any).catch(() => null)));
