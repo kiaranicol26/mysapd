@@ -23,3 +23,25 @@ test("unlinked accounts persist disabled status", async () => {
   expect(await checkInstructorMembership({ id: "old", discord_id: null }, admin)).toBe(false);
   expect(patch.discord_inhabilitado).toBe(true);
 });
+test("rejoining the faction restores access; provider outages never disable the account", async () => {
+  const originalFetch = globalThis.fetch;
+  const previousKey = process.env.DISCORD_API_KEY;
+  const previousGateway = process.env.LOVABLE_API_KEY;
+  process.env.DISCORD_API_KEY = "test";
+  process.env.LOVABLE_API_KEY = "test";
+  let patch;
+  const admin = { from: () => ({ update: v => { patch = v; return { eq: async () => ({ error: null }) }; } }) };
+  try {
+    globalThis.fetch = async () => Response.json({ user: { id: "123" } });
+    expect(await checkInstructorMembership({ id: "returning", discord_id: "123" }, admin)).toBe(true);
+    expect(patch.discord_inhabilitado).toBe(false);
+    patch = undefined;
+    globalThis.fetch = async () => new Response("", { status: 429 });
+    await expect(checkInstructorMembership({ id: "returning", discord_id: "123" }, admin)).rejects.toThrow();
+    expect(patch).toBeUndefined();
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (previousKey === undefined) delete process.env.DISCORD_API_KEY; else process.env.DISCORD_API_KEY = previousKey;
+    if (previousGateway === undefined) delete process.env.LOVABLE_API_KEY; else process.env.LOVABLE_API_KEY = previousGateway;
+  }
+});
