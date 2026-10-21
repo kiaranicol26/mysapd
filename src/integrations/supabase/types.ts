@@ -244,7 +244,9 @@ export type Database = {
           created_at: string
           created_by: string | null
           descripcion: string | null
+          discord_checked_at: string | null
           discord_id: string | null
+          discord_inhabilitado: boolean
           discord_username: string | null
           id: string
           is_alto_mando: boolean
@@ -266,7 +268,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descripcion?: string | null
+          discord_checked_at?: string | null
           discord_id?: string | null
+          discord_inhabilitado?: boolean
           discord_username?: string | null
           id: string
           is_alto_mando?: boolean
@@ -288,7 +292,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descripcion?: string | null
+          discord_checked_at?: string | null
           discord_id?: string | null
+          discord_inhabilitado?: boolean
           discord_username?: string | null
           id?: string
           is_alto_mando?: boolean
@@ -337,6 +343,7 @@ export type Database = {
           es_instructor: boolean
           foto: string | null
           id: string
+          instructor_id: string | null
           nombre: string
           placa: string | null
           rango: string | null
@@ -351,6 +358,7 @@ export type Database = {
           es_instructor?: boolean
           foto?: string | null
           id?: string
+          instructor_id?: string | null
           nombre: string
           placa?: string | null
           rango?: string | null
@@ -365,13 +373,22 @@ export type Database = {
           es_instructor?: boolean
           foto?: string | null
           id?: string
+          instructor_id?: string | null
           nombre?: string
           placa?: string | null
           rango?: string | null
           sueldo_defecto?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pd_members_instructor_id_fkey"
+            columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "instructors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       records: {
         Row: {
