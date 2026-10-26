@@ -388,6 +388,31 @@ export function RegistroPdView({ session }: { session: Session }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!capConfirm} onOpenChange={v => !v && setCapConfirm(null)}>
+        <DialogContent className="rounded-none border-2 border-blue-300 bg-white max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-display font-black uppercase tracking-wide text-slate-900">
+              {capConfirm?.value ? "Marcar" : "Desmarcar"} capacitación de {capConfirm?.m.nombre}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm font-semibold text-slate-600">
+            ¿Confirmás {capConfirm?.value ? "marcar" : "desmarcar"} la capacitación{" "}
+            <span className="font-black text-blue-700">
+              {CAPACITACIONES.find(c => c.key === capConfirm?.cap)?.label}
+            </span>{" "}
+            para <span className="font-black">{capConfirm?.m.nombre}</span>?
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCapConfirm(null)}
+              className="rounded-none border-blue-300 font-bold">NO</Button>
+            <Button onClick={toggleCap} disabled={capSaving}
+              className="rounded-none bg-blue-700 hover:bg-blue-800 text-white font-bold">
+              {capSaving ? "Guardando…" : "SI"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
