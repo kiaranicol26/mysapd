@@ -29,8 +29,24 @@ type PdMember = {
   division_rango: string | null;
   sueldo_defecto: number;
   es_instructor: boolean;
+  cap_m4: boolean;
+  cap_edc: boolean;
+  cap_mary: boolean;
+  cap_sniper: boolean;
+  cap_air: boolean;
+  cap_ak47: boolean;
   created_at: string;
 };
+
+const CAPACITACIONES = [
+  { key: "cap_m4", label: "M4" },
+  { key: "cap_edc", label: "EDC" },
+  { key: "cap_mary", label: "MARY" },
+  { key: "cap_sniper", label: "SNIPER" },
+  { key: "cap_air", label: "AIR" },
+  { key: "cap_ak47", label: "AK47" },
+] as const;
+type CapKey = (typeof CAPACITACIONES)[number]["key"];
 
 type Draft = {
   id?: string;
@@ -64,8 +80,11 @@ export function RegistroPdView({ session }: { session: Session }) {
   const [saving, setSaving] = useState(false);
   const [avatars, setAvatars] = useState<Record<string, string>>({});
   const [users, setUsers] = useState<{ id: string; name: string; avatar_url: string | null; role: string | null }[]>([]);
+  const [capConfirm, setCapConfirm] = useState<{ m: PdMember; cap: CapKey; value: boolean } | null>(null);
+  const [capSaving, setCapSaving] = useState(false);
 
   const canEdit = !!session.is_alto_mando || !!session.can_edit_pd;
+  const canEditCaps = canEdit || session.role === "Instructor" || session.role === "Cupula";
 
   async function load() {
     const { data } = await db.from("pd_members").select("*").order("nombre", { ascending: true });
