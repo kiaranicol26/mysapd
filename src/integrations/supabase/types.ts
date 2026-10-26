@@ -336,6 +336,12 @@ export type Database = {
       }
       pd_members: {
         Row: {
+          cap_air: boolean
+          cap_ak47: boolean
+          cap_edc: boolean
+          cap_m4: boolean
+          cap_mary: boolean
+          cap_sniper: boolean
           created_at: string
           created_by: string | null
           division: string | null
@@ -351,6 +357,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cap_air?: boolean
+          cap_ak47?: boolean
+          cap_edc?: boolean
+          cap_m4?: boolean
+          cap_mary?: boolean
+          cap_sniper?: boolean
           created_at?: string
           created_by?: string | null
           division?: string | null
@@ -366,6 +378,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cap_air?: boolean
+          cap_ak47?: boolean
+          cap_edc?: boolean
+          cap_m4?: boolean
+          cap_mary?: boolean
+          cap_sniper?: boolean
           created_at?: string
           created_by?: string | null
           division?: string | null

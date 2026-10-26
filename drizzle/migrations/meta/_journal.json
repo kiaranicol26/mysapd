@@ -29,6 +29,13 @@
       "when": 1792557258745,
       "tag": "0003_discord_membership_status_and_pd_link",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793058840066,
+      "tag": "0004_pd_members_capacitaciones",
+      "breakpoints": true
     }
   ]
 }
