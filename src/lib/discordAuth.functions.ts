@@ -103,6 +103,42 @@ export const verifyDiscordCode = createServerFn({ method: "POST" })
     return { ok: true as const, ...buildLogin(row) };
   });
 
+/** Reenvía por MD la clave de acceso actual a quien ya tiene usuario en la web. */
+export const recoverDiscordKey = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ username: usernameSchema }).parse(d))
+  .handler(async ({ data }) => {
+    try {
+      const member = await findMember(data.username);
+      if (!member) return { ok: false as const, error: REGISTRATION_MEMBERSHIP_ERROR };
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: row } = await supabaseAdmin.from("instructors").select("id, name").eq("discord_id", member.id).maybeSingle();
+      if (!row) return { ok: false as const, error: "Todavía no tenés usuario en la web. Registrate con un código." };
+      const { data: prev } = await supabaseAdmin.from("discord_verifications").select("created_at").eq("discord_id", member.id).maybeSingle();
+      if (prev && Date.now() - new Date(prev.created_at).getTime() < 60_000)
+        return { ok: false as const, error: "Esperá un minuto antes de pedirla de nuevo" };
+      await supabaseAdmin.from("discord_verifications").upsert({
+        discord_id: member.id, discord_username: member.username, code_hash: "recuperacion",
+        attempts: 0, expires_at: new Date().toISOString(), created_at: new Date().toISOString(),
+      });
+      const dm = await discord("users/@me/channels", { method: "POST", body: JSON.stringify({ recipient_id: member.id }) });
+      await discord(`channels/${dm.id}/messages`, {
+        method: "POST",
+        body: JSON.stringify({
+          embeds: [{
+            title: "mySAPD · Tu clave de acceso",
+            description: `Hola **${row.name}**, tu clave de acceso a la web es:\n\n**${row.id}**\n\nIngresala en la pantalla de acceso. Si no la pediste, avisá a un Alto Mando.`,
+            color: 0x5865f2,
+            footer: { text: "San Andreas Police Department" },
+          }],
+        }),
+      });
+      return { ok: true as const };
+    } catch (e) {
+      console.error("recoverDiscordKey", e);
+      return { ok: false as const, error: "No se pudo enviar el MD. Revisá que tengas los mensajes directos del servidor habilitados." };
+    }
+  });
+
 /** Cambia el apodo del usuario en los servidores de Discord donde está el bot. */
 export const syncDiscordNick = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ token: z.string().max(4096), nick: z.string().trim().min(1).max(32), placa: z.string().trim().regex(/^\d{0,6}$/).optional() }).parse(d))
