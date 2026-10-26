@@ -149,9 +149,15 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
       if (write && !alto) deny("Solo Alto Mando puede editar");
       return spec;
 
-    case "pd_members":
-      if (write && !alto && !claims?.pd) deny("Sin permiso para editar el registro de policías");
-      return spec;
+    case "pd_members": {
+      if (!write) return spec;
+      if (alto || claims?.pd) return spec;
+      // Instructores y Cúpula solo pueden marcar/desmarcar capacitaciones.
+      const CAP_FIELDS = new Set(["cap_m4", "cap_edc", "cap_mary", "cap_sniper", "cap_air", "cap_ak47"]);
+      const staffRole = claims?.role === "Instructor" || claims?.role === "Cupula";
+      if (spec.op === "update" && staffRole && patchKeys(spec.values).every(k => CAP_FIELDS.has(k))) return spec;
+      deny("Sin permiso para editar el registro de policías");
+    }
 
 
     case "app_settings":
