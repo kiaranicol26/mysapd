@@ -39,6 +39,9 @@ export const dbQuery = createServerFn({ method: "POST" })
         for (let start = 0; rows && start < rows.length; start += 5) {
           await Promise.all(rows.slice(start, start + 5).map(row => checkInstructorMembership(row, supabaseAdmin as any).catch(() => null)));
         }
+        // Auto-create web users for Discord members with the Policia role (rate-limited internally).
+        const { syncGuildPolice } = await import("./discordGateway.server");
+        await syncGuildPolice(supabaseAdmin as any).catch(() => null);
       }
       return await runQuery(spec as any, claims, supabaseAdmin as any);
     } catch (e) {
