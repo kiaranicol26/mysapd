@@ -189,6 +189,20 @@ export function RegistroPdView({ session }: { session: Session }) {
     loadAvatars();
   }
 
+  async function toggleCap() {
+    if (!capConfirm) return;
+    const { m, cap, value } = capConfirm;
+    setCapSaving(true);
+    const { error } = await db.from("pd_members").update({ [cap]: value } as any).eq("id", m.id);
+    setCapSaving(false);
+    if (error) return toast.error(error.message);
+    const label = CAPACITACIONES.find(c => c.key === cap)?.label ?? cap;
+    await logAction(db, session, value ? "CAPACITACION_MARCADA" : "CAPACITACION_DESMARCADA", { nombre: m.nombre, capacitacion: label });
+    toast.success(`${label} ${value ? "marcada" : "desmarcada"} para ${m.nombre}`);
+    setCapConfirm(null);
+    load();
+  }
+
   return (
     <div className="space-y-4">
       <Card className="overflow-hidden border-2 border-blue-300 bg-white shadow-md rounded-none">
@@ -242,10 +256,24 @@ export function RegistroPdView({ session }: { session: Session }) {
             {g.items.map(({ u, m }) => (
               <ProfileCard key={u.id} u={u as ProfileUser} foto={m?.foto}
                 extra={m && (
-                  <div className="border-t pt-2 text-sm text-foreground">
+                  <div className="border-t pt-2 text-sm text-foreground space-y-2">
                     <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Registro PD</p>
                     <p className="font-bold">{m.rango ?? "Sin rango"} · Placa {(u as any).placa || m.placa || "—"}</p>
                     <p className="text-xs text-muted-foreground">{m.division && m.division !== "Ninguna" ? `${m.division} · ${m.division_rango ?? "—"}` : "Sin división"}</p>
+                    <div className="border-t pt-2">
+                      <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground mb-1">Capacitaciones</p>
+                      <div className="grid grid-cols-3 gap-1">
+                        {CAPACITACIONES.map(c => (
+                          <label key={c.key}
+                            className={`flex items-center gap-1.5 text-xs font-bold ${canEditCaps ? "cursor-pointer" : "cursor-default opacity-80"}`}>
+                            <input type="checkbox" checked={!!m[c.key]} disabled={!canEditCaps}
+                              onChange={() => canEditCaps && setCapConfirm({ m, cap: c.key, value: !m[c.key] })}
+                              className="accent-blue-700 w-3.5 h-3.5" />
+                            {c.label}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
                 footer={<>
