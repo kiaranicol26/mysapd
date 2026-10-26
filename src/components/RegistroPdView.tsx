@@ -29,8 +29,24 @@ type PdMember = {
   division_rango: string | null;
   sueldo_defecto: number;
   es_instructor: boolean;
+  cap_m4: boolean;
+  cap_edc: boolean;
+  cap_mary: boolean;
+  cap_sniper: boolean;
+  cap_air: boolean;
+  cap_ak47: boolean;
   created_at: string;
 };
+
+const CAPACITACIONES = [
+  { key: "cap_m4", label: "M4" },
+  { key: "cap_edc", label: "EDC" },
+  { key: "cap_mary", label: "MARY" },
+  { key: "cap_sniper", label: "SNIPER" },
+  { key: "cap_air", label: "AIR" },
+  { key: "cap_ak47", label: "AK47" },
+] as const;
+type CapKey = (typeof CAPACITACIONES)[number]["key"];
 
 type Draft = {
   id?: string;
@@ -64,8 +80,11 @@ export function RegistroPdView({ session }: { session: Session }) {
   const [saving, setSaving] = useState(false);
   const [avatars, setAvatars] = useState<Record<string, string>>({});
   const [users, setUsers] = useState<{ id: string; name: string; avatar_url: string | null; role: string | null }[]>([]);
+  const [capConfirm, setCapConfirm] = useState<{ m: PdMember; cap: CapKey; value: boolean } | null>(null);
+  const [capSaving, setCapSaving] = useState(false);
 
   const canEdit = !!session.is_alto_mando || !!session.can_edit_pd;
+  const canEditCaps = canEdit || session.role === "Instructor" || session.role === "Cupula";
 
   async function load() {
     const { data } = await db.from("pd_members").select("*").order("nombre", { ascending: true });
@@ -170,6 +189,20 @@ export function RegistroPdView({ session }: { session: Session }) {
     loadAvatars();
   }
 
+  async function toggleCap() {
+    if (!capConfirm) return;
+    const { m, cap, value } = capConfirm;
+    setCapSaving(true);
+    const { error } = await db.from("pd_members").update({ [cap]: value } as any).eq("id", m.id);
+    setCapSaving(false);
+    if (error) return toast.error(error.message);
+    const label = CAPACITACIONES.find(c => c.key === cap)?.label ?? cap;
+    await logAction(db, session, value ? "CAPACITACION_MARCADA" : "CAPACITACION_DESMARCADA", { nombre: m.nombre, capacitacion: label });
+    toast.success(`${label} ${value ? "marcada" : "desmarcada"} para ${m.nombre}`);
+    setCapConfirm(null);
+    load();
+  }
+
   return (
     <div className="space-y-4">
       <Card className="overflow-hidden border-2 border-blue-300 bg-white shadow-md rounded-none">
@@ -223,10 +256,24 @@ export function RegistroPdView({ session }: { session: Session }) {
             {g.items.map(({ u, m }) => (
               <ProfileCard key={u.id} u={u as ProfileUser} foto={m?.foto}
                 extra={m && (
-                  <div className="border-t pt-2 text-sm text-foreground">
+                  <div className="border-t pt-2 text-sm text-foreground space-y-2">
                     <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Registro PD</p>
                     <p className="font-bold">{m.rango ?? "Sin rango"} · Placa {(u as any).placa || m.placa || "—"}</p>
                     <p className="text-xs text-muted-foreground">{m.division && m.division !== "Ninguna" ? `${m.division} · ${m.division_rango ?? "—"}` : "Sin división"}</p>
+                    <div className="border-t pt-2">
+                      <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground mb-1">Capacitaciones</p>
+                      <div className="grid grid-cols-3 gap-1">
+                        {CAPACITACIONES.map(c => (
+                          <label key={c.key}
+                            className={`flex items-center gap-1.5 text-xs font-bold ${canEditCaps ? "cursor-pointer" : "cursor-default opacity-80"}`}>
+                            <input type="checkbox" checked={!!m[c.key]} disabled={!canEditCaps}
+                              onChange={() => canEditCaps && setCapConfirm({ m, cap: c.key, value: !m[c.key] })}
+                              className="accent-blue-700 w-3.5 h-3.5" />
+                            {c.label}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
                 footer={<>
@@ -337,6 +384,31 @@ export function RegistroPdView({ session }: { session: Session }) {
             <Button onClick={save} disabled={saving}
               className="rounded-none bg-blue-700 hover:bg-blue-800 text-white font-bold">
               {saving ? "Guardando…" : "Guardar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!capConfirm} onOpenChange={v => !v && setCapConfirm(null)}>
+        <DialogContent className="rounded-none border-2 border-blue-300 bg-white max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-display font-black uppercase tracking-wide text-slate-900">
+              {capConfirm?.value ? "Marcar" : "Desmarcar"} capacitación de {capConfirm?.m.nombre}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm font-semibold text-slate-600">
+            ¿Confirmás {capConfirm?.value ? "marcar" : "desmarcar"} la capacitación{" "}
+            <span className="font-black text-blue-700">
+              {CAPACITACIONES.find(c => c.key === capConfirm?.cap)?.label}
+            </span>{" "}
+            para <span className="font-black">{capConfirm?.m.nombre}</span>?
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCapConfirm(null)}
+              className="rounded-none border-blue-300 font-bold">NO</Button>
+            <Button onClick={toggleCap} disabled={capSaving}
+              className="rounded-none bg-blue-700 hover:bg-blue-800 text-white font-bold">
+              {capSaving ? "Guardando…" : "SI"}
             </Button>
           </DialogFooter>
         </DialogContent>
