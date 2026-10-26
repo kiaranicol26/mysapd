@@ -28,3 +28,89 @@ export async function checkInstructorMembership(row: { id: string; discord_id?: 
   if (error) throw new Error("No se pudo actualizar el estado de la cuenta");
   return !disabled;
 }
+
+type GuildMember = {
+  user?: { id: string; username: string; global_name?: string | null; bot?: boolean };
+  nick?: string | null;
+  roles?: string[];
+};
+
+const SCAN_KEY = "guild_scan_at";
+const SCAN_INTERVAL = 10 * 60_000;
+
+function nickParts(m: GuildMember) {
+  const raw = m.nick || m.user?.global_name || m.user?.username || "";
+  const tag = raw.match(/^\s*(\[[^\]]+\])/)?.[1] ?? null;
+  const sinTag = raw.replace(/^\s*\[[^\]]+\]\s*/, "");
+  const placa = sinTag.match(/#(\d+)\s*$/)?.[1] ?? null;
+  const name = sinTag.replace(/\s*#\d+\s*$/, "").trim().slice(0, 60);
+  return { tag, placa, name };
+}
+
+function buildNick(tag: string | null, name: string, placa: string | null) {
+  const suf = ` #${placa ?? "0000"}`;
+  const pre = tag ? `${tag} ` : "";
+  return `${pre}${name.slice(0, 32 - suf.length - pre.length)}${suf}`;
+}
+
+/**
+ * Escanea el servidor de Discord: a todo miembro con el rol "Policia" sin
+ * usuario en la web le crea uno (rol Usuario, sin apartados) y le ajusta el
+ * apodo a [TAG]Nombre #placa. Limitado a una pasada cada 10 minutos.
+ */
+export async function syncGuildPolice(admin: { from: (table: string) => any }) {
+  try {
+    const { data: marker } = await admin.from("app_settings").select("value").eq("key", SCAN_KEY).maybeSingle();
+    if (marker?.value && Date.now() - new Date(marker.value).getTime() < SCAN_INTERVAL) return null;
+    await admin.from("app_settings").upsert({ key: SCAN_KEY, value: new Date().toISOString() });
+
+    const roles = (await discord(`guilds/${FACTION_GUILD_ID}/roles`)) as { id: string; name: string }[];
+    const policeRole = roles.find(r => r.name.toLowerCase().includes("polic"));
+    if (!policeRole) return null;
+
+    const members: GuildMember[] = [];
+    for (let after = "0"; members.length < 5000;) {
+      const page = (await discord(`guilds/${FACTION_GUILD_ID}/members?limit=1000&after=${after}`)) as GuildMember[];
+      if (!Array.isArray(page) || !page.length) break;
+      members.push(...page);
+      if (page.length < 1000) break;
+      after = page[page.length - 1].user!.id;
+    }
+
+    const police = members.filter(m => !m.user?.bot && m.user?.id && m.roles?.includes(policeRole.id));
+    const { data: existing } = await admin.from("instructors").select("id, name, discord_id, placa");
+    const byDiscord = new Map((existing ?? []).filter((r: any) => r.discord_id).map((r: any) => [r.discord_id, r]));
+
+    let created = 0, renamed = 0;
+    for (const m of police) {
+      const { tag, placa, name } = nickParts(m);
+      if (!name) continue;
+      let row = byDiscord.get(m.user!.id) as any;
+      if (!row) {
+        const { randomBytes } = await import("crypto");
+        const id = `DC-${randomBytes(4).toString("hex").toUpperCase()}`;
+        const ins = await admin.from("instructors").insert({
+          id, name, role: "Usuario", discord_id: m.user!.id, discord_username: m.user!.username,
+          secciones: [], created_by: "Auto Discord", placa,
+        }).select("id, name, discord_id, placa").single();
+        if (ins.error || !ins.data) continue;
+        row = ins.data;
+        byDiscord.set(m.user!.id, row);
+        created++;
+        await admin.from("logs").insert({ instructor_id: id, instructor_name: name, action: "REGISTRO_AUTO_DISCORD", details: { discord: m.user!.username } });
+      }
+      const want = buildNick(tag, row.name, row.placa ?? placa);
+      const current = m.nick || "";
+      if (current !== want) {
+        try {
+          await discord(`guilds/${FACTION_GUILD_ID}/members/${m.user!.id}`, { method: "PATCH", body: JSON.stringify({ nick: want }) });
+          renamed++;
+        } catch { /* sin permiso para ese miembro (dueño, rol más alto) */ }
+      }
+    }
+    return { created, renamed, total: police.length };
+  } catch (e) {
+    console.error("syncGuildPolice", e);
+    return null;
+  }
+}
