@@ -270,7 +270,7 @@ export function RegistroPdView({ session }: { session: Session }) {
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {g.items.map(({ u, m }) => (
-              <ProfileCard key={u.id} u={u as ProfileUser} foto={m?.foto}
+              <ProfileCard key={u.id} u={{ ...u, role: m?.es_instructor ? "Instructor" : roleKey(u.role) } as ProfileUser} foto={m?.foto}
                 extra={m && (
                   <div className="border-t pt-2 text-sm text-foreground space-y-2">
                     <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Registro PD</p>
