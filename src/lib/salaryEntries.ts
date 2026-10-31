@@ -41,8 +41,10 @@ export function calculateSalaryExtras(
   divisionBonus = 15,
   instructorBonus = 10,
 ): number {
-  const hasDivision = (value: string | null) =>
-    !!value?.trim() && value !== "Ninguna" && value !== "N/A";
+  const hasDivision = (value: string | null) => {
+    const normalized = value?.trim();
+    return !!normalized && normalized !== "Ninguna" && normalized !== "N/A";
+  };
 
   return (hasDivision(member.division) ? divisionBonus : 0) +
     (hasDivision(member.division2) ? divisionBonus : 0) +
