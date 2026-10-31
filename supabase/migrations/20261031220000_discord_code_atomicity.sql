@@ -57,6 +57,8 @@ BEGIN
   SELECT * INTO verification
     FROM public.discord_verifications
    WHERE discord_username = p_discord_username
+   ORDER BY created_at DESC
+   LIMIT 1
    FOR UPDATE;
 
   IF NOT FOUND THEN
