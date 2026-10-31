@@ -1,26 +1,40 @@
+export const TAG_RANGOS: Record<string, string> = {
+  CMS: "Comisario",
+  INS: "Instructor",
+  CPT: "Capitan",
+  TTE: "Teniente",
+  SGT: "Sargento",
+  CBO: "Cabo",
+  OFC: "Oficial",
+  CDT: "Cadete",
+};
+
+export function rangoFromTag(tag?: string | null): string | null {
+  if (!tag) return null;
+  return TAG_RANGOS[tag.replace(/^\\[|\\]$/g, "").toUpperCase()] ?? null;
+}
+
 export const RANGOS = [
   "Comisario",
-  "Inspector",
+  "Instructor",
   "Capitan",
   "Teniente",
   "Sargento",
   "Cabo",
   "Oficial",
   "Cadete",
-  "Aspirante",
 ] as const;
 
 /** Plural headings used as separators in the Registro de Policías. */
 export const RANGO_PLURAL: Record<string, string> = {
   Comisario: "Comisarios",
-  Inspector: "Inspectores",
+  Instructor: "Instructores",
   Capitan: "Capitanes",
   Teniente: "Tenientes",
   Sargento: "Sargentos",
   Cabo: "Cabos",
   Oficial: "Oficiales",
   Cadete: "Cadetes",
-  Aspirante: "Aspirantes",
 };
 
 export const DIVISIONES = [
