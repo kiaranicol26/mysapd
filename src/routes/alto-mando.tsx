@@ -7,8 +7,8 @@ export const Route = createFileRoute("/alto-mando")({
     meta: [
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { title: "Alto Mando · mySAPD" },
-      { name: "description", content: "Panel de administración del Alto Mando del SAPD." },
+      { title: "Administración · mySAPD" },
+      { name: "description", content: "Configuración y gestión administrativa del SAPD." },
       { property: "og:title", content: "Alto Mando · mySAPD" },
       { property: "og:description", content: "Panel de administración del Alto Mando del SAPD." },
     ],
