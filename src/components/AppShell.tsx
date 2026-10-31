@@ -20,6 +20,7 @@ const TABS: Tab[] = [
   { to: "/rnap", label: "R.N.A.P", icon: FileSearch, public: false, alto: false, sec: "rnap", group: "Gestión" },
   { to: "/certificar", label: "Certificar", icon: Award, public: false, alto: false, sec: "certificar", group: "Gestión" },
   { to: "/registro-policias", label: "Registro PD", icon: IdCard, public: true, alto: false, group: "Personal" },
+  { to: "/registro-inhabilitados", label: "Inhabilitados", icon: IdCard, public: false, alto: false, sec: "registro", group: "Personal" },
   { to: "/policias", label: "Lista PD", icon: ListOrdered, public: false, alto: false, sec: "lista", group: "Personal" },
   { to: "/salario", label: "Salario", icon: Wallet, public: true, alto: false, group: "Personal" },
   { to: "/forum", label: "Forum", icon: MessagesSquare, public: false, alto: false, sec: "forum", group: "Comunidad" },
