@@ -49,7 +49,16 @@ export const dbQuery = createServerFn({ method: "POST" })
     const { token, ...spec } = data;
     try {
       const claims = await freshClaims(verifyToken(token ?? null), supabaseAdmin as any);
-      if (spec.table === "instructors" && spec.op === "select" && claims) {
+      // Only the full, ordered Alto Mando staff-list query triggers the Discord
+      // reconciliation. Profile lookups and single-instructor reads must stay cheap.
+      const isStaffDirectoryRead = claims?.alto &&
+        spec.table === "instructors" &&
+        spec.op === "select" &&
+        (spec.columns ?? "*") === "*" &&
+        spec.order?.column === "created_at" &&
+        spec.order.ascending === true &&
+        !(spec.filters?.length);
+      if (isStaffDirectoryRead) {
         const { checkInstructorMembership } = await import("./discordGateway.server");
         const { data: allRows } = await supabaseAdmin.from("instructors").select("id, discord_id, discord_checked_at");
         const rows = allRows?.filter(row => !row.discord_checked_at || Date.now() - new Date(row.discord_checked_at).getTime() > 60_000);
