@@ -15,7 +15,7 @@ RETURNS boolean
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
-AS $
+AS $recovery$
 DECLARE
   previous_created_at timestamptz;
 BEGIN
@@ -36,7 +36,7 @@ BEGIN
 
   RETURN true;
 END;
-$;
+$recovery$;
 
 REVOKE ALL ON FUNCTION public.reserve_discord_recovery(text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.reserve_discord_recovery(text) TO service_role;
