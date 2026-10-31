@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { UserRound, ShieldCheck } from "lucide-react";
 import type { Session } from "@/lib/session";
 
-type Member = { id:string; instructor_id:string|null; nombre:string; rango:string|null; foto:string|null; placa:string|null };
+type Member = { id:string; instructor_id:string|null; nombre:string; rango:string|null; foto:string|null; placa:string|null; es_instructor:boolean };
 type User = { id:string; name:string; avatar_url:string|null; role:string|null; placa:string|null; discord_joined_at:string|null };
 
 const CARGO: Record<string,string> = {
@@ -29,7 +29,7 @@ export function RegistroPdPublicView({session}:{session:Session|null}) {
   useEffect(()=>{
     let active=true;
     Promise.all([
-      db.from("pd_members").select("id, instructor_id, nombre, rango, foto, placa").order("nombre",{ascending:true}),
+      db.from("pd_members").select("id, instructor_id, nombre, rango, foto, placa, es_instructor").order("nombre",{ascending:true}),
       db.from("instructors").select("id, name, avatar_url, role, placa, discord_joined_at").order("name",{ascending:true})
     ]).then(([a,b])=>{
       if(!active)return;
@@ -79,7 +79,7 @@ export function RegistroPdPublicView({session}:{session:Session|null}) {
               </div>
               <div className="px-4 pb-4 space-y-2 text-sm">
                 <div className="border-t pt-2"><p className="text-[10px] uppercase tracking-widest text-slate-500 font-extrabold">Rango</p><p className="font-bold text-slate-900">{m?.rango||"Sin rango asignado"}</p></div>
-                <div><p className="text-[10px] uppercase tracking-widest text-slate-500 font-extrabold">Cargo</p><p className="font-bold text-slate-900">{CARGO[u.role??"Usuario"]??u.role??"Agente"}</p></div>
+                <div><p className="text-[10px] uppercase tracking-widest text-slate-500 font-extrabold">Cargo</p><p className="font-bold text-slate-900">{m?.es_instructor ? "Instructor" : CARGO[u.role??"Usuario"]??(u.role === "Instructor" ? "Agente" : u.role)??"Agente"}</p></div>
                 <div><p className="text-[10px] uppercase tracking-widest text-slate-500 font-extrabold">Antigüedad</p><p className="font-bold text-slate-900">{age===null?"Pendiente de sincronización":age+" días"}</p></div>
               </div>
             </Card>
