@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { db, getToken } from "@/lib/db";
 import { forceDiscordSync } from "@/lib/data.functions";
@@ -65,7 +66,10 @@ export function AltoMando({ session }: { session: Session }) {
   const [savingArchivo, setSavingArchivo] = useState(false);
   const [bg, setBg] = useState("");
   const [savingBg, setSavingBg] = useState(false);
-  const [activeSection, setActiveSection] = useState<"config" | "gestion">("config");
+  const search = useSearch({ from: "/alto-mando" });
+  const navigate = useNavigate({ from: "/alto-mando" });
+  const activeSection = search.section;
+  const setActiveSection = (section: "config" | "gestion") => navigate({ search: prev => ({ ...prev, section }) });
   const [syncingDiscord, setSyncingDiscord] = useState(false);
 
 
@@ -212,7 +216,7 @@ export function AltoMando({ session }: { session: Session }) {
         </div>
         <div className="flex flex-wrap gap-2 border-b pb-3">
           <Button type="button" variant={activeSection === "config" ? "default" : "outline"} onClick={() => setActiveSection("config")} className="gap-2">
-            <Settings className="h-4 w-4" /> Configuración de la Web
+            <Settings className="h-4 w-4" /> Configuración Web
           </Button>
           <Button type="button" variant={activeSection === "gestion" ? "default" : "outline"} onClick={() => setActiveSection("gestion")} className="gap-2">
             <Users className="h-4 w-4" /> Gestión
