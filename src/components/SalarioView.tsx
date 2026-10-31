@@ -17,6 +17,8 @@ type Month = {
   created_at: string;
 };
 
+const DIVISION_BONUS = 10;
+
 type Entry = {
   id: string;
   month_id: string;
@@ -202,8 +204,8 @@ export function SalarioView({ session }: { session: Session | null }) {
   };
   const extrasDe = (r: Entry) => {
     const m = pdDe(r.nombre);
-    return (m?.division && m.division !== "Ninguna" && m.division !== "N/A" ? 10 : 0) +
-      (m?.division2 && m.division2 !== "Ninguna" && m.division2 !== "N/A" ? 10 : 0);
+    return (m?.division && m.division !== "Ninguna" && m.division !== "N/A" ? DIVISION_BONUS : 0) +
+      (m?.division2 && m.division2 !== "Ninguna" && m.division2 !== "N/A" ? DIVISION_BONUS : 0);
   };
   const totalDe = (r: Entry) => baseDe(r) + extrasDe(r);
 
