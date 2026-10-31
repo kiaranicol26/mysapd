@@ -91,7 +91,7 @@ export function RegistroPdView({ session }: { session: Session }) {
   const [loading, setLoading] = useState(true);
 
   const canEdit = !!session.is_alto_mando || !!session.can_edit_pd;
-  const canEditCaps = canEdit || session.role === "Instructor" || session.role === "Cupula";
+  const canEditCaps = !!session.is_alto_mando || !!session.can_edit_capacitaciones;
 
   async function load() {
     const { data } = await db.from("pd_members").select("*").order("nombre", { ascending: true });
