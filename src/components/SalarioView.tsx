@@ -33,6 +33,9 @@ type PdMember = {
   rango: string | null;
   sueldo_defecto: number;
   es_instructor: boolean;
+  division: string | null;
+  division2: string | null;
+  placa?: string | null;
 };
 
 export function SalarioView({ session }: { session: Session | null }) {
@@ -108,7 +111,7 @@ export function SalarioView({ session }: { session: Session | null }) {
     const [m, e, p] = await Promise.all([
       db.from("salary_months").select("*").order("created_at", { ascending: false }),
       db.from("salary_entries").select("*").order("created_at", { ascending: true }),
-      db.from("pd_members").select("id, nombre, rango, sueldo_defecto, es_instructor").order("nombre", { ascending: true }),
+      db.from("pd_members").select("id, nombre, rango, sueldo_defecto, es_instructor, division, division2, placa").order("nombre", { ascending: true }),
     ]);
     if (m.data) {
       setMonths(m.data as Month[]);
@@ -197,8 +200,12 @@ export function SalarioView({ session }: { session: Session | null }) {
     const m = pdDe(r.nombre);
     return m ? Number(m.sueldo_defecto) || 0 : Number(r.paga) || 0;
   };
-  const esInstructor = (r: Entry) => !!pdDe(r.nombre)?.es_instructor;
-  const totalDe = (r: Entry) => baseDe(r) + (esInstructor(r) ? 15 : 0);
+  const extrasDe = (r: Entry) => {
+    const m = pdDe(r.nombre);
+    return (m?.division && m.division !== "Ninguna" ? 15 : 0) +
+      (m?.division2 && m.division2 !== "Ninguna" ? 15 : 0);
+  };
+  const totalDe = (r: Entry) => baseDe(r) + extrasDe(r);
 
   return (
     <div className="space-y-4">
@@ -235,7 +242,7 @@ export function SalarioView({ session }: { session: Session | null }) {
           )}
           <p className="text-xs text-slate-500 font-semibold">
             {canEdit
-              ? "Los nombres y la paga se toman de la Lista PD (sueldo por defecto +15 si es Instructor) y no se editan aquí."
+              ? "Los nombres y la paga se toman de Registro PD (sueldo individual +15 por cada división asignada) y no se editan aquí."
               : "Vista pública de solo lectura. Solo el Alto Mando puede editar los salarios."}
           </p>
         </div>
@@ -326,7 +333,7 @@ export function SalarioView({ session }: { session: Session | null }) {
                         <tr key={r.id}
                           className={`border-t border-blue-200 hover:bg-blue-100 transition-colors ${idx % 2 ? "bg-slate-50" : "bg-blue-50/40"}`}>
                           <td className="p-3 border border-blue-200 font-mono font-bold text-slate-800 whitespace-nowrap">
-                            {r.nombre || "—"}
+                            {r.nombre || "—"}{pdDe(r.nombre)?.placa ? `#${pdDe(r.nombre)?.placa}` : ""}
                           </td>
                           <td className="p-3 border border-blue-200 font-bold text-slate-600 whitespace-nowrap">
                             {rangoDe(r.nombre) ?? "—"}
@@ -334,9 +341,9 @@ export function SalarioView({ session }: { session: Session | null }) {
                           <td className="p-3 border border-blue-200 font-semibold text-slate-600 whitespace-nowrap">{m.label}</td>
                           <td className="p-3 border border-blue-200 whitespace-nowrap">
                             <span className="font-mono font-bold text-slate-800">{fmt(totalDe(r))}</span>
-                            {esInstructor(r) && (
+                            {extrasDe(r) > 0 && (
                               <span className="ml-2 text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">
-                                +15 (Instructor)
+                                +{extrasDe(r)} (Divisiones)
                               </span>
                             )}
                           </td>
