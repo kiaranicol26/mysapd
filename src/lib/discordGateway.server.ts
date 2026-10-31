@@ -68,9 +68,13 @@ function buildNick(tag: string | null, name: string, placa: string | null) {
  */
 export async function syncGuildPolice(admin: { from: (table: string) => any }, options: { force?: boolean } = {}) {
   try {
-    const { data: marker } = await admin.from("app_settings").select("value").eq("key", SCAN_KEY).maybeSingle();
+    const { data: marker, error: markerReadError } = await admin.from("app_settings").select("value").eq("key", SCAN_KEY).maybeSingle();
+    if (markerReadError) throw new Error("No se pudo comprobar el intervalo de sincronización de Discord");
     if (!options.force && marker?.value && Date.now() - new Date(marker.value).getTime() < SCAN_INTERVAL) return null;
-    await admin.from("app_settings").upsert({ key: SCAN_KEY, value: new Date().toISOString() });
+    const { error: markerWriteError } = await admin.from("app_settings").upsert({ key: SCAN_KEY, value: new Date().toISOString() });
+    // Fail closed: if the rate-limit marker cannot be persisted, do not start
+    // a potentially expensive scan that could be repeated on every request.
+    if (markerWriteError) throw new Error("No se pudo reservar la sincronización de Discord");
 
     const roles = (await discord(`guilds/${FACTION_GUILD_ID}/roles`)) as { id: string; name: string }[];
     const policeRole = roles.find(r => r.name.toLowerCase().includes("polic"));
