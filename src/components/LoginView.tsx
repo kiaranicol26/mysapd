@@ -4,9 +4,7 @@ import { Coins, IdCard } from "lucide-react";
 
 import { getBackground } from "@/lib/appearance";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { toast } from "sonner";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { DiscordLogin } from "@/components/DiscordLogin";
