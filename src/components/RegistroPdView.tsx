@@ -155,9 +155,9 @@ export function RegistroPdView({ session }: { session: Session }) {
       rango: draft.rango || null,
       foto: draft.foto.trim() || null,
       placa: draft.placa.trim() || null,
-      division: draft.division || null,
-      division_rango: draft.division === "Ninguna" ? null : draft.division_rango || null,
       ...(session.is_alto_mando ? {
+        division: draft.division || null,
+        division_rango: draft.division === "Ninguna" ? null : draft.division_rango || null,
         division2: draft.division2 || "Ninguna",
         division2_rango: draft.division2 === "Ninguna" ? null : draft.division2_rango || null,
         sueldo_defecto: Math.max(0, Number(draft.sueldo_defecto) || 0),
