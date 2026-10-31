@@ -251,7 +251,26 @@ type AdminClient = {
 };
 
 export async function runQuery(spec: QuerySpec, claims: Claims | null, admin: AdminClient) {
-  const safe = authorize(spec, claims);
+  let safe = authorize(spec, claims);
+
+  // Never trust client-supplied authorship for audit records or forum posts.
+  // The signed, freshly revalidated session is the source of actor identity.
+  if (safe.table === "logs" && safe.op === "insert" && claims) {
+    const stamp = (value: unknown) => ({
+      ...(value && typeof value === "object" ? value : {}),
+      instructor_id: claims.id,
+      instructor_name: claims.name,
+    });
+    safe = { ...safe, values: Array.isArray(safe.values) ? safe.values.map(stamp) : stamp(safe.values) };
+  }
+  if (safe.table === "forum_posts" && safe.op === "insert" && claims) {
+    const stamp = (value: unknown) => ({
+      ...(value && typeof value === "object" ? value : {}),
+      created_by_id: claims.id,
+      created_by: claims.name,
+    });
+    safe = { ...safe, values: Array.isArray(safe.values) ? safe.values.map(stamp) : stamp(safe.values) };
+  }
   if (safe.table === "instructors" && ["insert", "upsert", "update"].includes(safe.op)) {
     const values = Array.isArray(safe.values) ? safe.values : [safe.values];
     const { factionMember } = await import("./discordGateway.server");
