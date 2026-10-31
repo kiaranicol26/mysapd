@@ -111,7 +111,9 @@ function b64url(input: Buffer | string): string {
 }
 
 function sign(payload: string): string {
-  return createHmac("sha256", secret()).update(payload).digest("base64url");
+  // Versioned signing context intentionally invalidates every token issued
+  // before the Discord one-time-code authentication hardening.
+  return createHmac("sha256", secret()).update("mysapd-session-v2:").update(payload).digest("base64url");
 }
 
 export function issueToken(claims: Omit<Claims, "exp">): string {
