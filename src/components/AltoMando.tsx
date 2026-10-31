@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
-import { db } from "@/lib/db";
+import { db, getToken } from "@/lib/db";
+import { forceDiscordSync } from "@/lib/data.functions";
 import { Session, logAction } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,7 @@ import { getBackground, setBackground, fileToCompressedDataUrl } from "@/lib/app
 import { toast } from "sonner";
 import { SECCIONES } from "@/lib/secciones";
 import { LazyDiscordRoles } from "@/components/DiscordRoles";
-import { Trash2, Shield, Webhook, FileText, Image as ImageIcon } from "lucide-react";
+import { Trash2, Shield, Webhook, FileText, Image as ImageIcon, RefreshCw, Settings, Users } from "lucide-react";
 
 
 type Instructor = {
@@ -64,6 +65,8 @@ export function AltoMando({ session }: { session: Session }) {
   const [savingArchivo, setSavingArchivo] = useState(false);
   const [bg, setBg] = useState("");
   const [savingBg, setSavingBg] = useState(false);
+  const [activeSection, setActiveSection] = useState<"config" | "gestion">("config");
+  const [syncingDiscord, setSyncingDiscord] = useState(false);
 
 
   async function loadAll() {
@@ -133,6 +136,24 @@ export function AltoMando({ session }: { session: Session }) {
     finally { setSavingArchivo(false); }
   }
 
+  async function resyncDiscord() {
+    if (!confirm("¿Iniciar una resincronización completa de los miembros con el rol Policía en Discord?")) return;
+    setSyncingDiscord(true);
+    try {
+      const token = getToken();
+      if (!token) throw new Error("Tu sesión expiró. Volvé a iniciar sesión.");
+      const result = await forceDiscordSync({ data: { token } });
+      if (!result.ok) throw new Error(result.error);
+      await logAction(db, session, "DISCORD_FULL_RESYNC", { total: result.total, created: result.created, datesUpdated: result.datesUpdated, renamed: result.renamed });
+      toast.success(`Sincronización completa: ${result.total} policías revisados, ${result.datesUpdated} fechas actualizadas, ${result.created} usuarios creados y ${result.renamed} apodos corregidos.`);
+      await loadAll();
+    } catch (e: any) {
+      toast.error(e.message ?? "No se pudo sincronizar Discord.");
+    } finally {
+      setSyncingDiscord(false);
+    }
+  }
+
   async function createInstructor(e: React.FormEvent) {
     e.preventDefault();
     const id = newId.trim().toUpperCase();
@@ -183,6 +204,22 @@ export function AltoMando({ session }: { session: Session }) {
 
   return (
     <div className="space-y-4">
+      <div className="space-y-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.25em] text-primary">Administración</p>
+          <h1 className="text-2xl font-black uppercase tracking-wide font-display">Panel de Administración</h1>
+          <p className="text-sm text-muted-foreground">Configuración de la web y gestión de usuarios y actividad.</p>
+        </div>
+        <div className="flex flex-wrap gap-2 border-b pb-3">
+          <Button type="button" variant={activeSection === "config" ? "default" : "outline"} onClick={() => setActiveSection("config")} className="gap-2">
+            <Settings className="h-4 w-4" /> Configuración de la Web
+          </Button>
+          <Button type="button" variant={activeSection === "gestion" ? "default" : "outline"} onClick={() => setActiveSection("gestion")} className="gap-2">
+            <Users className="h-4 w-4" /> Gestión
+          </Button>
+        </div>
+      </div>
+      {activeSection === "gestion" && <>
       {/* CREAR ID */}
       <Card className="overflow-hidden border border-blue-200 bg-white shadow-sm rounded-none">
         <div className="h-1 bg-blue-600" />
@@ -226,6 +263,8 @@ export function AltoMando({ session }: { session: Session }) {
         </div>
       </Card>
 
+      </>}
+      {activeSection === "config" && <>
       {/* WEBHOOKS */}
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="overflow-hidden border border-blue-200 bg-white shadow-sm rounded-none">
@@ -342,6 +381,23 @@ export function AltoMando({ session }: { session: Session }) {
 
 
 
+      <Card className="overflow-hidden border-2 border-blue-300 bg-white shadow-md rounded-none">
+        <div className="h-1.5 bg-blue-700" />
+        <div className="p-5 space-y-3">
+          <div className="flex items-center gap-3">
+            <RefreshCw className="w-5 h-5 text-blue-700" />
+            <h2 className="text-xl font-black uppercase tracking-wide text-slate-900 font-display">Sincronizar bot de Discord</h2>
+          </div>
+          <p className="text-slate-600 text-sm">Vuelve a recorrer los miembros del servidor que tengan el rol Policía, crea los usuarios que falten y actualiza sus fechas de ingreso y apodos. Esta acción fuerza una sincronización aunque se haya ejecutado hace menos de 10 minutos.</p>
+          <Button onClick={resyncDiscord} disabled={syncingDiscord} className="gap-2 bg-blue-700 hover:bg-blue-800 text-white">
+            <RefreshCw className={`h-4 w-4 ${syncingDiscord ? "animate-spin" : ""}`} />
+            {syncingDiscord ? "Sincronizando Discord..." : "Resincronizar todos los miembros"}
+          </Button>
+        </div>
+      </Card>
+
+      </>}
+      {activeSection === "gestion" && <>
       {/* INSTRUCTORES + PERMISOS */}
       <Card className="overflow-hidden border border-blue-200 bg-white shadow-sm rounded-none">
         <div className="h-1 bg-blue-600" />
@@ -507,6 +563,7 @@ export function AltoMando({ session }: { session: Session }) {
           </div>
         </div>
       </Card>
+      </>}
     </div>
   );
 }
