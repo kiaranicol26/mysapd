@@ -51,6 +51,15 @@ function nickParts(m: GuildMember) {
   return { tag, placa, name };
 }
 
+function roleTag(roleName: string): string | null {
+  const normalized = roleName.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const rankTags: Record<string, string> = { CMS: "Comisario", INS: "Instructor", CPT: "Capitan", TTE: "Teniente", SGT: "Sargento", CBO: "Cabo", OFC: "Oficial", CDT: "Cadete", ASP: "Aspirante" };
+  for (const [tag, rango] of Object.entries(rankTags)) {
+    const tagNorm = tag.toLowerCase(); const rangoNorm = rango.toLowerCase();
+    if (normalized === tagNorm || normalized === rangoNorm || normalized === tagNorm + rangoNorm || normalized === rangoNorm + tagNorm) return tag;
+  }
+  return null;
+}
 function buildNick(tag: string | null, name: string, placa: string | null) {
   const suf = ` #${placa ?? "0000"}`;
   const pre = tag ? `${tag} ` : "";
@@ -72,6 +81,12 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
     const policeRole = roles.find(r => r.name.toLowerCase().includes("polic"));
     if (!policeRole) return null;
 
+    // El bot solo puede gestionar roles por debajo de su rol más alto.
+    const me = await discord("users/@me") as { id: string };
+    const botMember = await discord("guilds/" + FACTION_GUILD_ID + "/members/" + me.id) as GuildMember | null;
+    const botTop = Math.max(0, ...roles.filter((r: any) => !r.managed && botMember?.roles?.includes(r.id)).map((r: any) => Number(r.position ?? 0)));
+    const rankRoles = roles.map((r: any) => ({ ...r, tag: roleTag(r.name) })).filter((r: any) => r.tag && r.name !== "@everyone");
+
     const members: GuildMember[] = [];
     for (let after = "0"; members.length < 5000;) {
       const page = (await discord(`guilds/${FACTION_GUILD_ID}/members?limit=1000&after=${after}`)) as GuildMember[];
@@ -85,7 +100,7 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
     const { data: existing } = await admin.from("instructors").select("id, name, tag, avatar_url, discord_id, discord_username, placa");
     const byDiscord = new Map((existing ?? []).filter((r: any) => r.discord_id).map((r: any) => [r.discord_id, r]));
 
-    let created = 0, renamed = 0, datesUpdated = 0;
+    let created = 0, renamed = 0, datesUpdated = 0, rolesUpdated = 0, roleSyncErrors = 0;
     for (const m of police) {
       const { tag, placa, name } = nickParts(m);
       if (!name) continue;
@@ -127,6 +142,22 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
       // El tag de Discord determina el rango oficial y la condición de Instructor.
       const rangoDiscord = rangoFromTag(tag);
       if (rangoDiscord) {
+        const currentRankRole = rankRoles.find((r: any) => r.tag === tag);
+        const otherRankRoles = rankRoles.filter((r: any) => r.tag !== tag && m.roles?.includes(r.id));
+        if (!currentRankRole || currentRankRole.managed || Number(currentRankRole.position ?? 0) >= botTop) {
+          roleSyncErrors++;
+        } else {
+          try {
+            for (const oldRole of otherRankRoles) {
+              if (oldRole.managed || Number(oldRole.position ?? 0) >= botTop) { roleSyncErrors++; continue; }
+              await discord("guilds/" + FACTION_GUILD_ID + "/members/" + m.user!.id + "/roles/" + oldRole.id, { method: "DELETE" });
+            }
+            if (!m.roles?.includes(currentRankRole.id)) {
+              await discord("guilds/" + FACTION_GUILD_ID + "/members/" + m.user!.id + "/roles/" + currentRankRole.id, { method: "PUT" });
+            }
+            if (!m.roles?.includes(currentRankRole.id) || otherRankRoles.length) rolesUpdated++;
+          } catch { roleSyncErrors++; }
+        }
         const pdPatch = { rango: rangoDiscord, es_instructor: rangoDiscord === "Instructor" };
         const { error: linkedPdError } = await admin.from("pd_members").update(pdPatch).eq("instructor_id", row.id);
         if (linkedPdError) throw new Error("No se pudo sincronizar el rango en Registro PD");
@@ -160,7 +191,7 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
         } catch { /* sin permiso para ese miembro (dueño, rol más alto) */ }
       }
     }
-    return { created, renamed, datesUpdated, total: police.length };
+    return { created, renamed, datesUpdated, rolesUpdated, roleSyncErrors, total: police.length };
   } catch (e) {
     console.error("syncGuildPolice", e);
     if (options.force) throw e;
