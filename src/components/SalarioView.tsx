@@ -339,7 +339,7 @@ export function SalarioView({ session }: { session: Session | null }) {
           )}
           <p className="text-xs text-slate-500 font-semibold">
             {canEdit
-              ? "Los nombres y la paga se toman de Registro PD (sueldo individual +15 por cada división asignada y +10 por función de Instructor) y no se editan aquí."
+              ? "El sueldo y los extras (+15 por cada división y +10 por función de Instructor) se guardan como una captura al crear cada fila; los cambios posteriores en Registro PD solo afectan filas nuevas."
               : "Vista pública de solo lectura. Solo el Alto Mando puede editar los salarios."}
           </p>
         </div>
