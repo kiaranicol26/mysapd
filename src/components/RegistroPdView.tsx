@@ -399,7 +399,7 @@ export function RegistroPdView({ session }: { session: Session }) {
                       <SelectValue placeholder="Segunda división" />
                     </SelectTrigger>
                     <SelectContent className="bg-white border border-blue-200 rounded-none">
-                      {DIVISIONES.map((d, i) => <SelectItem key={d + i} value={d}>{d}</SelectItem>)}
+                      {DIVISIONES.filter(d => d === "Ninguna" || d !== draft.division).map((d, i) => <SelectItem key={d + i} value={d}>{d}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <Select value={draft.division2_rango} onValueChange={v => setDraft(d => ({ ...d, division2_rango: v }))}>
