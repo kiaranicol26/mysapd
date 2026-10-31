@@ -144,14 +144,36 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
         const { error: profileError } = await admin.from("instructors").update(profilePatch).eq("id", row.id);
         if (profileError) throw new Error("No se pudo sincronizar el perfil desde Discord");
       }
+      // Los nombres solo sirven como vínculo de compatibilidad mientras existan fichas
+      // antiguas sin instructor_id. Nunca actualizar por nombre si hay homónimos.
+      const normalizedOldName = oldName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[|_]+/g, " ").replace(/\s+/g, " ").trim().toLocaleLowerCase("es");
+      const sameNameInstructors = existing.filter((item: any) =>
+        String(item.name ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+          .replace(/[|_]+/g, " ").replace(/\s+/g, " ").trim().toLocaleLowerCase("es") === normalizedOldName
+      );
+      const legacyNameIsUnique = !!normalizedOldName && sameNameInstructors.length === 1;
+
       if (discordName && discordName !== oldName) {
-        // Keep the linked PD record and historical salary rows in sync with Discord.
-        await admin.from("pd_members").update({ nombre: discordName, instructor_id: row.id }).eq("instructor_id", row.id);
-        await admin.from("pd_members").update({ nombre: discordName, instructor_id: row.id }).is("instructor_id", null).eq("nombre", oldName);
-        if (oldName) await admin.from("salary_entries").update({ nombre: discordName }).eq("nombre", oldName);
+        // Update the stable linked PD row first; legacy rows are handled only
+        // when the old name identifies exactly one instructor.
+        const { error: linkedRenameError } = await admin.from("pd_members")
+          .update({ nombre: discordName }).eq("instructor_id", row.id);
+        if (linkedRenameError) throw new Error("No se pudo actualizar el nombre en Registro PD");
+        if (legacyNameIsUnique) {
+          const { error: legacyRenameError } = await admin.from("pd_members")
+            .update({ nombre: discordName, instructor_id: row.id })
+            .is("instructor_id", null).eq("nombre", oldName);
+          if (legacyRenameError) throw new Error("No se pudo vincular el registro anterior de PD");
+          // Salary entries have no stable member ID yet. A rename is safe only
+          // when the previous name belongs to exactly one instructor account.
+          const { error: salaryRenameError } = await admin.from("salary_entries")
+            .update({ nombre: discordName }).eq("nombre", oldName);
+          if (salaryRenameError) throw new Error("No se pudieron actualizar los nombres históricos de Salarios");
+        }
         row.name = discordName;
         renamed++;
       }
+
       // El rango se determina por la etiqueta; Instructor, por el rol específico de Discord.
       const rangoDiscord = rangoFromTag(tag);
       const esInstructorDiscord = Boolean(instructorRole && m.roles?.includes(instructorRole.id));
@@ -159,15 +181,10 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
       if (rangoDiscord) pdPatch.rango = rangoDiscord;
       const { error: linkedPdError } = await admin.from("pd_members").update(pdPatch).eq("instructor_id", row.id);
       if (linkedPdError) throw new Error("No se pudo sincronizar el rango/estado de Instructor en Registro PD");
-      if (oldName) {
+      if (legacyNameIsUnique && oldName) {
         const { error: legacyPdError } = await admin.from("pd_members").update(pdPatch)
           .is("instructor_id", null).eq("nombre", oldName);
         if (legacyPdError) throw new Error("No se pudo sincronizar el registro anterior de PD");
-      }
-      if (discordName && discordName !== oldName) {
-        const { error: renamedPdError } = await admin.from("pd_members").update(pdPatch)
-          .is("instructor_id", null).eq("nombre", discordName);
-        if (renamedPdError) throw new Error("No se pudo sincronizar el registro renombrado de PD");
       }
       row.tag = tag;
       row.discord_username = m.user!.username;
