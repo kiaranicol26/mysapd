@@ -62,12 +62,12 @@ type Draft = {
   division2: string;
   division2_rango: string;
   sueldo_defecto: number;
+  es_instructor: boolean;
 };
 
 const ROLES = [
   { value: "Comisario", label: "Encargado de SAPD", plural: "Comisarios" },
   { value: "Cupula", label: "Cúpula", plural: "Cúpula Administrativa" },
-  { value: "Instructor", label: "Instructor", plural: "Instructores" },
   { value: "Usuario", label: "Agente", plural: "Agentes" },
 ];
 const roleKey = (r: string | null) => (r && ROLES.some(x => x.value === r) ? r : "Usuario");
@@ -75,7 +75,7 @@ const roleKey = (r: string | null) => (r && ROLES.some(x => x.value === r) ? r :
 const emptyDraft: Draft = {
   nombre: "", rango: "Oficial", foto: "", placa: "",
   division: "Ninguna", division_rango: "Miembro",
-  division2: "Ninguna", division2_rango: "Miembro", sueldo_defecto: 0,
+  division2: "Ninguna", division2_rango: "Miembro", sueldo_defecto: 0, es_instructor: false,
 };
 
 export function RegistroPdView({ session }: { session: Session }) {
@@ -132,6 +132,7 @@ export function RegistroPdView({ session }: { session: Session }) {
       division2: m?.division2 ?? "Ninguna",
       division2_rango: m?.division2_rango ?? "Miembro",
       sueldo_defecto: Number(m?.sueldo_defecto) || 0,
+      es_instructor: !!m?.es_instructor,
     });
     setOpen(true);
   }
@@ -161,6 +162,7 @@ export function RegistroPdView({ session }: { session: Session }) {
         division2: draft.division2 || "Ninguna",
         division2_rango: draft.division2 === "Ninguna" ? null : draft.division2_rango || null,
         sueldo_defecto: Math.max(0, Number(draft.sueldo_defecto) || 0),
+        es_instructor: !!draft.es_instructor,
       } : {}),
     };
     const res = draft.id
@@ -274,6 +276,7 @@ export function RegistroPdView({ session }: { session: Session }) {
                     <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Registro PD</p>
                     <p className="font-bold">{m.rango ?? "Sin rango"} · Placa {(u as any).placa || m.placa || "—"}</p>
                     <p className="text-xs text-muted-foreground">{[m.division && m.division !== "Ninguna" ? m.division + " · " + (m.division_rango ?? "—") : null, m.division2 && m.division2 !== "Ninguna" ? m.division2 + " · " + (m.division2_rango ?? "—") : null].filter(Boolean).join(" | ") || "Sin división"}</p>
+                    {m.es_instructor && <p className="text-xs font-bold text-blue-700">Cargo: Instructor</p> }
                     <div className="border-t pt-2">
                       <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground mb-1">Capacitaciones</p>
                       <div className="grid grid-cols-3 gap-1">
@@ -418,10 +421,24 @@ export function RegistroPdView({ session }: { session: Session }) {
                     <Input type="number" min="0" placeholder="Sueldo básico" value={String(draft.sueldo_defecto)}
                       onChange={e => setDraft(d => ({ ...d, sueldo_defecto: Number(e.target.value) || 0 }))}
                       className="h-10 rounded-none border-blue-300 bg-white font-mono font-bold text-slate-800" />
-                    <p className="text-xs text-slate-500">El valor que aparece en 0 es el sueldo básico individual, antes de sumar los extras por divisiones.</p>
+                    <p className="text-xs text-slate-500">El valor que aparece en 0 es el sueldo básico individual, antes de sumar los extras por divisiones e instructor.</p>
                   </div>
                 </div>
                 <p className="text-xs text-slate-500">Cada división asignada suma automáticamente +10 Coins al salario.</p>
+              </div>
+            )}
+            {session.is_alto_mando && (
+              <div className="flex items-center justify-between gap-4 border-t-2 border-blue-200 pt-4 mt-2">
+                <div>
+                  <p className="text-sm font-extrabold uppercase tracking-wider text-blue-800">Es Instructor</p>
+                  <p className="text-xs text-slate-500">Si está activado, suma +10 Coins a la paga y figura como Instructor en su cargo.</p>
+                </div>
+                <button type="button" role="switch" aria-checked={draft.es_instructor}
+                  onClick={() => setDraft(d => ({ ...d, es_instructor: !d.es_instructor }))}
+                  className={`relative h-8 w-14 shrink-0 rounded-full transition-colors ${draft.es_instructor ? "bg-blue-700" : "bg-slate-300"}`}>
+                  <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-transform ${draft.es_instructor ? "translate-x-7" : "translate-x-1"}`} />
+                </button>
+                <span className="text-xs font-black uppercase text-slate-600">{draft.es_instructor ? "Sí" : "No"}</span>
               </div>
             )}
           </div>
