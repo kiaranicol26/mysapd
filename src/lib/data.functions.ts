@@ -76,19 +76,14 @@ export const dbQuery = createServerFn({ method: "POST" })
     }
   });
 
+/**
+ * Legacy ID-only login is intentionally disabled.
+ * Knowing an instructor ID does not prove control of the linked Discord account.
+ * Use the one-time code delivered by Discord DM instead.
+ */
 export const loginWithId = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => z.object({ id: z.string().trim().min(1).max(64) }).parse(data))
-  .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { buildLogin, LOGIN_COLUMNS } = await import("@/lib/dbAuth.server");
-    const { data: row } = await supabaseAdmin.from("instructors").select(LOGIN_COLUMNS).eq("id", data.id).maybeSingle();
-    if (!row) return { ok: false as const, error: "ID no encontrado" };
-    const { checkInstructorMembership } = await import("./discordGateway.server");
-    const { LOGIN_MEMBERSHIP_ERROR } = await import("./discordMembership");
-    try {
-      if (!(await checkInstructorMembership(row, supabaseAdmin as any))) return { ok: false as const, error: LOGIN_MEMBERSHIP_ERROR };
-      return { ok: true as const, ...buildLogin(row) };
-    } catch {
-      return { ok: false as const, error: "No se pudo verificar Discord. Intentá nuevamente en unos momentos." };
-    }
-  });
+  .handler(async () => ({
+    ok: false as const,
+    error: "El acceso por ID fue deshabilitado. Ingresá mediante el código enviado por Discord.",
+  }));
