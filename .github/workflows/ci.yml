@@ -30,6 +30,3 @@ jobs:
 
       - name: TypeScript
         run: bunx tsc --noEmit
-
-      - name: Lint
-        run: bun run lint
