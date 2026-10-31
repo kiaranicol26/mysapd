@@ -127,27 +127,31 @@ export function SalarioView({ session }: { session: Session | null }) {
     }
     if (e.data) setEntries(e.data as unknown as Entry[]);
     if (p.data) {
-      const currentPd = p.data as unknown as PdMember[];
+      // Registro PD es la fuente única; elimina duplicados por diferencias de formato.
+      const seenPd = new Set<string>();
+      const currentPd = (p.data as unknown as PdMember[]).filter(member => {
+        const key = normalizeName(member.nombre);
+        if (!key || seenPd.has(key)) return false;
+        seenPd.add(key);
+        return true;
+      });
       setPd(currentPd);
-      // Every existing salary month automatically receives any missing PD member.
+      // Todos los integrantes de Registro PD aparecen en cada mes, aunque su sueldo sea 0.
       if (m.data?.length) {
         const salaryRows = (e.data ?? []) as unknown as Entry[];
         await Promise.all((m.data as Month[]).map(async month => {
           const existingNames = new Set(salaryRows.filter(row => row.month_id === month.id).map(row => normalizeName(row.nombre)));
-          const seen = new Set<string>();
-          const missing = currentPd.filter(member => {
-            const key = normalizeName(member.nombre);
-            if (!key || seen.has(key) || existingNames.has(key)) return false;
-            seen.add(key);
-            return true;
-          });
+          const missing = currentPd.filter(member => !existingNames.has(normalizeName(member.nombre)));
           if (missing.length) {
-            await db.from("salary_entries").insert(missing.map(member => ({
+            const { error } = await db.from("salary_entries").insert(missing.map(member => ({
               month_id: month.id, nombre: member.nombre, paga: Number(member.sueldo_defecto) || 0,
               pagado: false, ultima_edicion_por: session?.name ?? null,
             })) as any);
+            if (error) console.error("No se pudieron incorporar integrantes de Registro PD a Salarios:", error.message);
           }
         }));
+        const refreshed = await db.from("salary_entries").select("*").order("created_at", { ascending: true });
+        if (refreshed.data) setEntries(refreshed.data as unknown as Entry[]);
       }
     }
   }
