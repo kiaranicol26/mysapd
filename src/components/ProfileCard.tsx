@@ -38,8 +38,8 @@ export function ProfileCard({ u, foto, extra, footer }: { u: ProfileUser; foto?:
             {sub && <p className="text-sm text-muted-foreground">{sub}</p>}
           </div>
           <div className="border-t pt-2">
-            <p className={label}>Rango</p>
-            <p className="text-sm font-bold text-foreground">{u.is_alto_mando ? "Alto Mando" : u.role || "Usuario"}</p>
+            <p className={label}>Cargo</p>
+            <p className="text-sm font-bold text-foreground">{u.is_alto_mando ? "Alto Mando" : ({ Comisario: "Encargado de SAPD", Cupula: "Cúpula", Instructor: "Instructor", Usuario: "Agente" } as Record<string, string>)[u.role || "Usuario"] || u.role || "Agente"}</p>
           </div>
           {extra}
           {u.descripcion && (
