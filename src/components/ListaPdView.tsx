@@ -2,11 +2,9 @@ import { useEffect, useState } from "react";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { db } from "@/lib/db";
 import { Session } from "@/lib/session";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { sortByRango } from "@/lib/rangos";
-import { toast } from "sonner";
 import { Users } from "lucide-react";
 
 export type PdMember = {
@@ -20,7 +18,7 @@ export type PdMember = {
   created_at: string;
 };
 
-export function ListaPdView({ session }: { session: Session }) {
+export function ListaPdView(_props: { session: Session }) {
   const [members, setMembers] = useState<PdMember[]>([]);
    const [q, setQ] = useState("");
  
@@ -99,13 +97,13 @@ export function ListaPdView({ session }: { session: Session }) {
                     <td className="p-3 border border-blue-200 font-bold text-slate-600">{m.rango ?? "—"}</td>
                     <td className="p-3 border border-blue-200 font-mono font-bold">{Number(m.sueldo_defecto) || 0} Coins</td>
                     <td className="p-3 border border-blue-200 font-mono font-bold text-emerald-700">
-                      {((m.division && m.division !== "Ninguna" ? 15 : 0) + (m.division2 && m.division2 !== "Ninguna" ? 15 : 0))} Coins
+                      {((m.division && m.division !== "Ninguna" && m.division !== "N/A" ? 15 : 0) + (m.division2 && m.division2 !== "Ninguna" && m.division2 !== "N/A" ? 15 : 0))} Coins
                     </td>
                     <td className="p-3 border border-blue-200 font-mono font-black text-blue-800">
                       {(Number(m.sueldo_defecto) || 0) + (m.division && m.division !== "Ninguna" ? 15 : 0) + (m.division2 && m.division2 !== "Ninguna" ? 15 : 0)} Coins
                     </td>
                     <td className="p-3 border border-blue-200 text-xs font-semibold text-slate-600">
-                      {[m.division && m.division !== "Ninguna" ? m.division : null, m.division2 && m.division2 !== "Ninguna" ? m.division2 : null].filter(Boolean).join(" · ") || "Sin división"}
+                      {[m.division && m.division !== "Ninguna" && m.division !== "N/A" ? m.division : null, m.division2 && m.division2 !== "Ninguna" && m.division2 !== "N/A" ? m.division2 : null].filter(Boolean).join(" · ") || "Sin división"}
                     </td>
                   </tr>
                 ))}
