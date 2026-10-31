@@ -611,7 +611,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      reserve_discord_verification: {
+        Args: {
+          p_discord_id: string
+          p_discord_username: string
+          p_code_hash: string
+          p_expires_at: string
+        }
+        Returns: boolean
+      }
+      verify_discord_login_code: {
+        Args: {
+          p_discord_username: string
+          p_code_hash: string
+          p_consume?: boolean
+        }
+        Returns: {
+          discord_id: string
+          discord_username: string
+          status: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
