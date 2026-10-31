@@ -160,7 +160,7 @@ export function AltoMando({ session }: { session: Session }) {
   }
 
   async function resyncDiscord() {
-    if (!confirm("¿Iniciar una resincronización completa de los miembros con el rol Policía en Discord?")) return;
+    if (!confirm("¿Iniciar una resincronización completa? Se actualizarán los perfiles, rangos de la web, apodos y roles de rango en Discord para los miembros con el rol Policía.")) return;
     setSyncingDiscord(true);
     try {
       const token = getToken();
@@ -430,7 +430,7 @@ export function AltoMando({ session }: { session: Session }) {
             <RefreshCw className="w-5 h-5 text-blue-700" />
             <h2 className="text-xl font-black uppercase tracking-wide text-slate-900 font-display">Sincronizar bot de Discord</h2>
           </div>
-          <p className="text-slate-600 text-sm">Vuelve a recorrer los miembros del servidor que tengan el rol Policía, crea los usuarios que falten y actualiza sus fechas de ingreso y apodos. Esta acción fuerza una sincronización aunque se haya ejecutado hace menos de 10 minutos.</p>
+          <p className="text-slate-600 text-sm">Recorre los miembros con el rol Policía, crea los usuarios que falten y sincroniza perfiles, etiquetas, rangos, fechas, apodos y roles de rango en Discord. Reemplaza el rol de rango anterior por el que corresponda a la etiqueta del apodo. Los roles deben existir en el servidor y estar por debajo del rol más alto del bot. Esta acción fuerza una sincronización aunque se haya ejecutado hace menos de 10 minutos.</p>
           <Button onClick={resyncDiscord} disabled={syncingDiscord} className="gap-2 bg-blue-700 hover:bg-blue-800 text-white">
             <RefreshCw className={`h-4 w-4 ${syncingDiscord ? "animate-spin" : ""}`} />
             {syncingDiscord ? "Sincronizando Discord..." : "Resincronizar todos los miembros"}
