@@ -1,5 +1,3 @@
-import type { } from "./rangos";
-
 type LegacySalaryRow = {
   nombre: string | null;
   pd_member_id: string | null;
