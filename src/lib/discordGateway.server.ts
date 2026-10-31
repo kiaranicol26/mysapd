@@ -93,8 +93,11 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
     }
 
     const police = members.filter(m => !m.user?.bot && m.user?.id && m.roles?.includes(policeRole.id));
-    const { data: existing } = await admin.from("instructors").select("id, name, tag, avatar_url, discord_id, discord_username, placa");
-    const byDiscord = new Map((existing ?? []).filter((r: any) => r.discord_id).map((r: any) => [r.discord_id, r]));
+    const { data: existing, error: existingError } = await admin.from("instructors").select("id, name, tag, avatar_url, discord_id, discord_username, placa");
+    // Never create accounts from an incomplete snapshot: without this check a
+    // transient database read failure could make every police member look new.
+    if (existingError || !existing) throw new Error("No se pudo consultar el personal existente antes de sincronizar Discord");
+    const byDiscord = new Map(existing.filter((r: any) => r.discord_id).map((r: any) => [r.discord_id, r]));
 
     let created = 0, renamed = 0, datesUpdated = 0;
     for (const m of police) {
