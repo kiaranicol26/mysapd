@@ -57,6 +57,7 @@ export function AppShell({ session, children }: { session: Session | null; child
   const tabs = TABS.filter(t => {
     if (!session) return t.public;
     if (t.alto) return session.is_alto_mando;
+    if (t.to === "/registro-inhabilitados" && session.can_edit_pd) return true;
     return t.public || puedeVer(session, t.sec);
   });
   const groups = [...new Set(tabs.map(t => t.group))];
