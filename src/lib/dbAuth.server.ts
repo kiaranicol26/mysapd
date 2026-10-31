@@ -86,7 +86,7 @@ export async function freshClaims(claims: Claims | null, admin: { from: (t: stri
   };
 }
 
-const PROFILE_FIELDS = new Set(["name", "avatar_url", "descripcion", "banner_url", "color_perfil", "pronombres", "placa", "sync_avatar"]);
+const PROFILE_FIELDS = new Set(["placa"]);
 
 function secret(): string {
   const s = process.env["SUPABASE_SERVICE_ROLE_KEY"] || process.env["SUPABASE_DB_URL"];
@@ -196,7 +196,7 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
         }
         if (alto) return spec;
         const publicCols = new Set(["id", "name", "avatar_url", "descripcion", "role", "banner_url", "color_perfil", "pronombres", "placa",
-          "discord_username", "is_alto_mando", "can_delete", "can_emit_rnap", "can_edit_files", "can_edit_pd", "secciones", "discord_inhabilitado", "discord_joined_at"]);
+          "discord_username", "tag", "is_alto_mando", "can_delete", "can_emit_rnap", "can_edit_files", "can_edit_pd", "secciones", "discord_inhabilitado", "discord_joined_at"]);
         if (cols.length > 0 && cols.every(c => publicCols.has(c))) return spec;
         return { ...spec, filters: [{ type: "eq", column: "id", value: claims.id }] };
       }
