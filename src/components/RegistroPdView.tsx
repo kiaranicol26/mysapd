@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { db } from "@/lib/db";
 import { ProfileCard, type ProfileUser } from "@/components/ProfileCard";
-import { personnelForUser } from "@/lib/pdProfile";
 import { Session, logAction } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,7 +83,6 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [saving, setSaving] = useState(false);
-  const [avatars, setAvatars] = useState<Record<string, string>>({});
   const [users, setUsers] = useState<{ id: string; name: string; avatar_url: string | null; role: string | null; discord_inhabilitado: boolean }[]>([]);
   const [capConfirm, setCapConfirm] = useState<{ m: PdMember; cap: CapKey; value: boolean } | null>(null);
   const [capSaving, setCapSaving] = useState(false);
@@ -102,16 +100,7 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
     const { data } = await db.from("instructors").select("id, name, avatar_url, role, discord_inhabilitado");
     if (!data) return;
     setUsers(data as any);
-    const map: Record<string, string> = {};
-    (data as any[]).forEach(u => {
-      if (u?.name) map[String(u.name).trim().toLowerCase()] = u.avatar_url || "";
-      if (u?.name && u?.avatar_url) map[String(u.name).trim().toLowerCase()] = u.avatar_url;
-    });
-    setAvatars(map);
   }
-
-  const fotoDe = (m: PdMember) =>
-    avatars[m.nombre.trim().toLowerCase()] || m.foto || null;
 
   useEffect(() => {
     let active = true;
@@ -190,10 +179,27 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
     load();
   }
 
+  const personnelIndex = useMemo(() => {
+    const byInstructor = new Map<string, PdMember>();
+    const byLegacyName = new Map<string, PdMember>();
+    for (const member of members) {
+      if (member.instructor_id) {
+        if (!byInstructor.has(member.instructor_id)) byInstructor.set(member.instructor_id, member);
+      } else {
+        const key = member.nombre.trim().toLowerCase();
+        if (!byLegacyName.has(key)) byLegacyName.set(key, member);
+      }
+    }
+    return { byInstructor, byLegacyName };
+  }, [members]);
+
   const groups = useMemo(() => {
     const rows = users
       .filter(u => onlyDisabled ? !!u.discord_inhabilitado : !u.discord_inhabilitado)
-      .map(u => ({ u, m: personnelForUser(members, u) }))
+      .map(u => ({
+        u,
+        m: personnelIndex.byInstructor.get(u.id) ?? personnelIndex.byLegacyName.get(u.name.trim().toLowerCase()),
+      }))
       .filter(({ u, m }) =>
         (u.name + " " + (u.role ?? "") + " " + (m?.rango ?? "") + " " + (m?.placa ?? "") + " " + (m?.division ?? ""))
           .toLowerCase().includes(q.toLowerCase()));
@@ -201,7 +207,7 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
       rango: r.value, label: r.plural,
       items: sortByRango(rows.filter(x => roleKey(x.u.role) === r.value), x => x.m?.rango ?? null, x => x.u.name),
     })).filter(g => g.items.length > 0);
-  }, [members, onlyDisabled, q, users]);
+  }, [onlyDisabled, personnelIndex, q, users]);
 
   async function changeRole(u: { id: string; name: string }, role: string) {
     const alto = role === "Comisario";
