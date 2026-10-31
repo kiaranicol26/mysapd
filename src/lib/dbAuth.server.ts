@@ -42,6 +42,7 @@ const TABLES = new Set([
 ]);
 
 const PUBLIC_BG_KEY = "site_background_url";
+const PUBLIC_LOGIN_KEY = "discord_code_login_enabled";
 export const LOGIN_COLUMNS =
   "id, name, is_alto_mando, can_delete, can_emit_rnap, can_edit_files, can_edit_pd, role, avatar_url, descripcion, secciones, discord_id, discord_inhabilitado";
 
@@ -169,7 +170,7 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
         if (!alto) deny("Solo Alto Mando puede editar la configuración");
         return spec;
       }
-      if (!claims && filterValue(spec, "key") !== PUBLIC_BG_KEY) deny();
+      if (!claims && ![PUBLIC_BG_KEY, PUBLIC_LOGIN_KEY].includes(String(filterValue(spec, "key")))) deny();
       return spec;
 
     case "logs":
