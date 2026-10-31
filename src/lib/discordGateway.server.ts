@@ -52,7 +52,7 @@ function nickParts(m: GuildMember) {
 }
 
 function roleTag(roleName: string): string | null {
-  const normalized = roleName.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const normalized = roleName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
   const rankTags: Record<string, string> = { CMS: "Comisario", INS: "Instructor", CPT: "Capitan", TTE: "Teniente", SGT: "Sargento", CBO: "Cabo", OFC: "Oficial", CDT: "Cadete", ASP: "Aspirante" };
   for (const [tag, rango] of Object.entries(rankTags)) {
     const tagNorm = tag.toLowerCase(); const rangoNorm = rango.toLowerCase();
