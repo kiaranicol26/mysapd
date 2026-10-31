@@ -23,7 +23,7 @@ type Entry = {
   id: string;
   month_id: string;
   nombre: string | null;
-  instructor_id: string | null;
+  pd_member_id: string | null;
   paga: number;
   pagado: boolean;
   nota: string | null;
@@ -32,7 +32,6 @@ type Entry = {
 
 type PdMember = {
   id: string;
-  instructor_id: string | null;
   nombre: string;
   rango: string | null;
   sueldo_defecto: number;
@@ -54,11 +53,6 @@ export function SalarioView({ session }: { session: Session | null }) {
 
   const slug = (s: string) =>
     s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "mes";
-  // Nombre_Apellido y Nombre Apellido identifican al mismo integrante.
-  const normalizeName = (s: string | null | undefined) =>
-    (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-      .replace(/[|_]+/g, " ").replace(/\s+/g, " ").trim().toLocaleLowerCase("es");
-
   async function capture(monthId: string) {
     const node = cardRefs.current[monthId];
     if (!node) throw new Error("No se encontró la tabla");
@@ -119,7 +113,7 @@ export function SalarioView({ session }: { session: Session | null }) {
     const [m, e, p] = await Promise.all([
       db.from("salary_months").select("*").order("created_at", { ascending: false }),
       db.from("salary_entries").select("*").order("created_at", { ascending: true }),
-      db.from("pd_members").select("id, instructor_id, nombre, rango, sueldo_defecto, es_instructor, division, division2, placa").order("nombre", { ascending: true }),
+      db.from("pd_members").select("id, nombre, rango, sueldo_defecto, es_instructor, division, division2, placa").order("nombre", { ascending: true }),
     ]);
     if (m.data) {
       setMonths(m.data as Month[]);
@@ -131,35 +125,24 @@ export function SalarioView({ session }: { session: Session | null }) {
     }
     if (e.data) setEntries(e.data as unknown as Entry[]);
     if (p.data) {
-      // Conservar homónimos: los integrantes vinculados se distinguen por instructor_id.
+      // Cada ficha PD tiene su propio ID estable, incluso cuando hay homónimos.
       const currentPd = p.data as unknown as PdMember[];
       setPd(currentPd);
       // Todos los integrantes de Registro PD aparecen en cada mes, aunque su sueldo sea 0.
       if (m.data?.length) {
         // Indexar los registros existentes en una sola pasada evita filtrar toda la
         // tabla de salarios una vez por cada mes.
-        const namesByMonth = new Map<string, Set<string>>();
         const idsByMonth = new Map<string, Set<string>>();
         for (const row of (e.data ?? []) as unknown as Entry[]) {
-          let names = namesByMonth.get(row.month_id);
-          if (!names) namesByMonth.set(row.month_id, names = new Set<string>());
           let ids = idsByMonth.get(row.month_id);
           if (!ids) idsByMonth.set(row.month_id, ids = new Set<string>());
-          const key = normalizeName(row.nombre);
-          if (key) names.add(key);
-          if (row.instructor_id) ids.add(row.instructor_id);
+          if (row.pd_member_id) ids.add(row.pd_member_id);
         }
-        const nameCounts = new Map<string, number>();
-        for (const member of currentPd) {
-          const key = normalizeName(member.nombre);
-          if (key) nameCounts.set(key, (nameCounts.get(key) ?? 0) + 1);
-        }
-
         // Insertar los faltantes en lotes reduce las solicitudes cuando hay muchos meses.
         const rowsToInsert: {
           month_id: string;
           nombre: string;
-          instructor_id: string | null;
+          pd_member_id: string;
           paga: number;
           pagado: boolean;
           ultima_edicion_por: string | null;
@@ -168,22 +151,12 @@ export function SalarioView({ session }: { session: Session | null }) {
         for (const month of m.data as Month[]) {
           const existingIds = idsByMonth.get(month.id) ?? new Set<string>();
           for (const member of currentPd) {
-            const key = normalizeName(member.nombre);
-            const instructorId = member.instructor_id ?? null;
-            if (!key) continue;
-            if (instructorId) {
-              // Stable IDs distinguish current members from unrelated legacy rows with the same name.
-              if (existingIds.has(instructorId)) continue;
-              existingIds.add(instructorId);
-            } else {
-              // Unlinked homonyms cannot safely be distinguished by name.
-              if (nameCounts.get(key) !== 1 || (namesByMonth.get(month.id)?.has(key) ?? false)) continue;
-            }
-            namesByMonth.get(month.id)?.add(key);
+            if (existingIds.has(member.id)) continue;
+            existingIds.add(member.id);
             rowsToInsert.push({
               month_id: month.id,
               nombre: member.nombre,
-              instructor_id: instructorId,
+              pd_member_id: member.id,
               paga: Number(member.sueldo_defecto) || 0,
               pagado: false,
               ultima_edicion_por: session?.name ?? null,
@@ -211,19 +184,8 @@ export function SalarioView({ session }: { session: Session | null }) {
   useEffect(() => { loadAll(); }, []);
 
   async function syncMonth(monthId: string, existing: Entry[], silent = false) {
-    const existingNames = new Set(existing.map(row => normalizeName(row.nombre)).filter(Boolean));
-    const existingIds = new Set(existing.map(row => row.instructor_id).filter((id): id is string => !!id));
-    const nameCounts = new Map<string, number>();
-    for (const member of pd) {
-      const key = normalizeName(member.nombre);
-      if (key) nameCounts.set(key, (nameCounts.get(key) ?? 0) + 1);
-    }
-    const missing = pd.filter(member => {
-      const key = normalizeName(member.nombre);
-      if (!key) return false;
-      if (member.instructor_id) return !existingIds.has(member.instructor_id);
-      return nameCounts.get(key) === 1 && !existingNames.has(key);
-    });
+    const existingIds = new Set(existing.map(row => row.pd_member_id).filter((id): id is string => !!id));
+    const missing = pd.filter(member => !existingIds.has(member.id));
     if (missing.length === 0) {
       if (!silent) toast.info("La tabla ya tiene a todo el Registro PD");
       return;
@@ -232,7 +194,7 @@ export function SalarioView({ session }: { session: Session | null }) {
       missing.map(p => ({
         month_id: monthId,
         nombre: p.nombre,
-        instructor_id: p.instructor_id ?? null,
+        pd_member_id: p.id,
         paga: Number(p.sueldo_defecto) || 0,
         pagado: false,
         ultima_edicion_por: session?.name ?? null,
@@ -288,9 +250,9 @@ export function SalarioView({ session }: { session: Session | null }) {
   }
 
   const fmt = (n: number) => `${Math.round(n).toLocaleString("es-ES")} Coins`;
-  // Only stable IDs may resolve a current PD profile; names are not identities.
-  const pdDe = (entry: Entry) => entry.instructor_id
-    ? pd.find(member => member.instructor_id === entry.instructor_id) ?? null
+  // Only the stable Registro PD row ID may resolve a current profile; names are not identities.
+  const pdDe = (entry: Entry) => entry.pd_member_id
+    ? pd.find(member => member.id === entry.pd_member_id) ?? null
     : null;
   const rangoDe = (entry: Entry) => pdDe(entry)?.rango ?? null;
   const baseDe = (r: Entry) => {
