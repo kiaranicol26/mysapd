@@ -169,7 +169,7 @@ export function RegistroPdView({ session }: { session: Session }) {
         division2: draft.division2 || "Ninguna",
         division2_rango: draft.division2 === "Ninguna" ? null : draft.division2_rango || null,
         sueldo_defecto: Math.max(0, Number(draft.sueldo_defecto) || 0),
-        es_instructor: !!draft.es_instructor,
+        es_instructor: draft.rango === "Instructor",
       } : {}),
     };
     const res = draft.id
@@ -438,20 +438,16 @@ export function RegistroPdView({ session }: { session: Session }) {
                 <p className="text-xs text-slate-500">Cada división asignada suma automáticamente +10 Coins al salario.</p>
               </div>
             )}
-            {session.is_alto_mando && (
-              <button type="button" role="checkbox" aria-checked={draft.es_instructor}
-                onClick={() => setDraft(d => ({ ...d, es_instructor: !d.es_instructor }))}
-                className="flex w-full items-center gap-3 border-t-2 border-blue-200 pt-4 mt-2 text-left group">
-                <span className={`flex h-6 w-6 shrink-0 items-center justify-center border-2 rounded-sm transition-colors ${draft.es_instructor ? "border-green-600 bg-green-600 text-white" : "border-slate-300 bg-white text-transparent group-hover:border-green-500"}`}>
-                  <Check className="h-4 w-4 stroke-[3]" />
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-sm font-extrabold uppercase tracking-wider text-blue-800">Es Instructor</span>
-                  <span className="block text-xs text-slate-500">Si está marcado, suma +10 Coins a la paga y figura como Instructor en su cargo.</span>
-                </span>
-                <span className={`ml-auto text-xs font-black uppercase ${draft.es_instructor ? "text-green-700" : "text-slate-400"}`}>{draft.es_instructor ? "Sí" : "No"}</span>
-              </button>
-            )}
+            <div className="flex w-full items-center gap-3 border-t-2 border-blue-200 pt-4 mt-2">
+              <span className={`flex h-6 w-6 shrink-0 items-center justify-center border-2 rounded-sm ${draft.rango === "Instructor" ? "border-green-600 bg-green-600 text-white" : "border-slate-300 bg-white text-transparent"}`}>
+                <Check className="h-4 w-4 stroke-[3]" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-extrabold uppercase tracking-wider text-blue-800">Es Instructor</span>
+                <span className="block text-xs text-slate-500">Se determina automáticamente con el tag [INS] de Discord y suma +10 Coins a la paga.</span>
+              </span>
+              <span className={`ml-auto text-xs font-black uppercase ${draft.rango === "Instructor" ? "text-green-700" : "text-slate-400"}`}>{draft.rango === "Instructor" ? "Sí" : "No"}</span>
+            </div>
           </div>
 
           <DialogFooter>
