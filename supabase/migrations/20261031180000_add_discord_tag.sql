@@ -1,0 +1,2 @@
+ALTER TABLE public.instructors
+ADD COLUMN IF NOT EXISTS tag TEXT;
