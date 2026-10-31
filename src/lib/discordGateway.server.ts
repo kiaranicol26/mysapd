@@ -30,7 +30,7 @@ export async function checkInstructorMembership(row: { id: string; discord_id?: 
 }
 
 type GuildMember = {
-  user?: { id: string; username: string; global_name?: string | null; bot?: boolean };
+  user?: { id: string; username: string; global_name?: string | null; avatar?: string | null; bot?: boolean };
   nick?: string | null;
   roles?: string[];
   joined_at?: string;
@@ -80,7 +80,7 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
     }
 
     const police = members.filter(m => !m.user?.bot && m.user?.id && m.roles?.includes(policeRole.id));
-    const { data: existing } = await admin.from("instructors").select("id, name, discord_id, discord_username, placa");
+    const { data: existing } = await admin.from("instructors").select("id, name, tag, avatar_url, discord_id, discord_username, placa");
     const byDiscord = new Map((existing ?? []).filter((r: any) => r.discord_id).map((r: any) => [r.discord_id, r]));
 
     let created = 0, renamed = 0, datesUpdated = 0;
@@ -101,23 +101,30 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
         created++;
         await admin.from("logs").insert({ instructor_id: id, instructor_name: name, action: "REGISTRO_AUTO_DISCORD", details: { discord: m.user!.username } });
       }
-      // Discord is the source of truth for the member's display name.
+      // Discord is the source of truth for tag, display name, username and avatar.
       const oldName = String(row.name ?? "").trim();
       const discordName = name.trim();
+      const avatar = m.user?.avatar ? "https://cdn.discordapp.com/avatars/" + m.user.id + "/" + m.user.avatar + ".png?size=512" : null;
+      const profilePatch: Record<string, string | null> = {};
+      if (discordName && discordName !== oldName) profilePatch.name = discordName;
+      if (tag !== (row.tag ?? null)) profilePatch.tag = tag;
+      if (m.user!.username !== row.discord_username) profilePatch.discord_username = m.user!.username;
+      if (avatar && avatar !== row.avatar_url) profilePatch.avatar_url = avatar;
+      if (Object.keys(profilePatch).length) {
+        const { error: profileError } = await admin.from("instructors").update(profilePatch).eq("id", row.id);
+        if (profileError) throw new Error("No se pudo sincronizar el perfil desde Discord");
+      }
       if (discordName && discordName !== oldName) {
-        const { error: renameError } = await admin.from("instructors").update({
-          name: discordName, discord_username: m.user!.username,
-        }).eq("id", row.id);
-        if (renameError) throw new Error("No se pudo actualizar el nombre desde Discord");
         // Keep the linked PD record and historical salary rows in sync with Discord.
         await admin.from("pd_members").update({ nombre: discordName, instructor_id: row.id }).eq("instructor_id", row.id);
         await admin.from("pd_members").update({ nombre: discordName, instructor_id: row.id }).is("instructor_id", null).eq("nombre", oldName);
         if (oldName) await admin.from("salary_entries").update({ nombre: discordName }).eq("nombre", oldName);
         row.name = discordName;
         renamed++;
-      } else if (m.user!.username !== row.discord_username) {
-        await admin.from("instructors").update({ discord_username: m.user!.username }).eq("id", row.id);
       }
+      row.tag = tag;
+      row.discord_username = m.user!.username;
+      row.avatar_url = avatar ?? row.avatar_url;
       if (m.joined_at) {
         const { error: dateError } = await admin.from("instructors").update({ discord_joined_at: m.joined_at }).eq("id", row.id);
         if (dateError) {
