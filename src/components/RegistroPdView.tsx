@@ -371,14 +371,17 @@ export function RegistroPdView({ session }: { session: Session }) {
               <Input placeholder="Número de placa" value={draft.placa}
                 onChange={e => setDraft(d => ({ ...d, placa: e.target.value }))}
                 className="h-10 rounded-none border-blue-300 bg-white font-mono font-bold text-slate-800" />
-              <Select value={draft.division} disabled={!session.is_alto_mando} onValueChange={v => setDraft(d => ({ ...d, division: v }))}>
-                <SelectTrigger className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800">
-                  <SelectValue placeholder="División" />
-                </SelectTrigger>
-                <SelectContent className="bg-white border border-blue-200 rounded-none">
-                  {DIVISIONES.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="space-y-1">
+                <label className="text-xs font-extrabold uppercase tracking-widest text-blue-700">División 1</label>
+                <Select value={draft.division} disabled={!session.is_alto_mando} onValueChange={v => setDraft(d => ({ ...d, division: v }))}>
+                  <SelectTrigger className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800">
+                    <SelectValue placeholder="División 1" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border border-blue-200 rounded-none">
+                    {DIVISIONES.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
               <Select value={draft.division_rango} disabled={!session.is_alto_mando || draft.division === "Ninguna"}
                 onValueChange={v => setDraft(d => ({ ...d, division_rango: v }))}>
                 <SelectTrigger disabled={draft.division === "Ninguna"}
