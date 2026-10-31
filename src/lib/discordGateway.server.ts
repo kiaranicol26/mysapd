@@ -147,8 +147,7 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
       // Las fichas históricas sin instructor_id no se vinculan por nombre:
       // un nombre único hoy no demuestra identidad y puede pertenecer a otra persona.
       if (discordName && discordName !== oldName) {
-        // Update the stable linked PD row first; legacy rows are handled only
-        // when the old name identifies exactly one instructor.
+        // Only the stable instructor_id link may be renamed automatically.
         const { error: linkedRenameError } = await admin.from("pd_members")
           .update({ nombre: discordName }).eq("instructor_id", row.id);
         if (linkedRenameError) throw new Error("No se pudo actualizar el nombre en Registro PD");
