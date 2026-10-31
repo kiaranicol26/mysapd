@@ -91,6 +91,7 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
     const botTop = Math.max(0, ...roles.filter((r: any) => !r.managed && botMember?.roles?.includes(r.id)).map((r: any) => Number(r.position ?? 0)));
     const rankRoles = roles.map((r: any) => ({ ...r, tag: roleTag(r.name) })).filter((r: any) => r.tag && r.name !== "@everyone");
     const instructorRole = roles.find(r => normalizeRoleName(r.name) === "equipodeinstructores");
+    if (!instructorRole) throw new Error("No se encontró el rol @Equipo de instructores en Discord. No se modificaron los estados de Instructor.");
 
     const members: GuildMember[] = [];
     for (let after = "0"; members.length < 5000;) {
