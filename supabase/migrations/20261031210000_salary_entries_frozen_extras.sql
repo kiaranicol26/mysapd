@@ -8,12 +8,12 @@ UPDATE public.salary_entries AS salary
 SET paga = pd.sueldo_defecto,
     extras =
   CASE
-    WHEN pd.division IS NOT NULL AND pd.division NOT IN ('Ninguna', 'N/A') THEN 15
+    WHEN NULLIF(BTRIM(pd.division), '') IS NOT NULL AND BTRIM(pd.division) NOT IN ('Ninguna', 'N/A') THEN 15
     ELSE 0
   END
   +
   CASE
-    WHEN pd.division2 IS NOT NULL AND pd.division2 NOT IN ('Ninguna', 'N/A') THEN 15
+    WHEN NULLIF(BTRIM(pd.division2), '') IS NOT NULL AND BTRIM(pd.division2) NOT IN ('Ninguna', 'N/A') THEN 15
     ELSE 0
   END
   +
