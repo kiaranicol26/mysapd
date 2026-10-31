@@ -28,3 +28,23 @@ export function hasLegacySalaryEntryForName(
     row => !row.pd_member_id && normalizeSalaryName(row.nombre) === normalized,
   );
 }
+
+export type SalaryBonusSource = {
+  division: string | null;
+  division2: string | null;
+  es_instructor: boolean;
+};
+
+/** Capture division and instructor bonuses as a fixed amount for one salary row. */
+export function calculateSalaryExtras(
+  member: SalaryBonusSource,
+  divisionBonus = 15,
+  instructorBonus = 10,
+): number {
+  const hasDivision = (value: string | null) =>
+    !!value?.trim() && value !== "Ninguna" && value !== "N/A";
+
+  return (hasDivision(member.division) ? divisionBonus : 0) +
+    (hasDivision(member.division2) ? divisionBonus : 0) +
+    (member.es_instructor ? instructorBonus : 0);
+}
