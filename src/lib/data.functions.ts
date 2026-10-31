@@ -1,6 +1,24 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
+export const forceDiscordSync = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => z.object({ token: z.string().min(1).max(4096) }).parse(input))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { verifyToken, freshClaims } = await import("@/lib/dbAuth.server");
+    const claims = await freshClaims(verifyToken(data.token), supabaseAdmin as any);
+    if (!claims?.alto) return { ok: false as const, error: "Solo Alto Mando puede resincronizar Discord." };
+    const { syncGuildPolice } = await import("@/lib/discordGateway.server");
+    try {
+      const result = await syncGuildPolice(supabaseAdmin as any, { force: true });
+      if (!result) return { ok: false as const, error: "No se pudo completar la sincronización. Revisá la conexión del bot y el rol Policía." };
+      return { ok: true as const, ...result };
+    } catch (error) {
+      return { ok: false as const, error: error instanceof Error ? error.message : "Error al sincronizar Discord." };
+    }
+  });
+
+
 const filterSchema = z.object({
   type: z.enum(["eq", "neq"]),
   column: z.string().max(64),
