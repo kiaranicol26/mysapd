@@ -78,14 +78,14 @@ const emptyDraft: Draft = {
   division2: "Ninguna", division2_rango: "Miembro", sueldo_defecto: 0, es_instructor: false,
 };
 
-export function RegistroPdView({ session }: { session: Session }) {
+export function RegistroPdView({ session, onlyDisabled = false }: { session: Session; onlyDisabled?: boolean }) {
   const [members, setMembers] = useState<PdMember[]>([]);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [saving, setSaving] = useState(false);
   const [avatars, setAvatars] = useState<Record<string, string>>({});
-  const [users, setUsers] = useState<{ id: string; name: string; avatar_url: string | null; role: string | null }[]>([]);
+  const [users, setUsers] = useState<{ id: string; name: string; avatar_url: string | null; role: string | null; discord_inhabilitado: boolean }[]>([]);
   const [capConfirm, setCapConfirm] = useState<{ m: PdMember; cap: CapKey; value: boolean } | null>(null);
   const [capSaving, setCapSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -192,6 +192,7 @@ export function RegistroPdView({ session }: { session: Session }) {
 
   const groups = useMemo(() => {
     const rows = users
+      .filter(u => onlyDisabled ? !!u.discord_inhabilitado : !u.discord_inhabilitado)
       .map(u => ({ u, m: personnelForUser(members, u) }))
       .filter(({ u, m }) =>
         (u.name + " " + (u.role ?? "") + " " + (m?.rango ?? "") + " " + (m?.placa ?? "") + " " + (m?.division ?? ""))
@@ -200,7 +201,7 @@ export function RegistroPdView({ session }: { session: Session }) {
       rango: r.value, label: r.plural,
       items: sortByRango(rows.filter(x => roleKey(x.u.role) === r.value), x => x.m?.rango ?? null, x => x.u.name),
     })).filter(g => g.items.length > 0);
-  }, [members, q, users]);
+  }, [members, onlyDisabled, q, users]);
 
   async function changeRole(u: { id: string; name: string }, role: string) {
     const alto = role === "Comisario";
@@ -239,13 +240,13 @@ export function RegistroPdView({ session }: { session: Session }) {
                 San Andreas Police Department
               </p>
               <h2 className="text-2xl font-black uppercase tracking-wide text-slate-900 font-display">
-                Registro de Policías
+                {onlyDisabled ? "Registro de Policías Inhabilitados" : "Registro de Policías"}
               </h2>
             </div>
             <div className="ml-auto flex items-center gap-3">
               <div className="flex items-center gap-2 px-3 py-2 bg-blue-700 text-white">
                 <BadgeCheck className="w-4 h-4" />
-                <span className="font-mono font-bold">{users.length}</span>
+                <span className="font-mono font-bold">{users.filter(u => onlyDisabled ? !!u.discord_inhabilitado : !u.discord_inhabilitado).length}</span>
                 <span className="text-[10px] uppercase tracking-widest font-bold">Carnets</span>
               </div>
               {canEdit && (
@@ -336,7 +337,7 @@ export function RegistroPdView({ session }: { session: Session }) {
 
       {!loading && groups.length === 0 && (
         <Card className="border-2 border-blue-300 bg-white rounded-none p-10 text-center text-slate-400 uppercase tracking-widest font-bold">
-          Sin policías registrados.
+          {onlyDisabled ? "No hay policías inhabilitados." : "Sin policías registrados."}
         </Card>
       )}
 
