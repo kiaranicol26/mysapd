@@ -129,7 +129,7 @@ export function SalarioView({ session }: { session: Session | null }) {
       const currentPd = p.data as unknown as PdMember[];
       setPd(currentPd);
       // Todos los integrantes de Registro PD aparecen en cada mes, aunque su sueldo sea 0.
-      if (m.data?.length) {
+      if (m.data?.length && e.data && p.data) {
         // Indexar los registros existentes en una sola pasada evita filtrar toda la
         // tabla de salarios una vez por cada mes.
         const idsByMonth = new Map<string, Set<string>>();
