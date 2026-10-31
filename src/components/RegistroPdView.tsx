@@ -273,7 +273,7 @@ export function RegistroPdView({ session }: { session: Session }) {
                   <div className="border-t pt-2 text-sm text-foreground space-y-2">
                     <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Registro PD</p>
                     <p className="font-bold">{m.rango ?? "Sin rango"} · Placa {(u as any).placa || m.placa || "—"}</p>
-                    <p className="text-xs text-muted-foreground">{m.division && m.division !== "Ninguna" ? `${m.division} · ${m.division_rango ?? "—"}` : "Sin división"}</p>
+                    <p className="text-xs text-muted-foreground">{[m.division && m.division !== "Ninguna" ? m.division + " · " + (m.division_rango ?? "—") : null, m.division2 && m.division2 !== "Ninguna" ? m.division2 + " · " + (m.division2_rango ?? "—") : null].filter(Boolean).join(" | ") || "Sin división"}</p>
                     <div className="border-t pt-2">
                       <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground mb-1">Capacitaciones</p>
                       <div className="grid grid-cols-3 gap-1">
@@ -371,7 +371,7 @@ export function RegistroPdView({ session }: { session: Session }) {
               <Input placeholder="Número de placa" value={draft.placa}
                 onChange={e => setDraft(d => ({ ...d, placa: e.target.value }))}
                 className="h-10 rounded-none border-blue-300 bg-white font-mono font-bold text-slate-800" />
-              <Select value={draft.division} onValueChange={v => setDraft(d => ({ ...d, division: v }))}>
+              <Select value={draft.division} disabled={!session.is_alto_mando} onValueChange={v => setDraft(d => ({ ...d, division: v }))}>
                 <SelectTrigger className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800">
                   <SelectValue placeholder="División" />
                 </SelectTrigger>
@@ -379,7 +379,7 @@ export function RegistroPdView({ session }: { session: Session }) {
                   {DIVISIONES.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Select value={draft.division_rango}
+              <Select value={draft.division_rango} disabled={!session.is_alto_mando || draft.division === "Ninguna"}
                 onValueChange={v => setDraft(d => ({ ...d, division_rango: v }))}>
                 <SelectTrigger disabled={draft.division === "Ninguna"}
                   className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800 disabled:opacity-60">
