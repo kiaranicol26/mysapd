@@ -26,6 +26,7 @@ type Entry = {
   nombre: string | null;
   pd_member_id: string | null;
   paga: number;
+  extras: number;
   pagado: boolean;
   nota: string | null;
   ultima_edicion_por: string | null;
@@ -160,6 +161,7 @@ export function SalarioView({ session }: { session: Session | null }) {
           nombre: string;
           pd_member_id: string;
           paga: number;
+          extras: number;
           pagado: boolean;
           ultima_edicion_por: string | null;
         }[] = [];
@@ -179,6 +181,9 @@ export function SalarioView({ session }: { session: Session | null }) {
               nombre: member.nombre,
               pd_member_id: member.id,
               paga: Number(member.sueldo_defecto) || 0,
+              extras: (member.division && member.division !== "Ninguna" && member.division !== "N/A" ? DIVISION_BONUS : 0) +
+                (member.division2 && member.division2 !== "Ninguna" && member.division2 !== "N/A" ? DIVISION_BONUS : 0) +
+                (member.es_instructor ? INSTRUCTOR_BONUS : 0),
               pagado: false,
               ultima_edicion_por: session?.name ?? null,
             });
@@ -227,6 +232,9 @@ export function SalarioView({ session }: { session: Session | null }) {
         nombre: p.nombre,
         pd_member_id: p.id,
         paga: Number(p.sueldo_defecto) || 0,
+        extras: (p.division && p.division !== "Ninguna" && p.division !== "N/A" ? DIVISION_BONUS : 0) +
+          (p.division2 && p.division2 !== "Ninguna" && p.division2 !== "N/A" ? DIVISION_BONUS : 0) +
+          (p.es_instructor ? INSTRUCTOR_BONUS : 0),
         pagado: false,
         ultima_edicion_por: session?.name ?? null,
       })) as any,
@@ -291,16 +299,9 @@ export function SalarioView({ session }: { session: Session | null }) {
     ? pd.find(member => member.id === entry.pd_member_id) ?? null
     : null;
   const rangoDe = (entry: Entry) => pdDe(entry)?.rango ?? null;
-  const baseDe = (r: Entry) => {
-    const m = pdDe(r);
-    return m ? Number(m.sueldo_defecto) || 0 : Number(r.paga) || 0;
-  };
-  const extrasDe = (r: Entry) => {
-    const m = pdDe(r);
-    return (m?.division && m.division !== "Ninguna" && m.division !== "N/A" ? DIVISION_BONUS : 0) +
-      (m?.division2 && m.division2 !== "Ninguna" && m.division2 !== "N/A" ? DIVISION_BONUS : 0) +
-      (m?.es_instructor ? INSTRUCTOR_BONUS : 0);
-  };
+  // Monetary values are snapshots stored on the salary row; PD edits only affect future rows.
+  const baseDe = (r: Entry) => Number(r.paga) || 0;
+  const extrasDe = (r: Entry) => Number(r.extras) || 0;
   const totalDe = (r: Entry) => baseDe(r) + extrasDe(r);
 
   return (
