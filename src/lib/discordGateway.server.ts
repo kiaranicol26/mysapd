@@ -128,9 +128,6 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
         if (ins.error || !ins.data) continue;
         row = ins.data;
         byDiscord.set(m.user!.id, row);
-        // Keep the uniqueness check current as new Discord members are created
-        // during this same scan; otherwise a later homonym could claim a legacy PD row.
-        existing.push(row);
         created++;
         await admin.from("logs").insert({ instructor_id: id, instructor_name: name, action: "REGISTRO_AUTO_DISCORD", details: { discord: m.user!.username } });
       }
