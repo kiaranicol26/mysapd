@@ -11,6 +11,7 @@ export type Claims = {
   pd?: boolean;
   role?: string | null;
   sec?: string[];
+  capacitaciones?: boolean;
   exp: number;
 };
 
@@ -44,7 +45,7 @@ const TABLES = new Set([
 const PUBLIC_BG_KEY = "site_background_url";
 const PUBLIC_LOGIN_KEY = "discord_code_login_enabled";
 export const LOGIN_COLUMNS =
-  "id, name, is_alto_mando, can_delete, can_emit_rnap, can_edit_files, can_edit_pd, role, avatar_url, descripcion, secciones, discord_id, discord_inhabilitado";
+  "id, name, is_alto_mando, can_delete, can_emit_rnap, can_edit_files, can_edit_pd, can_edit_capacitaciones, role, avatar_url, descripcion, secciones, discord_id, discord_inhabilitado";
 
 /** Builds the browser session and signed token from a fresh instructors row. */
 export function buildLogin(r: any) {
@@ -57,6 +58,7 @@ export function buildLogin(r: any) {
     can_emit_rnap: alto || !!r.can_emit_rnap,
     can_edit_files: alto || !!r.can_edit_files,
     can_edit_pd: alto || !!r.can_edit_pd,
+    can_edit_capacitaciones: alto || !!r.can_edit_capacitaciones,
     avatar_url: (r.avatar_url ?? null) as string | null,
     role: (r.role ?? null) as string | null,
     descripcion: (r.descripcion ?? null) as string | null,
@@ -64,7 +66,7 @@ export function buildLogin(r: any) {
   };
   const token = issueToken({
     id: session.id, name: session.name, alto, del: session.can_delete, rnap: session.can_emit_rnap,
-    files: session.can_edit_files, pd: session.can_edit_pd, role: session.role, sec: session.secciones,
+    files: session.can_edit_files, pd: session.can_edit_pd, capacitaciones: session.can_edit_capacitaciones, role: session.role, sec: session.secciones,
   });
   return { session, token };
 }
@@ -80,7 +82,7 @@ export async function freshClaims(claims: Claims | null, admin: { from: (t: stri
   const alto = !!r.is_alto_mando;
   return {
     ...claims, name: r.name, alto, del: alto || !!r.can_delete, rnap: alto || !!r.can_emit_rnap,
-    files: alto || !!r.can_edit_files, pd: alto || !!r.can_edit_pd, role: r.role ?? null, sec: limpiarSecciones(r.secciones),
+    files: alto || !!r.can_edit_files, pd: alto || !!r.can_edit_pd, capacitaciones: alto || !!r.can_edit_capacitaciones, role: r.role ?? null, sec: limpiarSecciones(r.secciones),
   };
 }
 
@@ -156,11 +158,11 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
       const hasRestrictedFields = patchKeys(spec.values).some(k => restrictedSalaryFields.has(k)) ||
         (Array.isArray(spec.values) && spec.values.some(v => patchKeys(v).some(k => restrictedSalaryFields.has(k))));
       if (!alto && hasRestrictedFields) deny("Solo Alto Mando puede modificar sueldos y segunda división");
-      if (alto || claims?.pd) return spec;
-      // Instructores y Cúpula solo pueden marcar/desmarcar capacitaciones.
+      // The dedicated permission grants access only to training checkboxes.
       const CAP_FIELDS = new Set(["cap_m4", "cap_edc", "cap_mary", "cap_sniper", "cap_air", "cap_ak47"]);
-      const staffRole = claims?.role === "Instructor" || claims?.role === "Cupula";
-      if (spec.op === "update" && staffRole && patchKeys(spec.values).every(k => CAP_FIELDS.has(k))) return spec;
+      if (spec.op === "update" && claims?.capacitaciones && patchKeys(spec.values).length > 0 &&
+          patchKeys(spec.values).every(k => CAP_FIELDS.has(k))) return spec;
+      if (alto || claims?.pd) return spec;
       deny("Sin permiso para editar el registro de policías");
     }
 
