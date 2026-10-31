@@ -203,12 +203,13 @@ export const getDiscordInfo = createServerFn({ method: "POST" })
     if (!claims) return { ok: false as const, error: "Sesión inválida" };
     const target = data.targetId ?? claims.id;
     if (target !== claims.id && !claims.alto) return { ok: false as const, error: "Sin permiso" };
-    const { data: row } = await supabaseAdmin.from("instructors").select("name, discord_id, placa, sync_avatar, avatar_url").eq("id", target).maybeSingle();
+    const { data: row } = await supabaseAdmin.from("instructors").select("name, tag, discord_id, placa, avatar_url").eq("id", target).maybeSingle();
     if (!row?.discord_id) return { ok: false as const, error: "Sin Discord vinculado" };
     try {
       const ctx = await memberContext(row.discord_id);
       if (!ctx) return { ok: false as const, error: "No está en el servidor de Discord" };
       const raw: string = ctx.member.nick || ctx.member.user?.global_name || ctx.member.user?.username || "";
+      const tag = raw.match(/^\s*(\[[^\]]+\])/)?.[1] ?? null;
       const sinTag = raw.replace(/^\s*\[[^\]]+\]\s*/, "");
       const placa = sinTag.match(/#(\d+)\s*$/)?.[1] ?? null;
       const limpio = sinTag.replace(/\s*#\d+\s*$/, "").trim().slice(0, 60);
@@ -217,14 +218,15 @@ export const getDiscordInfo = createServerFn({ method: "POST" })
         ? `https://cdn.discordapp.com/guilds/${ctx.guildId}/users/${u.id}/avatars/${ctx.member.avatar}.png?size=512`
         : u?.avatar ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=512` : null;
       let name = row.name as string;
-      const patch: { name?: string; placa?: string | null; avatar_url?: string } = {};
+      const patch: { name?: string; tag?: string | null; placa?: string | null; avatar_url?: string | null } = {};
       if (limpio && limpio !== name) { patch.name = limpio; name = limpio; }
+      if (tag !== row.tag) patch.tag = tag;
       if (placa !== row.placa) patch.placa = placa;
-      if (row.sync_avatar && avatar && avatar !== row.avatar_url) patch.avatar_url = avatar;
+      if (avatar !== row.avatar_url) patch.avatar_url = avatar;
       if (Object.keys(patch).length) await supabaseAdmin.from("instructors").update(patch).eq("id", target);
       const all = ctx.roles.filter(r => r.name !== "@everyone").sort((a, b) => b.position - a.position);
       return {
-        ok: true as const, name, placa, avatar_url: patch.avatar_url ?? row.avatar_url,
+        ok: true as const, name, tag, placa, avatar_url: patch.avatar_url ?? row.avatar_url,
         roles: all.filter(r => ctx.member.roles.includes(r.id)).map(r => fmtRole(r, ctx.botTop)),
         allRoles: claims.alto ? all.map(r => fmtRole(r, ctx.botTop)) : [],
       };
