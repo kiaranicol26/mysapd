@@ -202,8 +202,8 @@ export function SalarioView({ session }: { session: Session | null }) {
   };
   const extrasDe = (r: Entry) => {
     const m = pdDe(r.nombre);
-    return (m?.division && m.division !== "Ninguna" && m.division !== "N/A" ? 15 : 0) +
-      (m?.division2 && m.division2 !== "Ninguna" && m.division2 !== "N/A" ? 15 : 0);
+    return (m?.division && m.division !== "Ninguna" && m.division !== "N/A" ? 10 : 0) +
+      (m?.division2 && m.division2 !== "Ninguna" && m.division2 !== "N/A" ? 10 : 0);
   };
   const totalDe = (r: Entry) => baseDe(r) + extrasDe(r);
 
@@ -242,7 +242,7 @@ export function SalarioView({ session }: { session: Session | null }) {
           )}
           <p className="text-xs text-slate-500 font-semibold">
             {canEdit
-              ? "Los nombres y la paga se toman de Registro PD (sueldo individual +15 por cada división asignada) y no se editan aquí."
+              ? "Los nombres y la paga se toman de Registro PD (sueldo individual +10 por cada división asignada) y no se editan aquí."
               : "Vista pública de solo lectura. Solo el Alto Mando puede editar los salarios."}
           </p>
         </div>
