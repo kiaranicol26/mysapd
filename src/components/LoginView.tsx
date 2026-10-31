@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Coins } from "lucide-react";
+import { Coins, IdCard } from "lucide-react";
 import { db, setToken } from "@/lib/db";
 import { loginWithId } from "@/lib/data.functions";
 
 
 import { setSession, logAction } from "@/lib/session";
 import { getBackground } from "@/lib/appearance";
+import { getDiscordCodeLoginEnabled } from "@/lib/discord";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -19,10 +20,12 @@ export function LoginView() {
   const [id, setId] = useState("");
   const [loading, setLoading] = useState(false);
   const [bg, setBg] = useState("");
+  const [discordCodeLoginEnabled, setDiscordCodeLoginEnabled] = useState(true);
 
   useEffect(() => {
     const load = () => getBackground().then(setBg).catch(() => {});
     load();
+    getDiscordCodeLoginEnabled(true).then(setDiscordCodeLoginEnabled).catch(() => setDiscordCodeLoginEnabled(true));
     window.addEventListener("background-change", load);
     return () => window.removeEventListener("background-change", load);
   }, []);
@@ -171,7 +174,7 @@ export function LoginView() {
                 </Button>
               </form>
 
-              <DiscordLogin />
+              {discordCodeLoginEnabled && <DiscordLogin />}
 
               <Button asChild variant="outline"
                 className="mt-4 h-11 w-full rounded-none border-blue-300 bg-white text-blue-800 font-bold tracking-wider hover:bg-blue-50">
@@ -180,6 +183,12 @@ export function LoginView() {
                 </Link>
               </Button>
 
+              <Button asChild variant="outline"
+                className="mt-2 h-11 w-full rounded-none border-blue-300 bg-white text-blue-800 font-bold tracking-wider hover:bg-blue-50">
+                <Link to="/registro-policias">
+                  <IdCard className="w-4 h-4 mr-2" /> REGISTRO PD (PÚBLICO)
+                </Link>
+              </Button>
 
               <div className="mt-8">
                 <div className="border-t border-blue-200 pt-5">
