@@ -27,6 +27,8 @@ type PdMember = {
   placa: string | null;
   division: string | null;
   division_rango: string | null;
+  division2: string | null;
+  division2_rango: string | null;
   sueldo_defecto: number;
   es_instructor: boolean;
   cap_m4: boolean;
@@ -57,6 +59,9 @@ type Draft = {
   placa: string;
   division: string;
   division_rango: string;
+  division2: string;
+  division2_rango: string;
+  sueldo_defecto: number;
 };
 
 const ROLES = [
@@ -70,6 +75,7 @@ const roleKey = (r: string | null) => (r && ROLES.some(x => x.value === r) ? r :
 const emptyDraft: Draft = {
   nombre: "", rango: "Oficial", foto: "", placa: "",
   division: "Ninguna", division_rango: "Miembro",
+  division2: "Ninguna", division2_rango: "Miembro", sueldo_defecto: 0,
 };
 
 export function RegistroPdView({ session }: { session: Session }) {
@@ -123,6 +129,9 @@ export function RegistroPdView({ session }: { session: Session }) {
       placa: m?.placa ?? "",
       division: m?.division ?? "Ninguna",
       division_rango: m?.division_rango ?? "Miembro",
+      division2: m?.division2 ?? "Ninguna",
+      division2_rango: m?.division2_rango ?? "Miembro",
+      sueldo_defecto: Number(m?.sueldo_defecto) || 0,
     });
     setOpen(true);
   }
@@ -148,6 +157,11 @@ export function RegistroPdView({ session }: { session: Session }) {
       placa: draft.placa.trim() || null,
       division: draft.division || null,
       division_rango: draft.division === "Ninguna" ? null : draft.division_rango || null,
+      ...(session.is_alto_mando ? {
+        division2: draft.division2 || "Ninguna",
+        division2_rango: draft.division2 === "Ninguna" ? null : draft.division2_rango || null,
+        sueldo_defecto: Math.max(0, Number(draft.sueldo_defecto) || 0),
+      } : {}),
     };
     const res = draft.id
       ? await db.from("pd_members").update(values as any).eq("id", draft.id)
@@ -376,6 +390,33 @@ export function RegistroPdView({ session }: { session: Session }) {
                 </SelectContent>
               </Select>
             </div>
+            {session.is_alto_mando && (
+              <div className="space-y-3 border-t border-blue-200 pt-3">
+                <p className="text-xs font-extrabold uppercase tracking-widest text-blue-700">Segunda división y remuneración · Alto Mando</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Select value={draft.division2} onValueChange={v => setDraft(d => ({ ...d, division2: v }))}>
+                    <SelectTrigger className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800">
+                      <SelectValue placeholder="Segunda división" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border border-blue-200 rounded-none">
+                      {DIVISIONES.map((d, i) => <SelectItem key={d + i} value={d}>{d}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={draft.division2_rango} onValueChange={v => setDraft(d => ({ ...d, division2_rango: v }))}>
+                    <SelectTrigger disabled={draft.division2 === "Ninguna"} className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800 disabled:opacity-60">
+                      <SelectValue placeholder="Rango de segunda división" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border border-blue-200 rounded-none">
+                      {DIVISION_RANGOS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Input type="number" min="0" placeholder="Sueldo individual del rango" value={String(draft.sueldo_defecto)}
+                    onChange={e => setDraft(d => ({ ...d, sueldo_defecto: Number(e.target.value) || 0 }))}
+                    className="h-10 rounded-none border-blue-300 bg-white font-mono font-bold text-slate-800" />
+                </div>
+                <p className="text-xs text-slate-500">Cada división asignada suma automáticamente +15 Coins al salario.</p>
+              </div>
+            )}
           </div>
 
           <DialogFooter>
