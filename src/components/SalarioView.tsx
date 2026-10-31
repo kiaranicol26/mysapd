@@ -292,8 +292,14 @@ export function SalarioView({ session }: { session: Session | null }) {
       )}
 
       {months.map(m => {
+        const monthRows = entries.filter(e => e.month_id === m.id);
+        const uniqueRows = new Map<string, Entry>();
+        for (const entry of monthRows) {
+          const key = normalizeName(entry.nombre) || entry.id;
+          if (!uniqueRows.has(key)) uniqueRows.set(key, entry);
+        }
         const rows = sortByRango(
-          entries.filter(e => e.month_id === m.id),
+          [...uniqueRows.values()],
           r => rangoDe(r.nombre),
           r => r.nombre,
         );
