@@ -7,6 +7,7 @@ export const TAG_RANGOS: Record<string, string> = {
   OFC: "Oficial",
   CDT: "Cadete",
   ASP: "Aspirante",
+  INS: "Inspector",
 };
 
 export function rangoFromTag(tag?: string | null): string | null {
@@ -23,6 +24,7 @@ export const RANGOS = [
   "Oficial",
   "Cadete",
   "Aspirante",
+  "Inspector",
 ] as const;
 
 /** Plural headings used as separators in the Registro de Policías. */
@@ -35,6 +37,7 @@ export const RANGO_PLURAL: Record<string, string> = {
   Oficial: "Oficiales",
   Cadete: "Cadetes",
   Aspirante: "Aspirantes",
+  Inspector: "Inspectores",
 };
 
 export const DIVISIONES = [
