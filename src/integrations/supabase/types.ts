@@ -238,6 +238,7 @@ export type Database = {
           banner_url: string | null
           can_delete: boolean
           can_edit_files: boolean
+          can_edit_capacitaciones: boolean
           can_edit_pd: boolean
           can_emit_rnap: boolean
           color_perfil: string | null
@@ -245,6 +246,7 @@ export type Database = {
           created_by: string | null
           descripcion: string | null
           discord_checked_at: string | null
+          discord_joined_at: string | null
           discord_id: string | null
           discord_inhabilitado: boolean
           discord_username: string | null
@@ -256,12 +258,14 @@ export type Database = {
           role: string
           secciones: string[]
           sync_avatar: boolean
+          tag: string | null
         }
         Insert: {
           avatar_url?: string | null
           banner_url?: string | null
           can_delete?: boolean
           can_edit_files?: boolean
+          can_edit_capacitaciones?: boolean
           can_edit_pd?: boolean
           can_emit_rnap?: boolean
           color_perfil?: string | null
@@ -269,6 +273,7 @@ export type Database = {
           created_by?: string | null
           descripcion?: string | null
           discord_checked_at?: string | null
+          discord_joined_at?: string | null
           discord_id?: string | null
           discord_inhabilitado?: boolean
           discord_username?: string | null
@@ -280,6 +285,7 @@ export type Database = {
           role?: string
           secciones?: string[]
           sync_avatar?: boolean
+          tag?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -304,6 +310,7 @@ export type Database = {
           role?: string
           secciones?: string[]
           sync_avatar?: boolean
+          tag?: string | null
         }
         Relationships: []
       }
@@ -346,6 +353,8 @@ export type Database = {
           created_by: string | null
           division: string | null
           division_rango: string | null
+          division2: string | null
+          division2_rango: string | null
           es_instructor: boolean
           foto: string | null
           id: string
@@ -367,6 +376,8 @@ export type Database = {
           created_by?: string | null
           division?: string | null
           division_rango?: string | null
+          division2?: string | null
+          division2_rango?: string | null
           es_instructor?: boolean
           foto?: string | null
           id?: string
@@ -514,6 +525,7 @@ export type Database = {
           id: string
           month_id: string
           nombre: string | null
+          pd_member_id: string | null
           nota: string | null
           paga: number
           pagado: boolean
@@ -526,6 +538,7 @@ export type Database = {
           id?: string
           month_id: string
           nombre?: string | null
+          pd_member_id?: string | null
           nota?: string | null
           paga?: number
           pagado?: boolean
@@ -550,6 +563,13 @@ export type Database = {
             columns: ["month_id"]
             isOneToOne: false
             referencedRelation: "salary_months"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salary_entries_pd_member_id_fkey"
+            columns: ["pd_member_id"]
+            isOneToOne: false
+            referencedRelation: "pd_members"
             referencedColumns: ["id"]
           },
         ]
