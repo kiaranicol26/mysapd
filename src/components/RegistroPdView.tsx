@@ -13,7 +13,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { RANGOS, RANGO_PLURAL, DIVISIONES, DIVISION_RANGOS, sortByRango } from "@/lib/rangos";
+import { RANGO_PLURAL, DIVISIONES, DIVISION_RANGOS, sortByRango } from "@/lib/rangos";
 import { fileToCompressedDataUrl } from "@/lib/appearance";
 import { toast } from "sonner";
 import { Trash2, Plus, Pencil, BadgeCheck, UserRound, Upload, Check, Loader2 } from "lucide-react";
@@ -376,14 +376,12 @@ export function RegistroPdView({ session }: { session: Session }) {
               className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800" />
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <Select value={draft.rango} onValueChange={v => setDraft(d => ({ ...d, rango: v }))}>
-                <SelectTrigger className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800">
-                  <SelectValue placeholder="Rango" />
-                </SelectTrigger>
-                <SelectContent className="bg-white border border-blue-200 rounded-none">
-                  {RANGOS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="space-y-1">
+                <label className="text-xs font-extrabold uppercase tracking-widest text-blue-700">Rango · Discord</label>
+                <Input value={draft.rango || "Sin rango asignado"} disabled
+                  className="h-10 rounded-none border-blue-300 bg-slate-100 font-semibold text-slate-600" />
+                <p className="text-[10px] text-slate-500">Se actualiza automáticamente según el tag de Discord.</p>
+              </div>
               <Input placeholder="Número de placa" value={draft.placa}
                 onChange={e => setDraft(d => ({ ...d, placa: e.target.value }))}
                 className="h-10 rounded-none border-blue-300 bg-white font-mono font-bold text-slate-800" />
