@@ -406,7 +406,7 @@ export function SalarioView({ session }: { session: Session | null }) {
                 {canEdit && (
                   <>
                     <Button size="sm" variant="outline"
-                      onClick={() => syncMonth(m.id, rows)}
+                      onClick={() => syncMonth(m.id, monthRows)}
                       className="h-9 rounded-none border-blue-300 bg-white text-blue-800 font-bold hover:bg-blue-50">
                       <Users className="w-4 h-4 mr-1" /> Sincronizar Registro PD
                     </Button>
