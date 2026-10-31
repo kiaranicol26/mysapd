@@ -32,6 +32,7 @@ export async function checkInstructorMembership(row: { id: string; discord_id?: 
 type GuildMember = {
   user?: { id: string; username: string; global_name?: string | null; avatar?: string | null; bot?: boolean };
   nick?: string | null;
+  avatar?: string | null;
   roles?: string[];
   joined_at?: string;
 };
@@ -41,7 +42,7 @@ const SCAN_INTERVAL = 10 * 60_000;
 
 function nickParts(m: GuildMember) {
   const raw = m.nick || m.user?.global_name || m.user?.username || "";
-  const tag = raw.match(/^\s*(\[[^\]]+\])/)?.[1] ?? null;
+  const tag = raw.match(/^\s*(\[[A-Za-z]{3}\])/)?.[1] ?? null;
   const sinTag = raw.replace(/^\s*\[[^\]]+\]\s*\|?\s*/, "");
   const placa = sinTag.match(/#(\d+)\s*$/)?.[1] ?? null;
   // Discord nicknames sometimes use "|" as a visual separator, not as part of the name.
@@ -104,7 +105,7 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
       // Discord is the source of truth for tag, display name, username and avatar.
       const oldName = String(row.name ?? "").trim();
       const discordName = name.trim();
-      const avatar = m.user?.avatar ? "https://cdn.discordapp.com/avatars/" + m.user.id + "/" + m.user.avatar + ".png?size=512" : null;
+      const avatar = m.avatar ? "https://cdn.discordapp.com/guilds/" + FACTION_GUILD_ID + "/users/" + m.user!.id + "/avatars/" + m.avatar + ".png?size=512" : m.user?.avatar ? "https://cdn.discordapp.com/avatars/" + m.user.id + "/" + m.user.avatar + ".png?size=512" : null;
       const profilePatch: Record<string, string | null> = {};
       if (discordName && discordName !== oldName) profilePatch.name = discordName;
       if (tag !== (row.tag ?? null)) profilePatch.tag = tag;
