@@ -167,8 +167,13 @@ export function AltoMando({ session }: { session: Session }) {
       if (!token) throw new Error("Tu sesión expiró. Volvé a iniciar sesión.");
       const result = await forceDiscordSync({ data: { token } });
       if (!result.ok) throw new Error(result.error);
-      await logAction(db, session, "DISCORD_FULL_RESYNC", { total: result.total, created: result.created, datesUpdated: result.datesUpdated, renamed: result.renamed });
-      toast.success(`Sincronización completa: ${result.total} policías revisados, ${result.datesUpdated} fechas actualizadas, ${result.created} usuarios creados y ${result.renamed} apodos corregidos.`);
+      await logAction(db, session, "DISCORD_FULL_RESYNC", { total: result.total, created: result.created, datesUpdated: result.datesUpdated, renamed: result.renamed, rolesUpdated: result.rolesUpdated, roleSyncErrors: result.roleSyncErrors });
+      const roleSummary = (result.rolesUpdated ?? 0) + " cambios de roles realizados";
+      if ((result.roleSyncErrors ?? 0) > 0) {
+        toast.warning("Sincronización parcial: " + result.total + " policías revisados, " + roleSummary + ", " + result.roleSyncErrors + " problemas de roles. Revisá los nombres y la jerarquía de roles del bot.");
+      } else {
+        toast.success("Sincronización completa: " + result.total + " policías revisados, " + result.datesUpdated + " fechas actualizadas, " + result.created + " usuarios creados, " + result.renamed + " apodos corregidos y " + roleSummary + ".");
+      }
       await loadAll();
     } catch (e: any) {
       toast.error(e.message ?? "No se pudo sincronizar Discord.");
