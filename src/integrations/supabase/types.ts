@@ -190,6 +190,21 @@ export type Database = {
         }
         Relationships: []
       }
+      discord_recovery_requests: {
+        Row: {
+          created_at: string
+          discord_id: string
+        }
+        Insert: {
+          created_at?: string
+          discord_id: string
+        }
+        Update: {
+          created_at?: string
+          discord_id?: string
+        }
+        Relationships: []
+      }
       forum_posts: {
         Row: {
           adjuntos: Json
@@ -611,6 +626,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      reserve_discord_recovery: {
+        Args: {
+          p_discord_id: string
+        }
+        Returns: boolean
+      }
       reserve_discord_verification: {
         Args: {
           p_discord_id: string
