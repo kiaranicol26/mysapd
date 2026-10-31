@@ -452,7 +452,8 @@ export function AltoMando({ session }: { session: Session }) {
                   <th className="p-3 text-center border border-blue-500 uppercase font-bold">Borrar agentes</th>
                   <th className="p-3 text-center border border-blue-500 uppercase font-bold">Emitir RNAP</th>
                   <th className="p-3 text-center border border-blue-500 uppercase font-bold">Editar Archivos</th>
-                  <th className="p-3 text-center border border-blue-500 uppercase font-bold">Registro PD</th>\n                  <th className="p-3 text-center border border-blue-500 uppercase font-bold">Editar capacitaciones</th>
+                  <th className="p-3 text-center border border-blue-500 uppercase font-bold">Registro PD</th>
+                  <th className="p-3 text-center border border-blue-500 uppercase font-bold">Editar capacitaciones</th>
                   <th className="p-3 text-left border border-blue-500 uppercase font-bold">Apartados visibles</th>
 
                   <th className="p-3 text-left border border-blue-500 uppercase font-bold">Creado por</th>
@@ -553,7 +554,7 @@ export function AltoMando({ session }: { session: Session }) {
                 ))}
                 {instructors.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="p-10 text-center text-slate-400 uppercase tracking-widest">
+                    <td colSpan={10} className="p-10 text-center text-slate-400 uppercase tracking-widest">
                       Sin personal autorizado.
                     </td>
                   </tr>
