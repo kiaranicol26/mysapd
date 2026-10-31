@@ -23,6 +23,7 @@ type Entry = {
   id: string;
   month_id: string;
   nombre: string | null;
+  instructor_id: string | null;
   paga: number;
   pagado: boolean;
   nota: string | null;
@@ -31,6 +32,7 @@ type Entry = {
 
 type PdMember = {
   id: string;
+  instructor_id: string | null;
   nombre: string;
   rango: string | null;
   sueldo_defecto: number;
@@ -129,48 +131,64 @@ export function SalarioView({ session }: { session: Session | null }) {
     }
     if (e.data) setEntries(e.data as unknown as Entry[]);
     if (p.data) {
-      // Registro PD es la fuente única; elimina duplicados por diferencias de formato.
-      const seenPd = new Set<string>();
-      const currentPd = (p.data as unknown as PdMember[]).filter(member => {
-        const key = normalizeName(member.nombre);
-        if (!key || seenPd.has(key)) return false;
-        seenPd.add(key);
-        return true;
-      });
+      // Conservar homónimos: los integrantes vinculados se distinguen por instructor_id.
+      const currentPd = p.data as unknown as PdMember[];
       setPd(currentPd);
       // Todos los integrantes de Registro PD aparecen en cada mes, aunque su sueldo sea 0.
       if (m.data?.length) {
         // Indexar los registros existentes en una sola pasada evita filtrar toda la
         // tabla de salarios una vez por cada mes.
         const namesByMonth = new Map<string, Set<string>>();
+        const legacyNamesByMonth = new Map<string, Set<string>>();
+        const idsByMonth = new Map<string, Set<string>>();
         for (const row of (e.data ?? []) as unknown as Entry[]) {
           let names = namesByMonth.get(row.month_id);
-          if (!names) {
-            names = new Set<string>();
-            namesByMonth.set(row.month_id, names);
-          }
+          if (!names) namesByMonth.set(row.month_id, names = new Set<string>());
+          let legacyNames = legacyNamesByMonth.get(row.month_id);
+          if (!legacyNames) legacyNamesByMonth.set(row.month_id, legacyNames = new Set<string>());
+          let ids = idsByMonth.get(row.month_id);
+          if (!ids) idsByMonth.set(row.month_id, ids = new Set<string>());
           const key = normalizeName(row.nombre);
           if (key) names.add(key);
+          if (!row.instructor_id && key) legacyNames.add(key);
+          if (row.instructor_id) ids.add(row.instructor_id);
+        }
+        const nameCounts = new Map<string, number>();
+        for (const member of currentPd) {
+          const key = normalizeName(member.nombre);
+          if (key) nameCounts.set(key, (nameCounts.get(key) ?? 0) + 1);
         }
 
         // Insertar los faltantes en lotes reduce las solicitudes cuando hay muchos meses.
         const rowsToInsert: {
           month_id: string;
           nombre: string;
+          instructor_id: string | null;
           paga: number;
           pagado: boolean;
           ultima_edicion_por: string | null;
         }[] = [];
 
         for (const month of m.data as Month[]) {
-          const existingNames = namesByMonth.get(month.id) ?? new Set<string>();
+          const legacyNames = legacyNamesByMonth.get(month.id) ?? new Set<string>();
+          const existingIds = idsByMonth.get(month.id) ?? new Set<string>();
           for (const member of currentPd) {
             const key = normalizeName(member.nombre);
-            if (!key || existingNames.has(key)) continue;
-            existingNames.add(key);
+            const instructorId = member.instructor_id ?? null;
+            if (!key) continue;
+            if (instructorId) {
+              // A legacy row with the same name is ambiguous; do not duplicate or claim it.
+              if (existingIds.has(instructorId) || legacyNames.has(key)) continue;
+              existingIds.add(instructorId);
+            } else {
+              // Unlinked homonyms cannot safely be distinguished by name.
+              if (nameCounts.get(key) !== 1 || (namesByMonth.get(month.id)?.has(key) ?? false)) continue;
+            }
+            namesByMonth.get(month.id)?.add(key);
             rowsToInsert.push({
               month_id: month.id,
               nombre: member.nombre,
+              instructor_id: instructorId,
               paga: Number(member.sueldo_defecto) || 0,
               pagado: false,
               ultima_edicion_por: session?.name ?? null,
@@ -197,14 +215,20 @@ export function SalarioView({ session }: { session: Session | null }) {
 
   useEffect(() => { loadAll(); }, []);
 
-  async function syncMonth(monthId: string, existing: string[], silent = false) {
-    const existingNames = new Set(existing.map(normalizeName));
-    const seen = new Set<string>();
-    const missing = pd.filter(p => {
-      const key = normalizeName(p.nombre);
-      if (!key || existingNames.has(key) || seen.has(key)) return false;
-      seen.add(key);
-      return true;
+  async function syncMonth(monthId: string, existing: Entry[], silent = false) {
+    const existingNames = new Set(existing.map(row => normalizeName(row.nombre)).filter(Boolean));
+    const existingIds = new Set(existing.map(row => row.instructor_id).filter((id): id is string => !!id));
+    const legacyNames = new Set(existing.filter(row => !row.instructor_id).map(row => normalizeName(row.nombre)).filter(Boolean));
+    const nameCounts = new Map<string, number>();
+    for (const member of pd) {
+      const key = normalizeName(member.nombre);
+      if (key) nameCounts.set(key, (nameCounts.get(key) ?? 0) + 1);
+    }
+    const missing = pd.filter(member => {
+      const key = normalizeName(member.nombre);
+      if (!key) return false;
+      if (member.instructor_id) return !existingIds.has(member.instructor_id) && !legacyNames.has(key);
+      return nameCounts.get(key) === 1 && !existingNames.has(key);
     });
     if (missing.length === 0) {
       if (!silent) toast.info("La tabla ya tiene a todo el Registro PD");
@@ -214,6 +238,7 @@ export function SalarioView({ session }: { session: Session | null }) {
       missing.map(p => ({
         month_id: monthId,
         nombre: p.nombre,
+        instructor_id: p.instructor_id ?? null,
         paga: Number(p.sueldo_defecto) || 0,
         pagado: false,
         ultima_edicion_por: session?.name ?? null,
@@ -269,14 +294,20 @@ export function SalarioView({ session }: { session: Session | null }) {
   }
 
   const fmt = (n: number) => `${Math.round(n).toLocaleString("es-ES")} Coins`;
-  const pdDe = (nombre: string | null) => pd.find(p => normalizeName(p.nombre) === normalizeName(nombre)) ?? null;
-  const rangoDe = (nombre: string | null) => pdDe(nombre)?.rango ?? null;
+  const pdDe = (entry: Entry) => {
+    if (entry.instructor_id) return pd.find(member => member.instructor_id === entry.instructor_id) ?? null;
+    const key = normalizeName(entry.nombre);
+    if (!key) return null;
+    const matches = pd.filter(member => normalizeName(member.nombre) === key);
+    return matches.length === 1 ? matches[0] : null;
+  };
+  const rangoDe = (entry: Entry) => pdDe(entry)?.rango ?? null;
   const baseDe = (r: Entry) => {
-    const m = pdDe(r.nombre);
+    const m = pdDe(r);
     return m ? Number(m.sueldo_defecto) || 0 : Number(r.paga) || 0;
   };
   const extrasDe = (r: Entry) => {
-    const m = pdDe(r.nombre);
+    const m = pdDe(r);
     return (m?.division && m.division !== "Ninguna" && m.division !== "N/A" ? DIVISION_BONUS : 0) +
       (m?.division2 && m.division2 !== "Ninguna" && m.division2 !== "N/A" ? DIVISION_BONUS : 0) +
       (m?.es_instructor ? DIVISION_BONUS : 0);
@@ -336,12 +367,12 @@ export function SalarioView({ session }: { session: Session | null }) {
         const monthRows = entries.filter(e => e.month_id === m.id);
         const uniqueRows = new Map<string, Entry>();
         for (const entry of monthRows) {
-          const key = normalizeName(entry.nombre) || entry.id;
+          const key = entry.instructor_id ? `id:${entry.instructor_id}` : `name:${normalizeName(entry.nombre) || entry.id}`;
           if (!uniqueRows.has(key)) uniqueRows.set(key, entry);
         }
         const rows = sortByRango(
           [...uniqueRows.values()],
-          r => rangoDe(r.nombre),
+          r => rangoDe(r),
           r => r.nombre,
         );
         const total = rows.reduce((s, r) => s + totalDe(r), 0);
@@ -375,7 +406,7 @@ export function SalarioView({ session }: { session: Session | null }) {
                 {canEdit && (
                   <>
                     <Button size="sm" variant="outline"
-                      onClick={() => syncMonth(m.id, rows.map(r => r.nombre ?? ""))}
+                      onClick={() => syncMonth(m.id, rows)}
                       className="h-9 rounded-none border-blue-300 bg-white text-blue-800 font-bold hover:bg-blue-50">
                       <Users className="w-4 h-4 mr-1" /> Sincronizar Registro PD
                     </Button>
@@ -415,7 +446,7 @@ export function SalarioView({ session }: { session: Session | null }) {
                         <tr key={r.id}
                           className={`border-t border-blue-200 hover:bg-blue-100 transition-colors ${idx % 2 ? "bg-slate-50" : "bg-blue-50/40"}`}>
                           <td className="p-3 border border-blue-200 font-mono font-bold text-slate-800 whitespace-nowrap">
-                            {r.nombre || "—"}{pdDe(r.nombre)?.placa ? `#${pdDe(r.nombre)?.placa}` : ""}
+                            {r.nombre || "—"}{pdDe(r)?.placa ? `#${pdDe(r)?.placa}` : ""}
                           </td>
                           <td className="p-3 border border-blue-200 font-bold text-slate-600 whitespace-nowrap">
                             {rangoDe(r.nombre) ?? "—"}
