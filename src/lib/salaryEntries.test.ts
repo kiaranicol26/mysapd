@@ -3,7 +3,7 @@ import { hasLegacySalaryEntryForName, normalizeSalaryName } from "./salaryEntrie
 
 describe("legacy salary duplicate protection", () => {
   it("normalizes accents, case, separators and repeated whitespace", () => {
-    expect(normalizeSalaryName("  José  |  Pérez ")).toBe("jose pere z".replace(" ", ""));
+    expect(normalizeSalaryName("  José  |  Pérez ")).toBe("jose perez");
   });
 
   it("suppresses a new row when a legacy row has the same normalized name", () => {
