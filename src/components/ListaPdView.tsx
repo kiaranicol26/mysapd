@@ -21,7 +21,8 @@ export type PdMember = {
 };
 
 const normalizePdName = (name: string) =>
-  name.replace(/\|/g, " ").replace(/\s+/g, " ").trim().toLocaleLowerCase("es");
+  name.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[|_]+/g, " ").replace(/\s+/g, " ").trim().toLocaleLowerCase("es");
 
 export function ListaPdView(_props: { session: Session }) {
   const [members, setMembers] = useState<PdMember[]>([]);
