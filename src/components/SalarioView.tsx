@@ -50,6 +50,7 @@ export function SalarioView({ session }: { session: Session | null }) {
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [newMonth, setNewMonth] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  const [legacyReviewCount, setLegacyReviewCount] = useState(0);
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const slug = (s: string) =>
@@ -152,6 +153,7 @@ export function SalarioView({ session }: { session: Session | null }) {
           }
         }
         // Insertar los faltantes en lotes reduce las solicitudes cuando hay muchos meses.
+        const legacyReviewKeys = new Set<string>();
         const rowsToInsert: {
           month_id: string;
           nombre: string;
@@ -165,7 +167,11 @@ export function SalarioView({ session }: { session: Session | null }) {
           const existingIds = idsByMonth.get(month.id) ?? new Set<string>();
           const legacyNames = legacyNamesByMonth.get(month.id) ?? new Set<string>();
           for (const member of currentPd) {
-            if (existingIds.has(member.id) || legacyNames.has(normalizeSalaryName(member.nombre))) continue;
+            if (existingIds.has(member.id)) continue;
+            if (legacyNames.has(normalizeSalaryName(member.nombre))) {
+              legacyReviewKeys.add(`${month.id}:${member.id}`);
+              continue;
+            }
             existingIds.add(member.id);
             rowsToInsert.push({
               month_id: month.id,
@@ -178,6 +184,7 @@ export function SalarioView({ session }: { session: Session | null }) {
           }
         }
 
+        setLegacyReviewCount(legacyReviewKeys.size);
         const batchSize = 500;
         for (let i = 0; i < rowsToInsert.length; i += batchSize) {
           const { error } = await db.from("salary_entries").insert(rowsToInsert.slice(i, i + batchSize) as any);
@@ -333,6 +340,20 @@ export function SalarioView({ session }: { session: Session | null }) {
           </p>
         </div>
       </Card>
+
+      {legacyReviewCount > 0 && (
+        <Card className="border-2 border-amber-300 bg-amber-50 rounded-none">
+          <div className="p-4">
+            <p className="text-sm font-black uppercase tracking-wide text-amber-900">
+              Revisión de salarios históricos pendiente
+            </p>
+            <p className="mt-1 text-sm font-semibold text-amber-800">
+              {legacyReviewCount} coincidencias de nombre no se duplicaron ni se vincularon automáticamente.
+              Las filas antiguas permanecen intactas y requieren revisión manual para confirmar a quién corresponden.
+            </p>
+          </div>
+        </Card>
+      )}
 
       {months.length === 0 && (
         <Card className="border-2 border-blue-300 bg-white rounded-none">
