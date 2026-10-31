@@ -12,6 +12,7 @@ import {
   getWebhookUrl, setWebhookUrl,
   getRnapWebhookUrl, setRnapWebhookUrl,
   getArchivoWebhookUrl, setArchivoWebhookUrl,
+  getDiscordCodeLoginEnabled, setDiscordCodeLoginEnabled,
 } from "@/lib/discord";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -66,6 +67,8 @@ export function AltoMando({ session }: { session: Session }) {
   const [savingArchivo, setSavingArchivo] = useState(false);
   const [bg, setBg] = useState("");
   const [savingBg, setSavingBg] = useState(false);
+  const [discordCodeLoginEnabled, setDiscordCodeLoginEnabledState] = useState(true);
+  const [savingDiscordLoginSetting, setSavingDiscordLoginSetting] = useState(false);
   const search = useSearch({ from: "/alto-mando" });
   const navigate = useNavigate({ from: "/alto-mando" });
   const activeSection = search.section;
@@ -88,6 +91,7 @@ export function AltoMando({ session }: { session: Session }) {
     getRnapWebhookUrl(true).then(setRnapHook);
     getArchivoWebhookUrl(true).then(setArchivoHook);
     getBackground().then(setBg);
+    getDiscordCodeLoginEnabled(true).then(setDiscordCodeLoginEnabledState);
   }, []);
 
   async function saveBg(value: string) {
@@ -138,6 +142,20 @@ export function AltoMando({ session }: { session: Session }) {
       toast.success("Webhook de Archivo guardado");
     } catch (e: any) { toast.error(e.message ?? "Error"); }
     finally { setSavingArchivo(false); }
+  }
+
+  async function saveDiscordCodeLoginEnabled(value: boolean) {
+    setSavingDiscordLoginSetting(true);
+    try {
+      await setDiscordCodeLoginEnabled(value);
+      setDiscordCodeLoginEnabledState(value);
+      await logAction(db, session, "UPDATE_DISCORD_CODE_LOGIN_VISIBILITY", { enabled: value });
+      toast.success(value ? "Acceso por código de Discord visible en el login" : "Acceso por código de Discord oculto en el login");
+    } catch (e: any) {
+      toast.error(e.message ?? "No se pudo guardar la configuración");
+    } finally {
+      setSavingDiscordLoginSetting(false);
+    }
   }
 
   async function resyncDiscord() {
@@ -383,6 +401,21 @@ export function AltoMando({ session }: { session: Session }) {
       </Card>
 
 
+
+      <Card className="overflow-hidden border border-blue-200 bg-white shadow-sm rounded-none">
+        <div className="h-1 bg-blue-600" />
+        <div className="p-5 space-y-3">
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h2 className="text-lg font-black uppercase tracking-wide text-slate-900 font-display">Acceso por código de Discord</h2>
+              <p className="text-sm text-slate-600">Controla si aparece en el login la opción para solicitar un código por mensaje directo de Discord. El ingreso habitual mediante ID permanece disponible.</p>
+            </div>
+            <Switch checked={discordCodeLoginEnabled} disabled={savingDiscordLoginSetting}
+              onCheckedChange={saveDiscordCodeLoginEnabled} />
+          </div>
+          <p className="text-xs font-bold text-slate-500">{discordCodeLoginEnabled ? "Visible en el login" : "Oculto en el login"}</p>
+        </div>
+      </Card>
 
       <Card className="overflow-hidden border-2 border-blue-300 bg-white shadow-md rounded-none">
         <div className="h-1.5 bg-blue-700" />
