@@ -5,8 +5,7 @@ ALTER TABLE public.salary_entries
   ADD COLUMN IF NOT EXISTS extras integer NOT NULL DEFAULT 0;
 
 UPDATE public.salary_entries AS salary
-SET paga = pd.sueldo_defecto,
-    extras =
+SET extras =
   CASE
     WHEN NULLIF(BTRIM(pd.division), '') IS NOT NULL AND BTRIM(pd.division) NOT IN ('Ninguna', 'N/A') THEN 15
     ELSE 0
