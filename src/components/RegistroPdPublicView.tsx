@@ -65,7 +65,7 @@ export function RegistroPdPublicView({session}:{session:Session|null}) {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {rows.map(({u,m})=>{
             const age=daysSince(u.discord_joined_at);
-            const photo=u.avatar_url||m?.foto||null;
+            const photo=m?.foto||u.avatar_url||null;
             return <Card key={u.id} className="overflow-hidden rounded-none border-2 border-slate-200 bg-white">
               <div className="h-1.5 bg-blue-700"/>
               <div className="p-4 flex gap-3 items-center">
