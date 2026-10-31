@@ -71,9 +71,12 @@ export const verifyDiscordCode = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { buildLogin, LOGIN_COLUMNS } = await import("@/lib/dbAuth.server");
+    const { data: pending } = await supabaseAdmin.from("discord_verifications").select("discord_id").eq("discord_username", data.username).maybeSingle();
+    if (!pending?.discord_id) return { ok: false as const, error: "Código inválido. Pedí uno nuevo." };
+    const codeHash = await hashCode(pending.discord_id, data.code);
     const { data: firstCheck, error: firstCheckError } = await (supabaseAdmin as any).rpc("verify_discord_login_code", {
       p_discord_username: data.username,
-      p_code_hash: await hashCode("", data.code),
+      p_code_hash: codeHash,
       p_consume: false,
     });
     if (firstCheckError) {
@@ -101,7 +104,7 @@ export const verifyDiscordCode = createServerFn({ method: "POST" })
     // The database row lock makes successful consumption one-time, even under concurrent requests.
     const { data: consumed, error: consumeError } = await (supabaseAdmin as any).rpc("verify_discord_login_code", {
       p_discord_username: data.username,
-      p_code_hash: await hashCode(checked.discord_id, data.code),
+      p_code_hash: codeHash,
       p_consume: true,
     });
     if (consumeError || consumed?.[0]?.status !== "ok") {
