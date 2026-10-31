@@ -11,7 +11,7 @@ import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { puedeVer } from "@/lib/secciones";
 
-type Tab = { to: string; label: string; icon: LucideIcon; public: boolean; alto: boolean; sec?: string; group: string };
+type Tab = { to: string; label: string; icon: LucideIcon; public: boolean; alto: boolean; sec?: string; group: string; search?: { section: "config" | "gestion" } };
 
 const TABS: Tab[] = [
   { to: "/perfil", label: "myPerfil", icon: UserRound, public: false, alto: false, group: "Cuenta" },
@@ -23,7 +23,8 @@ const TABS: Tab[] = [
   { to: "/policias", label: "Lista PD", icon: ListOrdered, public: false, alto: false, sec: "lista", group: "Personal" },
   { to: "/salario", label: "Salario", icon: Wallet, public: true, alto: false, group: "Personal" },
   { to: "/forum", label: "Forum", icon: MessagesSquare, public: false, alto: false, sec: "forum", group: "Comunidad" },
-  { to: "/alto-mando", label: "Administración", icon: Settings, public: false, alto: true, group: "Administración" },
+  { to: "/alto-mando", label: "Configuración Web", icon: Settings, public: false, alto: true, group: "Administración", search: { section: "config" } },
+  { to: "/alto-mando", label: "Gestión", icon: Users, public: false, alto: true, group: "Administración", search: { section: "gestion" } },
 ];
 
 export function AppShell({ session, children }: { session: Session | null; children: ReactNode }) {
@@ -78,7 +79,7 @@ export function AppShell({ session, children }: { session: Session | null; child
             {!narrow && <p className="px-3 mb-1 text-[10px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground">{g}</p>}
             <div className="space-y-0.5">
               {tabs.filter(t => t.group === g).map(t => (
-                <Link key={t.to} to={t.to as any} onClick={() => setMobileOpen(false)} title={t.label}
+                <Link key={`${t.to}-${t.label}`} to={t.to as any} search={t.search as any} onClick={() => setMobileOpen(false)} title={t.label}
                   activeProps={{ className: "bg-primary text-primary-foreground shadow-sm" }}
                   inactiveProps={{ className: "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" }}
                   className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-bold transition-colors ${narrow ? "justify-center" : ""}`}>
