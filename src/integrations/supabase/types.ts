@@ -526,6 +526,7 @@ export type Database = {
         Row: {
           created_at: string
           es_instructor: boolean
+          extras: number
           id: string
           month_id: string
           nombre: string | null
@@ -539,6 +540,7 @@ export type Database = {
         Insert: {
           created_at?: string
           es_instructor?: boolean
+          extras?: number
           id?: string
           month_id: string
           nombre?: string | null
@@ -552,6 +554,7 @@ export type Database = {
         Update: {
           created_at?: string
           es_instructor?: boolean
+          extras?: number
           id?: string
           month_id?: string
           nombre?: string | null
