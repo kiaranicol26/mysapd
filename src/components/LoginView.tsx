@@ -3,7 +3,6 @@ import { Link } from "@tanstack/react-router";
 import { Coins, IdCard } from "lucide-react";
 
 import { getBackground } from "@/lib/appearance";
-import { getDiscordCodeLoginEnabled } from "@/lib/discord";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -14,12 +13,10 @@ import { DiscordLogin } from "@/components/DiscordLogin";
 
 export function LoginView() {
   const [bg, setBg] = useState("");
-  const [discordCodeLoginEnabled, setDiscordCodeLoginEnabled] = useState(true);
 
   useEffect(() => {
     const load = () => getBackground().then(setBg).catch(() => {});
     load();
-    getDiscordCodeLoginEnabled(true).then(setDiscordCodeLoginEnabled).catch(() => setDiscordCodeLoginEnabled(true));
     window.addEventListener("background-change", load);
     return () => window.removeEventListener("background-change", load);
   }, []);
@@ -99,7 +96,7 @@ export function LoginView() {
                 Para proteger tu cuenta, el acceso se realiza verificando un código enviado por mensaje directo a tu Discord.
               </p>
 
-              {discordCodeLoginEnabled && <DiscordLogin />}
+              <DiscordLogin />
 
               <Button asChild variant="outline"
                 className="mt-4 h-11 w-full rounded-none border-blue-300 bg-white text-blue-800 font-bold tracking-wider hover:bg-blue-50">
