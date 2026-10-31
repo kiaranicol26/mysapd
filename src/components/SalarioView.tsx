@@ -205,7 +205,8 @@ export function SalarioView({ session }: { session: Session | null }) {
   const extrasDe = (r: Entry) => {
     const m = pdDe(r.nombre);
     return (m?.division && m.division !== "Ninguna" && m.division !== "N/A" ? DIVISION_BONUS : 0) +
-      (m?.division2 && m.division2 !== "Ninguna" && m.division2 !== "N/A" ? DIVISION_BONUS : 0);
+      (m?.division2 && m.division2 !== "Ninguna" && m.division2 !== "N/A" ? DIVISION_BONUS : 0) +
+      (m?.es_instructor ? DIVISION_BONUS : 0);
   };
   const totalDe = (r: Entry) => baseDe(r) + extrasDe(r);
 
@@ -345,7 +346,7 @@ export function SalarioView({ session }: { session: Session | null }) {
                             <span className="font-mono font-bold text-slate-800">{fmt(totalDe(r))}</span>
                             {extrasDe(r) > 0 && (
                               <span className="ml-2 text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">
-                                +{extrasDe(r)} (Divisiones)
+                                +{extrasDe(r)} (Extras)
                               </span>
                             )}
                           </td>
