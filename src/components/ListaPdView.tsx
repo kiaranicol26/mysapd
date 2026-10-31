@@ -17,7 +17,11 @@ export type PdMember = {
   division2?: string | null;
   es_instructor?: boolean;
   created_at: string;
+  instructor_id?: string | null;
 };
+
+const normalizePdName = (name: string) =>
+  name.replace(/\|/g, " ").replace(/\s+/g, " ").trim().toLocaleLowerCase("es");
 
 export function ListaPdView(_props: { session: Session }) {
   const [members, setMembers] = useState<PdMember[]>([]);
@@ -27,9 +31,16 @@ export function ListaPdView(_props: { session: Session }) {
   async function load() {
     const { data } = await db
       .from("pd_members")
-      .select("id, nombre, rango, sueldo_defecto, placa, division, division2, es_instructor, created_at")
+      .select("id, instructor_id, nombre, rango, sueldo_defecto, placa, division, division2, es_instructor, created_at")
       .order("nombre", { ascending: true });
-    if (data) setMembers(data as unknown as PdMember[]);
+    if (data) {
+      const unique = new Map<string, PdMember>();
+      for (const member of data as unknown as PdMember[]) {
+        const key = member.instructor_id ? `discord:${member.instructor_id}` : `name:${normalizePdName(member.nombre)}`;
+        if (!unique.has(key)) unique.set(key, member);
+      }
+      setMembers([...unique.values()]);
+    }
   }
 
   useEffect(() => { load(); }, []);
