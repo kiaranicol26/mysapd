@@ -102,7 +102,11 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
       }
       if (m.joined_at) {
         const { error: dateError } = await admin.from("instructors").update({ discord_joined_at: m.joined_at }).eq("id", row.id);
-        if (!dateError) datesUpdated++;
+        if (dateError) {
+          if (options.force) throw new Error("No se pudieron guardar las fechas de ingreso de Discord. Verificá que esté aplicada la migración discord_joined_at en Supabase.");
+        } else {
+          datesUpdated++;
+        }
       }
       const want = buildNick(tag, row.name, row.placa ?? placa);
       const current = m.nick || "";
