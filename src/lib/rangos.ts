@@ -1,6 +1,5 @@
 export const TAG_RANGOS: Record<string, string> = {
   CMS: "Comisario",
-  INS: "Instructor",
   CPT: "Capitan",
   TTE: "Teniente",
   SGT: "Sargento",
@@ -17,7 +16,6 @@ export function rangoFromTag(tag?: string | null): string | null {
 
 export const RANGOS = [
   "Comisario",
-  "Instructor",
   "Capitan",
   "Teniente",
   "Sargento",
@@ -30,7 +28,6 @@ export const RANGOS = [
 /** Plural headings used as separators in the Registro de Policías. */
 export const RANGO_PLURAL: Record<string, string> = {
   Comisario: "Comisarios",
-  Instructor: "Instructores",
   Capitan: "Capitanes",
   Teniente: "Tenientes",
   Sargento: "Sargentos",
