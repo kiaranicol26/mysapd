@@ -1,6 +1,46 @@
 -- Atomically rate-limit code issuance and verify/consume one-time Discord codes.
 -- These SECURITY DEFINER functions are callable only by the server service role.
 
+-- Keep the help-message endpoint from being abused to spam Discord members.
+CREATE TABLE IF NOT EXISTS public.discord_recovery_requests (
+  discord_id text PRIMARY KEY,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.discord_recovery_requests ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.discord_recovery_requests FROM PUBLIC, anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.reserve_discord_recovery(p_discord_id text)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $
+DECLARE
+  previous_created_at timestamptz;
+BEGIN
+  PERFORM pg_advisory_xact_lock(hashtextextended(p_discord_id, 1));
+
+  SELECT created_at INTO previous_created_at
+    FROM public.discord_recovery_requests
+   WHERE discord_id = p_discord_id
+   FOR UPDATE;
+
+  IF FOUND AND previous_created_at > now() - interval '60 seconds' THEN
+    RETURN false;
+  END IF;
+
+  INSERT INTO public.discord_recovery_requests (discord_id, created_at)
+  VALUES (p_discord_id, now())
+  ON CONFLICT (discord_id) DO UPDATE SET created_at = EXCLUDED.created_at;
+
+  RETURN true;
+END;
+$;
+
+REVOKE ALL ON FUNCTION public.reserve_discord_recovery(text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.reserve_discord_recovery(text) TO service_role;
+
 CREATE OR REPLACE FUNCTION public.reserve_discord_verification(
   p_discord_id text,
   p_discord_username text,
