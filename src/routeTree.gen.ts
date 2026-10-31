@@ -122,6 +122,7 @@ export interface FileRoutesByTo {
   '/perfil': typeof PerfilRoute
   '/policias': typeof PoliciasRoute
   '/registro-policias': typeof RegistroPoliciasRoute
+  '/registro-inhabilitados': typeof RegistroInhabilitadosRoute
   '/rnap': typeof RnapRoute
   '/salario': typeof SalarioRoute
   '/api/public/forum/$': typeof ApiPublicForumSplatRoute
@@ -171,6 +172,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/policias'
     | '/registro-policias'
+    | '/registro-inhabilitados'
     | '/rnap'
     | '/salario'
     | '/api/public/forum/$'
