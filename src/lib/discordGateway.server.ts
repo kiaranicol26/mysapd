@@ -42,9 +42,10 @@ const SCAN_INTERVAL = 10 * 60_000;
 function nickParts(m: GuildMember) {
   const raw = m.nick || m.user?.global_name || m.user?.username || "";
   const tag = raw.match(/^\s*(\[[^\]]+\])/)?.[1] ?? null;
-  const sinTag = raw.replace(/^\s*\[[^\]]+\]\s*/, "");
+  const sinTag = raw.replace(/^\s*\[[^\]]+\]\s*\|?\s*/, "");
   const placa = sinTag.match(/#(\d+)\s*$/)?.[1] ?? null;
-  const name = sinTag.replace(/\s*#\d+\s*$/, "").trim().slice(0, 60);
+  // Discord nicknames sometimes use "|" as a visual separator, not as part of the name.
+  const name = sinTag.replace(/\s*#\d+\s*$/, "").replace(/^\s*\|\s*/, "").replace(/\s*\|\s*$/, "").trim().slice(0, 60);
   return { tag, placa, name };
 }
 
@@ -100,6 +101,23 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
         created++;
         await admin.from("logs").insert({ instructor_id: id, instructor_name: name, action: "REGISTRO_AUTO_DISCORD", details: { discord: m.user!.username } });
       }
+      // Discord is the source of truth for the member's display name.
+      const oldName = String(row.name ?? "").trim();
+      const discordName = name.trim();
+      if (discordName && discordName !== oldName) {
+        const { error: renameError } = await admin.from("instructors").update({
+          name: discordName, discord_username: m.user!.username,
+        }).eq("id", row.id);
+        if (renameError) throw new Error("No se pudo actualizar el nombre desde Discord");
+        // Keep the linked PD record and historical salary rows in sync with Discord.
+        await admin.from("pd_members").update({ nombre: discordName, instructor_id: row.id }).eq("instructor_id", row.id);
+        await admin.from("pd_members").update({ nombre: discordName, instructor_id: row.id }).is("instructor_id", null).eq("nombre", oldName);
+        if (oldName) await admin.from("salary_entries").update({ nombre: discordName }).eq("nombre", oldName);
+        row.name = discordName;
+        renamed++;
+      } else if (m.user!.username !== row.discord_username) {
+        await admin.from("instructors").update({ discord_username: m.user!.username }).eq("id", row.id);
+      }
       if (m.joined_at) {
         const { error: dateError } = await admin.from("instructors").update({ discord_joined_at: m.joined_at }).eq("id", row.id);
         if (dateError) {
@@ -113,7 +131,6 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
       if (current !== want) {
         try {
           await discord(`guilds/${FACTION_GUILD_ID}/members/${m.user!.id}`, { method: "PATCH", body: JSON.stringify({ nick: want }) });
-          renamed++;
         } catch { /* sin permiso para ese miembro (dueño, rol más alto) */ }
       }
     }
