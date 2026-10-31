@@ -11,7 +11,7 @@ export const TAG_RANGOS: Record<string, string> = {
 
 export function rangoFromTag(tag?: string | null): string | null {
   if (!tag) return null;
-  return TAG_RANGOS[tag.replace(/^\\[|\\]$/g, "").toUpperCase()] ?? null;
+  return TAG_RANGOS[tag.replace(/^\[|\]$/g, "").toUpperCase()] ?? null;
 }
 
 export const RANGOS = [
