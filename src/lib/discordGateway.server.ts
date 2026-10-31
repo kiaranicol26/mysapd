@@ -99,7 +99,7 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }) {
         created++;
         await admin.from("logs").insert({ instructor_id: id, instructor_name: name, action: "REGISTRO_AUTO_DISCORD", details: { discord: m.user!.username } });
       }
-      const want = buildNick(tag, row.name, row.placa ?? placa);
+      if (m.joined_at) await admin.from("instructors").update({ discord_joined_at: m.joined_at }).eq("id", row.id);\n      const want = buildNick(tag, row.name, row.placa ?? placa);
       const current = m.nick || "";
       if (current !== want) {
         try {
