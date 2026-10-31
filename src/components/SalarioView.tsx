@@ -399,7 +399,7 @@ export function SalarioView({ session }: { session: Session | null }) {
                             {r.nombre || "—"}{pdDe(r)?.placa ? `#${pdDe(r)?.placa}` : ""}
                           </td>
                           <td className="p-3 border border-blue-200 font-bold text-slate-600 whitespace-nowrap">
-                            {rangoDe(r.nombre) ?? "—"}
+                            {rangoDe(r) ?? "—"}
                           </td>
                           <td className="p-3 border border-blue-200 font-semibold text-slate-600 whitespace-nowrap">{m.label}</td>
                           <td className="p-3 border border-blue-200 whitespace-nowrap">
