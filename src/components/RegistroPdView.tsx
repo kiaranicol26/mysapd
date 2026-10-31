@@ -94,12 +94,12 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
   const canEditCaps = !!session.is_alto_mando || !!session.can_edit_capacitaciones;
 
   async function load() {
-    const { data } = await db.from("pd_members").select("*").order("nombre", { ascending: true });
+    const { data } = await db.from("pd_members").select("id, instructor_id, nombre, rango, foto, placa, division, division_rango, division2, division2_rango, sueldo_defecto, es_instructor, cap_m4, cap_edc, cap_mary, cap_sniper, cap_air, cap_ak47, created_at").order("nombre", { ascending: true });
     if (data) setMembers(data as unknown as PdMember[]);
   }
 
   async function loadAvatars() {
-    const { data } = await db.from("instructors").select("id, name, avatar_url, role, descripcion, banner_url, color_perfil, pronombres, discord_username, is_alto_mando, can_delete, can_emit_rnap, can_edit_files, can_edit_pd, secciones, placa, discord_inhabilitado");
+    const { data } = await db.from("instructors").select("id, name, avatar_url, role, discord_inhabilitado");
     if (!data) return;
     setUsers(data as any);
     const map: Record<string, string> = {};
