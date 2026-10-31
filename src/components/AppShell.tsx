@@ -5,7 +5,7 @@ import { logAction, setSession, type Session } from "@/lib/session";
 import { getBackground } from "@/lib/appearance";
 import {
   LogOut, Shield, LogIn, UserRound, Archive, GraduationCap, FileSearch, Award, IdCard, ListOrdered,
-  MessagesSquare, Wallet, Crown, PanelLeftClose, PanelLeftOpen, Menu, type LucideIcon,
+  MessagesSquare, Wallet, Settings, PanelLeftClose, PanelLeftOpen, Menu, type LucideIcon,
 } from "lucide-react";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -23,7 +23,7 @@ const TABS: Tab[] = [
   { to: "/policias", label: "Lista PD", icon: ListOrdered, public: false, alto: false, sec: "lista", group: "Personal" },
   { to: "/salario", label: "Salario", icon: Wallet, public: true, alto: false, group: "Personal" },
   { to: "/forum", label: "Forum", icon: MessagesSquare, public: false, alto: false, sec: "forum", group: "Comunidad" },
-  { to: "/alto-mando", label: "Alto Mando", icon: Crown, public: false, alto: true, group: "Administración" },
+  { to: "/alto-mando", label: "Administración", icon: Settings, public: false, alto: true, group: "Administración" },
 ];
 
 export function AppShell({ session, children }: { session: Session | null; children: ReactNode }) {
