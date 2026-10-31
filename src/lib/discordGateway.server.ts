@@ -33,6 +33,7 @@ type GuildMember = {
   user?: { id: string; username: string; global_name?: string | null; bot?: boolean };
   nick?: string | null;
   roles?: string[];
+  joined_at?: string;
 };
 
 const SCAN_KEY = "guild_scan_at";
@@ -58,10 +59,10 @@ function buildNick(tag: string | null, name: string, placa: string | null) {
  * usuario en la web le crea uno (rol Usuario, sin apartados) y le ajusta el
  * apodo a [TAG]Nombre #placa. Limitado a una pasada cada 10 minutos.
  */
-export async function syncGuildPolice(admin: { from: (table: string) => any }) {
+export async function syncGuildPolice(admin: { from: (table: string) => any }, options: { force?: boolean } = {}) {
   try {
     const { data: marker } = await admin.from("app_settings").select("value").eq("key", SCAN_KEY).maybeSingle();
-    if (marker?.value && Date.now() - new Date(marker.value).getTime() < SCAN_INTERVAL) return null;
+    if (!options.force && marker?.value && Date.now() - new Date(marker.value).getTime() < SCAN_INTERVAL) return null;
     await admin.from("app_settings").upsert({ key: SCAN_KEY, value: new Date().toISOString() });
 
     const roles = (await discord(`guilds/${FACTION_GUILD_ID}/roles`)) as { id: string; name: string }[];
@@ -81,7 +82,7 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }) {
     const { data: existing } = await admin.from("instructors").select("id, name, discord_id, placa");
     const byDiscord = new Map((existing ?? []).filter((r: any) => r.discord_id).map((r: any) => [r.discord_id, r]));
 
-    let created = 0, renamed = 0;
+    let created = 0, renamed = 0, datesUpdated = 0;
     for (const m of police) {
       const { tag, placa, name } = nickParts(m);
       if (!name) continue;
@@ -108,9 +109,10 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }) {
         } catch { /* sin permiso para ese miembro (dueño, rol más alto) */ }
       }
     }
-    return { created, renamed, total: police.length };
+    return { created, renamed, datesUpdated, total: police.length };
   } catch (e) {
     console.error("syncGuildPolice", e);
+    if (options.force) throw e;
     return null;
   }
 }
