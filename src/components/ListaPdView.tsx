@@ -15,6 +15,7 @@ export type PdMember = {
   placa?: string | null;
   division?: string | null;
   division2?: string | null;
+  es_instructor?: boolean;
   created_at: string;
 };
 
@@ -26,7 +27,7 @@ export function ListaPdView(_props: { session: Session }) {
   async function load() {
     const { data } = await db
       .from("pd_members")
-      .select("id, nombre, rango, sueldo_defecto, placa, division, division2, created_at")
+      .select("id, nombre, rango, sueldo_defecto, placa, division, division2, es_instructor, created_at")
       .order("nombre", { ascending: true });
     if (data) setMembers(data as unknown as PdMember[]);
   }
@@ -97,13 +98,13 @@ export function ListaPdView(_props: { session: Session }) {
                     <td className="p-3 border border-blue-200 font-bold text-slate-600">{m.rango ?? "—"}</td>
                     <td className="p-3 border border-blue-200 font-mono font-bold">{Number(m.sueldo_defecto) || 0} Coins</td>
                     <td className="p-3 border border-blue-200 font-mono font-bold text-emerald-700">
-                      {((m.division && m.division !== "Ninguna" && m.division !== "N/A" ? 10 : 0) + (m.division2 && m.division2 !== "Ninguna" && m.division2 !== "N/A" ? 10 : 0))} Coins
+                      {((m.division && m.division !== "Ninguna" && m.division !== "N/A" ? 10 : 0) + (m.division2 && m.division2 !== "Ninguna" && m.division2 !== "N/A" ? 10 : 0) + (m.es_instructor ? 10 : 0))} Coins
                     </td>
                     <td className="p-3 border border-blue-200 font-mono font-black text-blue-800">
-                      {(Number(m.sueldo_defecto) || 0) + (m.division && m.division !== "Ninguna" ? 10 : 0) + (m.division2 && m.division2 !== "Ninguna" ? 10 : 0)} Coins
+                      {(Number(m.sueldo_defecto) || 0) + (m.division && m.division !== "Ninguna" && m.division !== "N/A" ? 10 : 0) + (m.division2 && m.division2 !== "Ninguna" && m.division2 !== "N/A" ? 10 : 0) + (m.es_instructor ? 10 : 0)} Coins
                     </td>
                     <td className="p-3 border border-blue-200 text-xs font-semibold text-slate-600">
-                      {[m.division && m.division !== "Ninguna" && m.division !== "N/A" ? m.division : null, m.division2 && m.division2 !== "Ninguna" && m.division2 !== "N/A" ? m.division2 : null].filter(Boolean).join(" · ") || "Sin división"}
+                      {[m.division && m.division !== "Ninguna" && m.division !== "N/A" ? m.division : null, m.division2 && m.division2 !== "Ninguna" && m.division2 !== "N/A" ? m.division2 : null].filter(Boolean).join(" · ") || "Sin división"}{m.es_instructor ? " · Instructor" : ""}
                     </td>
                   </tr>
                 ))}
