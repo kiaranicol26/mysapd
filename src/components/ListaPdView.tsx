@@ -81,7 +81,7 @@ export function ListaPdView(_props: { session: Session }) {
           </div>
 
           <p className="text-xs text-slate-500 font-semibold">
-            Los rangos y la condición de Instructor se sincronizan desde los tags de Discord. El sueldo individual y las divisiones se administran desde Registro PD por Alto Mando.
+            Los rangos se sincronizan desde las etiquetas de Discord y la condición de Instructor desde el rol @Equipo de instructores. El sueldo individual y las divisiones se administran desde Registro PD por Alto Mando.
           </p>
         </div>
       </Card>
