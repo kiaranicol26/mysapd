@@ -271,6 +271,15 @@ export async function runQuery(spec: QuerySpec, claims: Claims | null, admin: Ad
     });
     safe = { ...safe, values: Array.isArray(safe.values) ? safe.values.map(stamp) : stamp(safe.values) };
   }
+  if (safe.table === "forum_posts" && safe.op === "update") {
+    const stripAuthorFields = (value: unknown) => {
+      const next = value && typeof value === "object" ? { ...(value as Record<string, unknown>) } : {};
+      delete next.created_by_id;
+      delete next.created_by;
+      return next;
+    };
+    safe = { ...safe, values: Array.isArray(safe.values) ? safe.values.map(stripAuthorFields) : stripAuthorFields(safe.values) };
+  }
   if (safe.table === "instructors" && ["insert", "upsert", "update"].includes(safe.op)) {
     const values = Array.isArray(safe.values) ? safe.values : [safe.values];
     const { factionMember } = await import("./discordGateway.server");
