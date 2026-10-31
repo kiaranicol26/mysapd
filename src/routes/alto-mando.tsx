@@ -3,6 +3,9 @@ import { Protected } from "@/components/Protected";
 import { AltoMando } from "@/components/AltoMando";
 
 export const Route = createFileRoute("/alto-mando")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    section: search.section === "gestion" ? "gestion" as const : "config" as const,
+  }),
   head: () => ({
     meta: [
       { property: "og:type", content: "website" },
