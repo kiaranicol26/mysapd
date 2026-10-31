@@ -151,7 +151,7 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
 
     case "pd_members": {
       if (!write) return spec;
-      const restrictedSalaryFields = new Set(["sueldo_defecto", "division", "division_rango", "division2", "division2_rango"]);
+      const restrictedSalaryFields = new Set(["sueldo_defecto", "division", "division_rango", "division2", "division2_rango", "es_instructor"]);
       const hasRestrictedFields = patchKeys(spec.values).some(k => restrictedSalaryFields.has(k)) ||
         (Array.isArray(spec.values) && spec.values.some(v => patchKeys(v).some(k => restrictedSalaryFields.has(k))));
       if (!alto && hasRestrictedFields) deny("Solo Alto Mando puede modificar sueldos y segunda división");
@@ -187,7 +187,7 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
         if (alto) return spec;
         const cols = (spec.columns ?? "*").split(",").map(c => c.trim()).filter(Boolean);
         const publicCols = new Set(["id", "name", "avatar_url", "descripcion", "role", "banner_url", "color_perfil", "pronombres", "placa",
-          "discord_username", "is_alto_mando", "can_delete", "can_emit_rnap", "can_edit_files", "can_edit_pd", "secciones", "discord_inhabilitado", "discord_joined_at"]);
+          "discord_username", "is_alto_mando", "can_delete", "can_emit_rnap", "can_edit_files", "can_edit_pd", "secciones", "discord_inhabilitado", "discord_joined_at", "es_instructor"]);
         if (cols.length > 0 && cols.every(c => publicCols.has(c))) return spec;
         return { ...spec, filters: [{ type: "eq", column: "id", value: claims.id }] };
       }
