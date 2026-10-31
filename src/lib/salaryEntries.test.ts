@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { hasLegacySalaryEntryForName, normalizeSalaryName } from "./salaryEntries";
+import { calculateSalaryExtras, hasLegacySalaryEntryForName, normalizeSalaryName } from "./salaryEntries";
 
 describe("legacy salary duplicate protection", () => {
   it("normalizes accents, case, separators and repeated whitespace", () => {
@@ -33,5 +33,31 @@ describe("legacy salary duplicate protection", () => {
         { nombre: " ", pd_member_id: null },
       ]),
     ).toBe(false);
+  });
+});
+
+describe("frozen salary extras", () => {
+  it("adds one bonus per assigned division and the instructor bonus", () => {
+    expect(calculateSalaryExtras({
+      division: "Patrulla",
+      division2: "Tránsito",
+      es_instructor: true,
+    })).toBe(40);
+  });
+
+  it("does not add bonuses for empty or unassigned divisions", () => {
+    expect(calculateSalaryExtras({
+      division: "",
+      division2: "Ninguna",
+      es_instructor: false,
+    })).toBe(0);
+  });
+
+  it("supports one division without instructor status", () => {
+    expect(calculateSalaryExtras({
+      division: "Patrulla",
+      division2: null,
+      es_instructor: false,
+    })).toBe(15);
   });
 });
