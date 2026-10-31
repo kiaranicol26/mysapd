@@ -139,18 +139,14 @@ export function SalarioView({ session }: { session: Session | null }) {
         // Indexar los registros existentes en una sola pasada evita filtrar toda la
         // tabla de salarios una vez por cada mes.
         const namesByMonth = new Map<string, Set<string>>();
-        const legacyNamesByMonth = new Map<string, Set<string>>();
         const idsByMonth = new Map<string, Set<string>>();
         for (const row of (e.data ?? []) as unknown as Entry[]) {
           let names = namesByMonth.get(row.month_id);
           if (!names) namesByMonth.set(row.month_id, names = new Set<string>());
-          let legacyNames = legacyNamesByMonth.get(row.month_id);
-          if (!legacyNames) legacyNamesByMonth.set(row.month_id, legacyNames = new Set<string>());
           let ids = idsByMonth.get(row.month_id);
           if (!ids) idsByMonth.set(row.month_id, ids = new Set<string>());
           const key = normalizeName(row.nombre);
           if (key) names.add(key);
-          if (!row.instructor_id && key) legacyNames.add(key);
           if (row.instructor_id) ids.add(row.instructor_id);
         }
         const nameCounts = new Map<string, number>();
@@ -170,15 +166,14 @@ export function SalarioView({ session }: { session: Session | null }) {
         }[] = [];
 
         for (const month of m.data as Month[]) {
-          const legacyNames = legacyNamesByMonth.get(month.id) ?? new Set<string>();
           const existingIds = idsByMonth.get(month.id) ?? new Set<string>();
           for (const member of currentPd) {
             const key = normalizeName(member.nombre);
             const instructorId = member.instructor_id ?? null;
             if (!key) continue;
             if (instructorId) {
-              // A legacy row with the same name is ambiguous; do not duplicate or claim it.
-              if (existingIds.has(instructorId) || legacyNames.has(key)) continue;
+              // Stable IDs distinguish current members from unrelated legacy rows with the same name.
+              if (existingIds.has(instructorId)) continue;
               existingIds.add(instructorId);
             } else {
               // Unlinked homonyms cannot safely be distinguished by name.
@@ -218,7 +213,6 @@ export function SalarioView({ session }: { session: Session | null }) {
   async function syncMonth(monthId: string, existing: Entry[], silent = false) {
     const existingNames = new Set(existing.map(row => normalizeName(row.nombre)).filter(Boolean));
     const existingIds = new Set(existing.map(row => row.instructor_id).filter((id): id is string => !!id));
-    const legacyNames = new Set(existing.filter(row => !row.instructor_id).map(row => normalizeName(row.nombre)).filter(Boolean));
     const nameCounts = new Map<string, number>();
     for (const member of pd) {
       const key = normalizeName(member.nombre);
@@ -227,7 +221,7 @@ export function SalarioView({ session }: { session: Session | null }) {
     const missing = pd.filter(member => {
       const key = normalizeName(member.nombre);
       if (!key) return false;
-      if (member.instructor_id) return !existingIds.has(member.instructor_id) && !legacyNames.has(key);
+      if (member.instructor_id) return !existingIds.has(member.instructor_id);
       return nameCounts.get(key) === 1 && !existingNames.has(key);
     });
     if (missing.length === 0) {
@@ -294,13 +288,10 @@ export function SalarioView({ session }: { session: Session | null }) {
   }
 
   const fmt = (n: number) => `${Math.round(n).toLocaleString("es-ES")} Coins`;
-  const pdDe = (entry: Entry) => {
-    if (entry.instructor_id) return pd.find(member => member.instructor_id === entry.instructor_id) ?? null;
-    const key = normalizeName(entry.nombre);
-    if (!key) return null;
-    const matches = pd.filter(member => normalizeName(member.nombre) === key);
-    return matches.length === 1 ? matches[0] : null;
-  };
+  // Only stable IDs may resolve a current PD profile; names are not identities.
+  const pdDe = (entry: Entry) => entry.instructor_id
+    ? pd.find(member => member.instructor_id === entry.instructor_id) ?? null
+    : null;
   const rangoDe = (entry: Entry) => pdDe(entry)?.rango ?? null;
   const baseDe = (r: Entry) => {
     const m = pdDe(r);
