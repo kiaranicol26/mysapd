@@ -36,8 +36,10 @@ export function ListaPdView(_props: { session: Session }) {
     if (data) {
       const unique = new Map<string, PdMember>();
       for (const member of data as unknown as PdMember[]) {
-        const key = member.instructor_id ? `discord:${member.instructor_id}` : `name:${normalizePdName(member.nombre)}`;
-        if (!unique.has(key)) unique.set(key, member);
+        const key = normalizePdName(member.nombre) || `id:${member.instructor_id ?? member.id}`;
+        const previous = unique.get(key);
+        // Prefer the row linked to its Discord account when a legacy duplicate exists.
+        if (!previous || (!previous.instructor_id && member.instructor_id)) unique.set(key, member);
       }
       setMembers([...unique.values()]);
     }
