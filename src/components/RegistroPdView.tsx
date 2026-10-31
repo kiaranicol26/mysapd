@@ -169,7 +169,6 @@ export function RegistroPdView({ session }: { session: Session }) {
         division2: draft.division2 || "Ninguna",
         division2_rango: draft.division2 === "Ninguna" ? null : draft.division2_rango || null,
         sueldo_defecto: Math.max(0, Number(draft.sueldo_defecto) || 0),
-        es_instructor: draft.rango === "Instructor",
       } : {}),
     };
     const res = draft.id
@@ -380,7 +379,7 @@ export function RegistroPdView({ session }: { session: Session }) {
                 <label className="text-xs font-extrabold uppercase tracking-widest text-blue-700">Rango · Discord</label>
                 <Input value={draft.rango || "Sin rango asignado"} disabled
                   className="h-10 rounded-none border-blue-300 bg-slate-100 font-semibold text-slate-600" />
-                <p className="text-[10px] text-slate-500">Se actualiza automáticamente según el tag de Discord.</p>
+                <p className="text-[10px] text-slate-500">Se actualiza automáticamente según la etiqueta de rango de Discord.</p>
               </div>
               <Input placeholder="Número de placa" value={draft.placa}
                 onChange={e => setDraft(d => ({ ...d, placa: e.target.value }))}
@@ -439,14 +438,14 @@ export function RegistroPdView({ session }: { session: Session }) {
               </div>
             )}
             <div className="flex w-full items-center gap-3 border-t-2 border-blue-200 pt-4 mt-2">
-              <span className={`flex h-6 w-6 shrink-0 items-center justify-center border-2 rounded-sm ${draft.rango === "Instructor" ? "border-green-600 bg-green-600 text-white" : "border-slate-300 bg-white text-transparent"}`}>
+              <span className={`flex h-6 w-6 shrink-0 items-center justify-center border-2 rounded-sm ${draft.es_instructor ? "border-green-600 bg-green-600 text-white" : "border-slate-300 bg-white text-transparent"}`}>
                 <Check className="h-4 w-4 stroke-[3]" />
               </span>
               <span className="min-w-0">
                 <span className="block text-sm font-extrabold uppercase tracking-wider text-blue-800">Es Instructor</span>
-                <span className="block text-xs text-slate-500">Se determina automáticamente con el tag [INS] de Discord y suma +10 Coins a la paga.</span>
+                <span className="block text-xs text-slate-500">Se determina automáticamente por el rol @Equipo de instructores en Discord y suma +10 Coins a la paga.</span>
               </span>
-              <span className={`ml-auto text-xs font-black uppercase ${draft.rango === "Instructor" ? "text-green-700" : "text-slate-400"}`}>{draft.rango === "Instructor" ? "Sí" : "No"}</span>
+              <span className={`ml-auto text-xs font-black uppercase ${draft.es_instructor ? "text-green-700" : "text-slate-400"}`}>{draft.es_instructor ? "Sí" : "No"}</span>
             </div>
           </div>
 
