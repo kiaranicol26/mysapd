@@ -1,17 +1,13 @@
 import { useEffect, useState } from "react";
 import { db, getToken } from "@/lib/db";
 import { setSession, logAction, type Session } from "@/lib/session";
-import { fileToCompressedDataUrl } from "@/lib/appearance";
 import { SECCIONES } from "@/lib/secciones";
 import { syncDiscordNick } from "@/lib/discordAuth.functions";
 import { DiscordRoles } from "@/components/DiscordRoles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Save, Upload, UserRound, Check, X, ImageIcon } from "lucide-react";
-
-const COLORES = ["#5865f2", "#57f287", "#fee75c", "#eb459e", "#ed4245", "#23272a", "#3ba55d", "#faa61a"];
+import { Save, UserRound, Check, X } from "lucide-react";
 
 export function MiPerfilView({ session }: { session: Session }) {
   const [name, setName] = useState(session.name);
@@ -48,10 +44,6 @@ export function MiPerfilView({ session }: { session: Session }) {
         
       });
   }, [session.id]);
-
-  async function upload(file: File, set: (v: string) => void, size: number) {
-    try { set(await fileToCompressedDataUrl(file, size)); } catch { toast.error("No se pudo procesar la imagen"); }
-  }
 
   async function save() {
     const nuevaPlaca = placa.trim();
