@@ -5,7 +5,7 @@ import { logAction, setSession, type Session } from "@/lib/session";
 import { getBackground } from "@/lib/appearance";
 import {
   LogOut, Shield, LogIn, UserRound, Archive, GraduationCap, FileSearch, Award, IdCard, ListOrdered,
-  MessagesSquare, Wallet, Settings, PanelLeftClose, PanelLeftOpen, Menu, type LucideIcon,
+  MessagesSquare, Wallet, Settings, Users, PanelLeftClose, PanelLeftOpen, Menu, type LucideIcon,
 } from "lucide-react";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { ThemeToggle } from "@/components/ThemeToggle";
