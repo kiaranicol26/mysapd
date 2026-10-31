@@ -21,21 +21,23 @@ export function MiPerfilView({ session }: { session: Session }) {
   const [color, setColor] = useState("#5865f2");
   const [pronombres, setPronombres] = useState("");
   const [discordUser, setDiscordUser] = useState<string | null>(null);
-  const [syncNick, setSyncNick] = useState(true);
+  const [tag, setTag] = useState<string | null>(null);
+  
   const [placa, setPlaca] = useState("");
   const [placaOrig, setPlacaOrig] = useState("");
-  const [syncAvatar, setSyncAvatar] = useState(true);
+  
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     db.from("instructors")
-      .select("name, avatar_url, descripcion, banner_url, color_perfil, pronombres, discord_username, placa, sync_avatar")
+      .select("name, tag, avatar_url, descripcion, banner_url, color_perfil, pronombres, discord_username, placa")
       .eq("id", session.id)
       .maybeSingle()
       .then(({ data }) => {
         if (!data) return;
         const d = data as any;
         setName(d.name ?? "");
+        setTag(d.tag ?? null);
         setAvatar(d.avatar_url ?? "");
         setDescripcion(d.descripcion ?? "");
         setBanner(d.banner_url ?? "");
@@ -43,7 +45,7 @@ export function MiPerfilView({ session }: { session: Session }) {
         setPronombres(d.pronombres ?? "");
         setDiscordUser(d.discord_username ?? null);
         setPlaca(d.placa ?? ""); setPlacaOrig(d.placa ?? "");
-        setSyncAvatar(d.sync_avatar ?? true);
+        
       });
   }, [session.id]);
 
@@ -52,23 +54,16 @@ export function MiPerfilView({ session }: { session: Session }) {
   }
 
   async function save() {
-    const n = name.trim();
-    if (!n) return toast.error("El nombre no puede estar vacío");
+    const nuevaPlaca = placa.trim();
     setSaving(true);
-    const { error } = await db.from("instructors").update({
-      name: n, avatar_url: avatar.trim() || null, descripcion: descripcion.trim() || null,
-      banner_url: banner.trim() || null, color_perfil: color, pronombres: pronombres.trim() || null,
-      placa: placa.trim() || null, sync_avatar: syncAvatar,
-    } as any).eq("id", session.id);
-    if (error) { setSaving(false); return toast.error("No se pudo guardar"); }
-    setSession({ ...session, name: n, avatar_url: avatar.trim() || null, descripcion: descripcion.trim() || null });
-    await logAction(db, session, "PERFIL_ACTUALIZADO", { id: session.id });
-    toast.success("Perfil actualizado");
-    if (discordUser && syncNick && (n !== session.name || placa.trim() !== placaOrig)) {
-      const r = await syncDiscordNick({ data: { token: getToken() ?? "", nick: n.slice(0, 32), placa: placa.trim() || undefined } });
-      if (r.ok) setPlacaOrig(placa.trim());
-      r.ok ? toast.success("Apodo actualizado en Discord") : toast.error(r.error);
-    }
+    const { error } = await db.from("instructors").update({ placa: nuevaPlaca || null } as any).eq("id", session.id);
+    if (error) { setSaving(false); return toast.error("No se pudo guardar la placa"); }
+    await logAction(db, session, "PERFIL_PLACA_ACTUALIZADA", { id: session.id, placa: nuevaPlaca });
+    if (discordUser && nuevaPlaca !== placaOrig) {
+      const r = await syncDiscordNick({ data: { token: getToken() ?? "", nick: name.slice(0, 32), placa: nuevaPlaca || undefined } });
+      if (r.ok) { setPlacaOrig(nuevaPlaca); toast.success("Placa actualizada en Discord"); }
+      else toast.error("La placa se guardó en la web, pero Discord no pudo actualizarse: " + r.error);
+    } else toast.success("Placa actualizada");
     setSaving(false);
   }
 
@@ -93,7 +88,7 @@ export function MiPerfilView({ session }: { session: Session }) {
           </div>
           <div className="mt-2 rounded-md bg-muted/60 p-3 space-y-3">
             <div>
-              <p className="text-xl font-extrabold text-foreground leading-tight">{name || "Sin nombre"}</p>
+              <p className="text-xl font-extrabold text-foreground leading-tight">{tag ? tag + " " : ""}{name || "Sin nombre"}</p>
               <p className="text-sm text-muted-foreground">{discordUser ? `@${discordUser}` : "Sin Discord"}{placa && ` · Placa #${placa}`}{pronombres && ` · ${pronombres}`}</p>
             </div>
             <div className="border-t pt-2">
@@ -112,10 +107,11 @@ export function MiPerfilView({ session }: { session: Session }) {
                 <div className="mt-1">
                   <DiscordRoles targetId={session.id} canManage={session.is_alto_mando}
                     onName={i => {
+                      setTag(i.tag);
                       setName(i.name); setPlaca(i.placa ?? ""); setPlacaOrig(i.placa ?? "");
-                      if (syncAvatar && i.avatar_url) setAvatar(i.avatar_url);
-                      if (i.name !== session.name || (syncAvatar && i.avatar_url && i.avatar_url !== session.avatar_url))
-                        setSession({ ...session, name: i.name, avatar_url: syncAvatar && i.avatar_url ? i.avatar_url : session.avatar_url });
+                      if (i.avatar_url) setAvatar(i.avatar_url);
+                      if (i.name !== session.name || (i.avatar_url && i.avatar_url !== session.avatar_url))
+                        setSession({ ...session, name: i.name, avatar_url: i.avatar_url ?? session.avatar_url });
                     }} />
                 </div>
               </div>
@@ -150,75 +146,18 @@ export function MiPerfilView({ session }: { session: Session }) {
           <p className={label}>Mi ID de acceso</p>
           <p className="mt-1 break-all font-mono font-bold text-foreground">{session.id}</p>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className={label}>Nombre</label>
-            <Input value={name} onChange={e => setName(e.target.value)} className={inp} />
-            {discordUser && (
-              <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                <input type="checkbox" checked={syncNick} onChange={e => setSyncNick(e.target.checked)} />
-                Cambiar también mi apodo en Discord (tu [TAG] de rango se mantiene solo)
-              </label>
-            )}
-          </div>
-          <div>
-            <label className={label}>Número de placa</label>
-            <Input value={placa} maxLength={6} inputMode="numeric" placeholder="0000" onChange={e => setPlaca(e.target.value.replace(/\D/g, ""))} className={inp} />
-            <p className="mt-1 text-[11px] text-muted-foreground">Es el #0000 al final de tu apodo de Discord.</p>
-          </div>
-          <div>
-            <label className={label}>Pronombres</label>
-            <Input value={pronombres} maxLength={40} placeholder="ella/él..." onChange={e => setPronombres(e.target.value)} className={inp} />
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className={label}>Foto de perfil</label>
-            {discordUser && (
-              <label className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                <input type="checkbox" checked={syncAvatar} onChange={e => setSyncAvatar(e.target.checked)} />
-                Usar mi avatar de Discord (se actualiza solo)
-              </label>
-            )}
-            <div className="mt-1 flex gap-2">
-              <Input value={avatar.startsWith("data:") ? "" : avatar} placeholder={avatar.startsWith("data:") ? "Imagen subida" : "https://..."} onChange={e => setAvatar(e.target.value)} className="h-10 rounded-none" />
-              <label className="flex h-10 px-3 items-center border cursor-pointer hover:bg-muted">
-                <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) upload(f, setAvatar, 512); }} />
-                <Upload className="w-4 h-4" />
-              </label>
-            </div>
-          </div>
-          <div>
-            <label className={label}>Banner</label>
-            <div className="mt-1 flex gap-2">
-              <Input value={banner.startsWith("data:") ? "" : banner} placeholder={banner.startsWith("data:") ? "Imagen subida" : "https://..."} onChange={e => setBanner(e.target.value)} className="h-10 rounded-none" />
-              <label className="flex h-10 px-3 items-center border cursor-pointer hover:bg-muted">
-                <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) upload(f, setBanner, 1200); }} />
-                <ImageIcon className="w-4 h-4" />
-              </label>
-              {banner && <Button variant="outline" className="h-10 rounded-none" onClick={() => setBanner("")}>Quitar</Button>}
-            </div>
-          </div>
-        </div>
-
         <div>
-          <label className={label}>Color del banner</label>
-          <div className="mt-1 flex flex-wrap items-center gap-2">
-            {COLORES.map(c => (
-              <button key={c} type="button" onClick={() => setColor(c)} aria-label={c}
-                className={`w-8 h-8 rounded-full border-2 ${color === c ? "border-foreground" : "border-transparent"}`} style={{ backgroundColor: c }} />
-            ))}
-            <input type="color" value={color} onChange={e => setColor(e.target.value)} className="w-8 h-8 cursor-pointer" />
+          <label className={label}>Nombre de Discord</label>
+          <div className="mt-1 h-10 flex items-center border bg-muted/40 px-3 font-semibold text-sm">
+            {tag ? tag + " " : ""}{name || "Sin nombre"}
           </div>
+          <p className="mt-1 text-[11px] text-muted-foreground">El Tag, el nombre y el avatar se sincronizan automáticamente desde Discord y no se pueden editar aquí.</p>
         </div>
-
         <div>
-          <label className={label}>Sobre mí</label>
-          <Textarea value={descripcion} maxLength={500} onChange={e => setDescripcion(e.target.value)} placeholder="Escribe algo sobre ti..." className="mt-1 min-h-28 rounded-none" />
-          <p className="text-right text-[11px] text-muted-foreground">{descripcion.length}/500</p>
+          <label className={label}>Número de placa</label>
+          <Input value={placa} maxLength={6} inputMode="numeric" placeholder="0000" onChange={e => setPlaca(e.target.value.replace(/[^0-9]/g, ""))} className={inp} />
+          <p className="mt-1 text-[11px] text-muted-foreground">Es el número que aparece al final de tu apodo de Discord (#0000).</p>
         </div>
-
         <Button onClick={save} disabled={saving} className="h-11 rounded-none font-extrabold uppercase tracking-widest">
           <Save className="w-4 h-4 mr-2" /> {saving ? "Guardando..." : "Guardar cambios"}
         </Button>
