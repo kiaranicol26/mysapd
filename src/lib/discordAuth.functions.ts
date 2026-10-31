@@ -209,7 +209,7 @@ export const getDiscordInfo = createServerFn({ method: "POST" })
       const ctx = await memberContext(row.discord_id);
       if (!ctx) return { ok: false as const, error: "No está en el servidor de Discord" };
       const raw: string = ctx.member.nick || ctx.member.user?.global_name || ctx.member.user?.username || "";
-      const tag = raw.match(/^\s*(\[[^\]]+\])/)?.[1] ?? null;
+      const tag = raw.match(/^\s*(\[[A-Za-z]{3}\])/)?.[1] ?? null;
       const sinTag = raw.replace(/^\s*\[[^\]]+\]\s*/, "");
       const placa = sinTag.match(/#(\d+)\s*$/)?.[1] ?? null;
       const limpio = sinTag.replace(/\s*#\d+\s*$/, "").trim().slice(0, 60);
