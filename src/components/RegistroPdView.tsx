@@ -450,7 +450,7 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
               </span>
               <span className="min-w-0">
                 <span className="block text-sm font-extrabold uppercase tracking-wider text-blue-800">Es Instructor</span>
-                <span className="block text-xs text-slate-500">Se determina automáticamente por el rol @Equipo de instructores en Discord y suma +15 Coins a la paga.</span>
+                <span className="block text-xs text-slate-500">Se determina automáticamente por el rol @Equipo de instructores en Discord y suma +10 Coins a la paga.</span>
               </span>
               <span className={`ml-auto text-xs font-black uppercase ${draft.es_instructor ? "text-green-700" : "text-slate-400"}`}>{draft.es_instructor ? "Sí" : "No"}</span>
             </div>
