@@ -17,7 +17,7 @@ type Month = {
   created_at: string;
 };
 
-const DIVISION_BONUS = 10;
+const DIVISION_BONUS = 15;
 
 type Entry = {
   id: string;
@@ -349,7 +349,7 @@ export function SalarioView({ session }: { session: Session | null }) {
           )}
           <p className="text-xs text-slate-500 font-semibold">
             {canEdit
-              ? "Los nombres y la paga se toman de Registro PD (sueldo individual +10 por cada división asignada) y no se editan aquí."
+              ? "Los nombres y la paga se toman de Registro PD (sueldo individual +15 por cada división o función de Instructor) y no se editan aquí."
               : "Vista pública de solo lectura. Solo el Alto Mando puede editar los salarios."}
           </p>
         </div>
@@ -365,13 +365,10 @@ export function SalarioView({ session }: { session: Session | null }) {
 
       {months.map(m => {
         const monthRows = entries.filter(e => e.month_id === m.id);
-        const uniqueRows = new Map<string, Entry>();
-        for (const entry of monthRows) {
-          const key = entry.instructor_id ? `id:${entry.instructor_id}` : `name:${normalizeName(entry.nombre) || entry.id}`;
-          if (!uniqueRows.has(key)) uniqueRows.set(key, entry);
-        }
+        // Keep every legacy salary row visible: without a stable ID, equal names
+        // may represent different people or separate historical payment records.
         const rows = sortByRango(
-          [...uniqueRows.values()],
+          monthRows,
           r => rangoDe(r),
           r => r.nombre,
         );
