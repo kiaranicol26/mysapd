@@ -33,6 +33,7 @@ type Instructor = {
   can_emit_rnap: boolean;
   can_edit_files: boolean;
   can_edit_pd: boolean;
+  can_edit_capacitaciones: boolean;
   secciones: string[] | null;
   discord_username: string | null;
   discord_id: string | null;
@@ -207,7 +208,7 @@ export function AltoMando({ session }: { session: Session }) {
     loadAll();
   }
 
-  async function togglePerm(i: Instructor, field: "can_delete" | "can_emit_rnap" | "can_edit_files" | "can_edit_pd", value: boolean) {
+  async function togglePerm(i: Instructor, field: "can_delete" | "can_emit_rnap" | "can_edit_files" | "can_edit_pd" | "can_edit_capacitaciones", value: boolean) {
     if (i.is_alto_mando) { toast.info("Los Comisarios tienen todos los permisos"); return; }
     setInstructors(prev => prev.map(x => x.id === i.id ? { ...x, [field]: value } : x));
     const { error } = await db.from("instructors").update({ [field]: value } as any).eq("id", i.id);
@@ -451,7 +452,7 @@ export function AltoMando({ session }: { session: Session }) {
                   <th className="p-3 text-center border border-blue-500 uppercase font-bold">Borrar agentes</th>
                   <th className="p-3 text-center border border-blue-500 uppercase font-bold">Emitir RNAP</th>
                   <th className="p-3 text-center border border-blue-500 uppercase font-bold">Editar Archivos</th>
-                  <th className="p-3 text-center border border-blue-500 uppercase font-bold">Registro PD</th>
+                  <th className="p-3 text-center border border-blue-500 uppercase font-bold">Registro PD</th>\n                  <th className="p-3 text-center border border-blue-500 uppercase font-bold">Editar capacitaciones</th>
                   <th className="p-3 text-left border border-blue-500 uppercase font-bold">Apartados visibles</th>
 
                   <th className="p-3 text-left border border-blue-500 uppercase font-bold">Creado por</th>
@@ -512,6 +513,13 @@ export function AltoMando({ session }: { session: Session }) {
                         checked={i.is_alto_mando || !!i.can_edit_pd}
                         disabled={i.is_alto_mando}
                         onCheckedChange={v => togglePerm(i, "can_edit_pd", v)}
+                      />
+                    </td>
+                    <td className="p-3 text-center border border-slate-200">
+                      <Switch
+                        checked={i.is_alto_mando || !!i.can_edit_capacitaciones}
+                        disabled={i.is_alto_mando}
+                        onCheckedChange={v => togglePerm(i, "can_edit_capacitaciones", v)}
                       />
                     </td>
                     <td className="p-2 border border-slate-200 min-w-[260px]">
