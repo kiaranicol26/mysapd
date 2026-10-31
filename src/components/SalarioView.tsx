@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 
 import { INSTRUCTOR_BONUS, sortByRango } from "@/lib/rangos";
-import { hasLegacySalaryEntryForName, normalizeSalaryName } from "@/lib/salaryEntries";
+import { calculateSalaryExtras, hasLegacySalaryEntryForName, normalizeSalaryName } from "@/lib/salaryEntries";
 import { toast } from "sonner";
 import { Trash2, Plus, ChevronDown, ChevronRight, Coins, Users, FileDown, ImageDown } from "lucide-react";
 
@@ -181,9 +181,7 @@ export function SalarioView({ session }: { session: Session | null }) {
               nombre: member.nombre,
               pd_member_id: member.id,
               paga: Number(member.sueldo_defecto) || 0,
-              extras: (member.division && member.division !== "Ninguna" && member.division !== "N/A" ? DIVISION_BONUS : 0) +
-                (member.division2 && member.division2 !== "Ninguna" && member.division2 !== "N/A" ? DIVISION_BONUS : 0) +
-                (member.es_instructor ? INSTRUCTOR_BONUS : 0),
+              extras: calculateSalaryExtras(member, DIVISION_BONUS, INSTRUCTOR_BONUS),
               pagado: false,
               ultima_edicion_por: session?.name ?? null,
             });
@@ -232,9 +230,7 @@ export function SalarioView({ session }: { session: Session | null }) {
         nombre: p.nombre,
         pd_member_id: p.id,
         paga: Number(p.sueldo_defecto) || 0,
-        extras: (p.division && p.division !== "Ninguna" && p.division !== "N/A" ? DIVISION_BONUS : 0) +
-          (p.division2 && p.division2 !== "Ninguna" && p.division2 !== "N/A" ? DIVISION_BONUS : 0) +
-          (p.es_instructor ? INSTRUCTOR_BONUS : 0),
+        extras: calculateSalaryExtras(p, DIVISION_BONUS, INSTRUCTOR_BONUS),
         pagado: false,
         ultima_edicion_por: session?.name ?? null,
       })) as any,
