@@ -80,7 +80,7 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
     }
 
     const police = members.filter(m => !m.user?.bot && m.user?.id && m.roles?.includes(policeRole.id));
-    const { data: existing } = await admin.from("instructors").select("id, name, discord_id, placa");
+    const { data: existing } = await admin.from("instructors").select("id, name, discord_id, discord_username, placa");
     const byDiscord = new Map((existing ?? []).filter((r: any) => r.discord_id).map((r: any) => [r.discord_id, r]));
 
     let created = 0, renamed = 0, datesUpdated = 0;
