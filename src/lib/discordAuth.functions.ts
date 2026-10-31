@@ -29,17 +29,17 @@ export const requestDiscordCode = createServerFn({ method: "POST" })
       const member = await findMember(data.username);
       if (!member) return { ok: false as const, error: REGISTRATION_MEMBERSHIP_ERROR };
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data: prev } = await supabaseAdmin.from("discord_verifications").select("created_at").eq("discord_id", member.id).maybeSingle();
-      if (prev && Date.now() - new Date(prev.created_at).getTime() < 60_000)
-        return { ok: false as const, error: "Esperá un minuto antes de pedir otro código" };
-
       const { randomInt } = await import("crypto");
       const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
-      const { error } = await supabaseAdmin.from("discord_verifications").upsert({
-        discord_id: member.id, discord_username: member.username, code_hash: await hashCode(member.id, code),
-        attempts: 0, expires_at: new Date(Date.now() + 10 * 60_000).toISOString(), created_at: new Date().toISOString(),
+      const codeHash = await hashCode(member.id, code);
+      const { data: reserved, error } = await (supabaseAdmin as any).rpc("reserve_discord_verification", {
+        p_discord_id: member.id,
+        p_discord_username: member.username,
+        p_code_hash: codeHash,
+        p_expires_at: new Date(Date.now() + 10 * 60_000).toISOString(),
       });
       if (error) throw error;
+      if (!reserved) return { ok: false as const, error: "Esperá un minuto antes de pedir otro código" };
 
       const dm = await discord("users/@me/channels", { method: "POST", body: JSON.stringify({ recipient_id: member.id }) });
       await discord(`channels/${dm.id}/messages`, {
@@ -71,35 +71,54 @@ export const verifyDiscordCode = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { buildLogin, LOGIN_COLUMNS } = await import("@/lib/dbAuth.server");
-    const { data: v } = await supabaseAdmin.from("discord_verifications").select("*").eq("discord_username", data.username).maybeSingle();
-    if (!v || new Date(v.expires_at).getTime() < Date.now() || v.attempts >= 5)
-      return { ok: false as const, error: "Código vencido. Pedí uno nuevo." };
-    if ((await hashCode(v.discord_id, data.code)) !== v.code_hash) {
-      await supabaseAdmin.from("discord_verifications").update({ attempts: v.attempts + 1 }).eq("discord_id", v.discord_id);
-      return { ok: false as const, error: "Código incorrecto" };
+    const { data: firstCheck, error: firstCheckError } = await (supabaseAdmin as any).rpc("verify_discord_login_code", {
+      p_discord_username: data.username,
+      p_code_hash: await hashCode("", data.code),
+      p_consume: false,
+    });
+    if (firstCheckError) {
+      console.error("verifyDiscordCode", firstCheckError);
+      return { ok: false as const, error: "No se pudo verificar el código. Intentá nuevamente." };
+    }
+    const checked = firstCheck?.[0];
+    if (!checked || checked.status !== "ok" || !checked.discord_id) {
+      const error = checked?.status === "invalid" ? "Código incorrecto" :
+        checked?.status === "locked" || checked?.status === "expired" ? "Código vencido o bloqueado. Pedí uno nuevo." :
+        "Código inválido. Pedí uno nuevo.";
+      return { ok: false as const, error };
     }
 
-    let { data: row } = await supabaseAdmin.from("instructors").select(LOGIN_COLUMNS).eq("discord_id", v.discord_id).maybeSingle();
+    let { data: row } = await supabaseAdmin.from("instructors").select(LOGIN_COLUMNS).eq("discord_id", checked.discord_id).maybeSingle();
     const { factionMember, checkInstructorMembership } = await import("./discordGateway.server");
     try {
-      const allowed = row ? await checkInstructorMembership(row, supabaseAdmin as any) : !!(await factionMember(v.discord_id));
+      const allowed = row ? await checkInstructorMembership(row, supabaseAdmin as any) : !!(await factionMember(checked.discord_id));
       if (!allowed) return { ok: false as const, error: row ? LOGIN_MEMBERSHIP_ERROR : REGISTRATION_MEMBERSHIP_ERROR };
     } catch {
       return { ok: false as const, error: "No se pudo verificar Discord. Intentá nuevamente en unos momentos." };
     }
+    if (!row && !data.name) return { ok: false as const, needsName: true as const };
+
+    // The database row lock makes successful consumption one-time, even under concurrent requests.
+    const { data: consumed, error: consumeError } = await (supabaseAdmin as any).rpc("verify_discord_login_code", {
+      p_discord_username: data.username,
+      p_code_hash: await hashCode(checked.discord_id, data.code),
+      p_consume: true,
+    });
+    if (consumeError || consumed?.[0]?.status !== "ok") {
+      return { ok: false as const, error: "Este código ya fue utilizado. Pedí uno nuevo." };
+    }
+
     if (!row) {
-      if (!data.name) return { ok: false as const, needsName: true as const };
       const { randomBytes } = await import("crypto");
       const id = `DC-${randomBytes(4).toString("hex").toUpperCase()}`;
       const ins = await supabaseAdmin.from("instructors").insert({
-        id, name: data.name, role: "Usuario", discord_id: v.discord_id, discord_username: v.discord_username,
+        id, name: data.name!, role: "Usuario", discord_id: checked.discord_id, discord_username: checked.discord_username,
         secciones: [], created_by: "Registro Discord",
       }).select(LOGIN_COLUMNS).single();
-      if (ins.error) return { ok: false as const, error: "No se pudo crear el usuario" };
+      if (ins.error) return { ok: false as const, error: "No se pudo crear el usuario. Pedí un código nuevo." };
       row = ins.data;
-      await supabaseAdmin.from("logs").insert({ instructor_id: id, instructor_name: data.name, action: "REGISTRO_DISCORD", details: { discord: v.discord_username } });
+      await supabaseAdmin.from("logs").insert({ instructor_id: id, instructor_name: data.name!, action: "REGISTRO_DISCORD", details: { discord: checked.discord_username } });
     }
-    await supabaseAdmin.from("discord_verifications").delete().eq("discord_id", v.discord_id);
     return { ok: true as const, ...buildLogin(row) };
   });
 
@@ -113,13 +132,6 @@ export const recoverDiscordKey = createServerFn({ method: "POST" })
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { data: row } = await supabaseAdmin.from("instructors").select("id, name").eq("discord_id", member.id).maybeSingle();
       if (!row) return { ok: false as const, error: "Todavía no tenés usuario en la web. Registrate con un código." };
-      const { data: prev } = await supabaseAdmin.from("discord_verifications").select("created_at").eq("discord_id", member.id).maybeSingle();
-      if (prev && Date.now() - new Date(prev.created_at).getTime() < 60_000)
-        return { ok: false as const, error: "Esperá un minuto antes de pedirla de nuevo" };
-      await supabaseAdmin.from("discord_verifications").upsert({
-        discord_id: member.id, discord_username: member.username, code_hash: "recuperacion",
-        attempts: 0, expires_at: new Date().toISOString(), created_at: new Date().toISOString(),
-      });
       const dm = await discord("users/@me/channels", { method: "POST", body: JSON.stringify({ recipient_id: member.id }) });
       await discord(`channels/${dm.id}/messages`, {
         method: "POST",
