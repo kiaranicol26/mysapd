@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 
-import { sortByRango } from "@/lib/rangos";
+import { INSTRUCTOR_BONUS, sortByRango } from "@/lib/rangos";
 import { toast } from "sonner";
 import { Trash2, Plus, ChevronDown, ChevronRight, Coins, Users, FileDown, ImageDown } from "lucide-react";
 
@@ -263,7 +263,7 @@ export function SalarioView({ session }: { session: Session | null }) {
     const m = pdDe(r);
     return (m?.division && m.division !== "Ninguna" && m.division !== "N/A" ? DIVISION_BONUS : 0) +
       (m?.division2 && m.division2 !== "Ninguna" && m.division2 !== "N/A" ? DIVISION_BONUS : 0) +
-      (m?.es_instructor ? DIVISION_BONUS : 0);
+      (m?.es_instructor ? INSTRUCTOR_BONUS : 0);
   };
   const totalDe = (r: Entry) => baseDe(r) + extrasDe(r);
 
@@ -302,7 +302,7 @@ export function SalarioView({ session }: { session: Session | null }) {
           )}
           <p className="text-xs text-slate-500 font-semibold">
             {canEdit
-              ? "Los nombres y la paga se toman de Registro PD (sueldo individual +15 por cada división o función de Instructor) y no se editan aquí."
+              ? "Los nombres y la paga se toman de Registro PD (sueldo individual +15 por cada división asignada y +10 por función de Instructor) y no se editan aquí."
               : "Vista pública de solo lectura. Solo el Alto Mando puede editar los salarios."}
           </p>
         </div>
