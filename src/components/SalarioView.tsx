@@ -126,6 +126,7 @@ export function SalarioView({ session }: { session: Session | null }) {
       });
     }
     if (e.data) setEntries(e.data as unknown as Entry[]);
+    if (m.data && e.data && p.data) setLegacyReviewCount(0);
     if (p.data) {
       // Cada ficha PD tiene su propio ID estable, incluso cuando hay homónimos.
       const currentPd = p.data as unknown as PdMember[];
