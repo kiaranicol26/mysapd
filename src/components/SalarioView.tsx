@@ -52,6 +52,8 @@ export function SalarioView({ session }: { session: Session | null }) {
 
   const slug = (s: string) =>
     s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "mes";
+  const normalizeName = (s: string | null | undefined) =>
+    (s ?? "").replace(/\|/g, " ").replace(/\s+/g, " ").trim().toLocaleLowerCase("es");
 
   async function capture(monthId: string) {
     const node = cardRefs.current[monthId];
@@ -124,13 +126,43 @@ export function SalarioView({ session }: { session: Session | null }) {
       });
     }
     if (e.data) setEntries(e.data as unknown as Entry[]);
-    if (p.data) setPd(p.data as unknown as PdMember[]);
+    if (p.data) {
+      const currentPd = p.data as unknown as PdMember[];
+      setPd(currentPd);
+      // Every existing salary month automatically receives any missing PD member.
+      if (m.data?.length) {
+        const salaryRows = (e.data ?? []) as unknown as Entry[];
+        await Promise.all((m.data as Month[]).map(async month => {
+          const existingNames = new Set(salaryRows.filter(row => row.month_id === month.id).map(row => normalizeName(row.nombre)));
+          const seen = new Set<string>();
+          const missing = currentPd.filter(member => {
+            const key = normalizeName(member.nombre);
+            if (!key || seen.has(key) || existingNames.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+          if (missing.length) {
+            await db.from("salary_entries").insert(missing.map(member => ({
+              month_id: month.id, nombre: member.nombre, paga: Number(member.sueldo_defecto) || 0,
+              pagado: false, ultima_edicion_por: session?.name ?? null,
+            })) as any);
+          }
+        }));
+      }
+    }
   }
 
   useEffect(() => { loadAll(); }, []);
 
   async function syncMonth(monthId: string, existing: string[], silent = false) {
-    const missing = pd.filter(p => !existing.includes(p.nombre));
+    const existingNames = new Set(existing.map(normalizeName));
+    const seen = new Set<string>();
+    const missing = pd.filter(p => {
+      const key = normalizeName(p.nombre);
+      if (!key || existingNames.has(key) || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
     if (missing.length === 0) {
       if (!silent) toast.info("La tabla ya tiene a toda la Lista PD");
       return;
