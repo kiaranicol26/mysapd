@@ -199,11 +199,16 @@ export function SalarioView({ session }: { session: Session | null }) {
 
   async function syncMonth(monthId: string, existing: Entry[], silent = false) {
     const existingIds = new Set(existing.map(row => row.pd_member_id).filter((id): id is string => !!id));
+    const legacyMatches = pd.filter(member => hasLegacySalaryEntryForName(member.nombre, existing));
     const missing = pd.filter(member =>
       !existingIds.has(member.id) && !hasLegacySalaryEntryForName(member.nombre, existing),
     );
     if (missing.length === 0) {
-      if (!silent) toast.info("La tabla ya tiene a todo el Registro PD");
+      if (!silent && legacyMatches.length) {
+        toast.info(`${legacyMatches.length} coincidencias históricas omitidas; requieren revisión manual`);
+      } else if (!silent) {
+        toast.info("La tabla ya tiene a todo el Registro PD");
+      }
       return;
     }
     const { error } = await db.from("salary_entries").insert(
@@ -217,7 +222,12 @@ export function SalarioView({ session }: { session: Session | null }) {
       })) as any,
     );
     if (error) return toast.error(error.message);
-    if (!silent) toast.success(`${missing.length} agentes cargados desde Registro PD`);
+    if (!silent) {
+      toast.success(`${missing.length} agentes cargados desde Registro PD`);
+      if (legacyMatches.length) {
+        toast.info(`${legacyMatches.length} coincidencias históricas omitidas; requieren revisión manual`);
+      }
+    }
     loadAll();
   }
 
