@@ -125,8 +125,8 @@ export const recoverDiscordKey = createServerFn({ method: "POST" })
         method: "POST",
         body: JSON.stringify({
           embeds: [{
-            title: "mySAPD · Tu clave de acceso",
-            description: `Hola **${row.name}**, tu clave de acceso a la web es:\n\n**${row.id}**\n\nIngresala en la pantalla de acceso. Si no la pediste, avisá a un Alto Mando.`,
+            title: "mySAPD · Acceso seguro",
+            description: `Hola **${row.name}**. El ingreso mediante clave/ID fue deshabilitado por seguridad. Para acceder, elegí **Código de registro** en mySAPD y solicitá un código de un solo uso. Te lo enviaremos a este Discord por MD.`,
             color: 0x5865f2,
             footer: { text: "San Andreas Police Department" },
           }],
