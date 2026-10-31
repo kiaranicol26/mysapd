@@ -207,7 +207,9 @@ export function SalarioView({ session }: { session: Session | null }) {
 
   async function syncMonth(monthId: string, existing: Entry[], silent = false) {
     const existingIds = new Set(existing.map(row => row.pd_member_id).filter((id): id is string => !!id));
-    const legacyMatches = pd.filter(member => hasLegacySalaryEntryForName(member.nombre, existing));
+    const legacyMatches = pd.filter(
+      member => !existingIds.has(member.id) && hasLegacySalaryEntryForName(member.nombre, existing),
+    );
     const missing = pd.filter(member =>
       !existingIds.has(member.id) && !hasLegacySalaryEntryForName(member.nombre, existing),
     );
