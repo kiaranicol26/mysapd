@@ -48,14 +48,15 @@ export function MiPerfilView({ session }: { session: Session }) {
   async function save() {
     const nuevaPlaca = placa.trim();
     setSaving(true);
-    const { error } = await db.from("instructors").update({ placa: nuevaPlaca || null } as any).eq("id", session.id);
-    if (error) { setSaving(false); return toast.error("No se pudo guardar la placa"); }
-    await logAction(db, session, "PERFIL_PLACA_ACTUALIZADA", { id: session.id, placa: nuevaPlaca });
     if (discordUser && nuevaPlaca !== placaOrig) {
       const r = await syncDiscordNick({ data: { token: getToken() ?? "", nick: name.slice(0, 32), placa: nuevaPlaca || undefined } });
-      if (r.ok) { setPlacaOrig(nuevaPlaca); toast.success("Placa actualizada en Discord"); }
-      else toast.error("La placa se guardó en la web, pero Discord no pudo actualizarse: " + r.error);
-    } else toast.success("Placa actualizada");
+      if (!r.ok) { setSaving(false); return toast.error("Discord no pudo actualizar la placa: " + r.error); }
+    }
+    const { error } = await db.from("instructors").update({ placa: nuevaPlaca || null } as any).eq("id", session.id);
+    if (error) { setSaving(false); return toast.error("Discord se actualizó, pero no se pudo guardar la placa en la web. Contactá a Alto Mando."); }
+    await logAction(db, session, "PERFIL_PLACA_ACTUALIZADA", { id: session.id, placa: nuevaPlaca });
+    setPlacaOrig(nuevaPlaca);
+    toast.success("Placa actualizada");
     setSaving(false);
   }
 
