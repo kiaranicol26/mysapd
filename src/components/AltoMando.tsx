@@ -54,7 +54,7 @@ export function AltoMando({ session }: { session: Session }) {
   const [logs, setLogs] = useState<Log[]>([]);
   const [newId, setNewId] = useState("");
   const [newName, setNewName] = useState("");
-  const [newRole, setNewRole] = useState("Instructor");
+  const [newRole, setNewRole] = useState("Usuario");
   const [newDiscordId, setNewDiscordId] = useState("");
 
   const [webhook, setWebhook] = useState("");
@@ -172,7 +172,7 @@ export function AltoMando({ session }: { session: Session }) {
     if (error) return toast.error(error.message);
     await logAction(db, session, "CREATE_ID", { id, name, role: newRole });
     toast.success(`ID ${id} (${name}) creado como ${newRole}`);
-    setNewId(""); setNewName(""); setNewRole("Instructor"); setNewDiscordId("");
+    setNewId(""); setNewName(""); setNewRole("Usuario"); setNewDiscordId("");
     loadAll();
   }
 
@@ -252,7 +252,6 @@ export function AltoMando({ session }: { session: Session }) {
               <SelectContent className="bg-white border border-blue-200 text-slate-800 rounded-none">
                 <SelectItem value="Comisario">Comisario (Alto Mando)</SelectItem>
                 <SelectItem value="Cupula">Cúpula</SelectItem>
-                <SelectItem value="Instructor">Instructor</SelectItem>
               </SelectContent>
             </Select>
             <Button type="submit"
