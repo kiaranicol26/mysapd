@@ -151,6 +151,10 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
 
     case "pd_members": {
       if (!write) return spec;
+      const restrictedSalaryFields = new Set(["sueldo_defecto", "division2", "division2_rango"]);
+      const hasRestrictedFields = patchKeys(spec.values).some(k => restrictedSalaryFields.has(k)) ||
+        (Array.isArray(spec.values) && spec.values.some(v => patchKeys(v).some(k => restrictedSalaryFields.has(k))));
+      if (!alto && hasRestrictedFields) deny("Solo Alto Mando puede modificar sueldos y segunda división");
       if (alto || claims?.pd) return spec;
       // Instructores y Cúpula solo pueden marcar/desmarcar capacitaciones.
       const CAP_FIELDS = new Set(["cap_m4", "cap_edc", "cap_mary", "cap_sniper", "cap_air", "cap_ak47"]);
