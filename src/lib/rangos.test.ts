@@ -15,9 +15,9 @@ describe("Discord rank tags", () => {
   });
 
   it("returns null for unknown or empty tags", () => {
-    expect(rangoFromTag("[XYZ] DESCONOCIDO")).toBeNull();
-    expect(rangoFromTag(null)).toBeNull();
-    expect(rangoFromTag("")).toBeNull();
+    expect(rangoFromTag("[XYZ] DESCONOCIDO")).toBe(null);
+    expect(rangoFromTag(null)).toBe(null);
+    expect(rangoFromTag("")).toBe(null);
   });
 });
 
