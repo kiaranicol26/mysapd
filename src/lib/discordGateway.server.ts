@@ -84,12 +84,26 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
     if (!instructorRole) throw new Error("No se encontró el rol @Equipo de instructores en Discord. No se modificaron los estados de Instructor.");
 
     const members: GuildMember[] = [];
-    for (let after = "0"; members.length < 5000;) {
+    for (let after = "0";;) {
       const page = (await discord(`guilds/${FACTION_GUILD_ID}/members?limit=1000&after=${after}`)) as GuildMember[];
-      if (!Array.isArray(page) || !page.length) break;
+      // A malformed or interrupted page must never be treated as a complete
+      // guild snapshot; otherwise a forced sync could report success on partial data.
+      if (!Array.isArray(page)) throw new Error("Discord devolvió una página de miembros inválida");
+      if (!page.length) break;
+      if (page.some(member => !member.user?.id)) {
+        throw new Error("Discord devolvió miembros sin ID; se canceló la sincronización");
+      }
       members.push(...page);
       if (page.length < 1000) break;
       after = page[page.length - 1].user!.id;
+      // The safety cap is intentional, but reaching it must not silently
+      // process only the first 5,000 members and claim a complete sync.
+      if (members.length >= 5000) {
+        const nextPage = (await discord(`guilds/${FACTION_GUILD_ID}/members?limit=1000&after=${after}`)) as GuildMember[];
+        if (!Array.isArray(nextPage)) throw new Error("No se pudo confirmar el final del listado de Discord");
+        if (nextPage.length) throw new Error("El servidor supera el límite seguro de 5.000 miembros; no se aplicaron cambios parciales");
+        break;
+      }
     }
 
     const police = members.filter(m => !m.user?.bot && m.user?.id && m.roles?.includes(policeRole.id));
