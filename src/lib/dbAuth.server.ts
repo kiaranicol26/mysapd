@@ -80,7 +80,8 @@ export async function freshClaims(claims: Claims | null, admin: { from: (t: stri
   // Reutilizamos la verificación reciente y la renovamos como máximo cada 60 s.
   // Si la cuenta no tiene Discord vinculado o ya figura inhabilitada, se deniega.
   const checkedAt = r.discord_checked_at ? Date.parse(r.discord_checked_at) : 0;
-  const membershipFresh = Number.isFinite(checkedAt) && Date.now() - checkedAt < 60_000;
+  const checkedAge = Date.now() - checkedAt;
+  const membershipFresh = Number.isFinite(checkedAt) && checkedAge >= 0 && checkedAge < 60_000;
   if (!r.discord_id || (membershipFresh && r.discord_inhabilitado)) {
     const { LOGIN_MEMBERSHIP_ERROR } = await import("./discordMembership");
     throw new Error(LOGIN_MEMBERSHIP_ERROR);
