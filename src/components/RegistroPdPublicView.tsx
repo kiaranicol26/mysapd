@@ -10,7 +10,7 @@ type Member = { id:string; instructor_id:string|null; nombre:string; rango:strin
 type User = { id:string; name:string; avatar_url:string|null; role:string|null; placa:string|null; discord_joined_at:string|null };
 
 const CARGO: Record<string,string> = {
-  Comisario:"Encargado de SAPD", Cupula:"Cúpula", Instructor:"Instructor", Usuario:"Agente"
+  Comisario:"Encargado de SAPD", Cupula:"Cúpula", Usuario:"Agente"
 };
 
 function daysSince(value:string|null) {
