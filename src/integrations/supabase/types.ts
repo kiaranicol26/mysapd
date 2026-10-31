@@ -292,6 +292,7 @@ export type Database = {
           banner_url?: string | null
           can_delete?: boolean
           can_edit_files?: boolean
+          can_edit_capacitaciones?: boolean
           can_edit_pd?: boolean
           can_emit_rnap?: boolean
           color_perfil?: string | null
@@ -299,6 +300,7 @@ export type Database = {
           created_by?: string | null
           descripcion?: string | null
           discord_checked_at?: string | null
+          discord_joined_at?: string | null
           discord_id?: string | null
           discord_inhabilitado?: boolean
           discord_username?: string | null
@@ -399,6 +401,8 @@ export type Database = {
           created_by?: string | null
           division?: string | null
           division_rango?: string | null
+          division2?: string | null
+          division2_rango?: string | null
           es_instructor?: boolean
           foto?: string | null
           id?: string
@@ -551,6 +555,7 @@ export type Database = {
           id?: string
           month_id?: string
           nombre?: string | null
+          pd_member_id?: string | null
           nota?: string | null
           paga?: number
           pagado?: boolean
