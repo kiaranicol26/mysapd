@@ -410,9 +410,13 @@ export function RegistroPdView({ session }: { session: Session }) {
                       {DIVISION_RANGOS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <Input type="number" min="0" placeholder="Sueldo individual del rango" value={String(draft.sueldo_defecto)}
-                    onChange={e => setDraft(d => ({ ...d, sueldo_defecto: Number(e.target.value) || 0 }))}
-                    className="h-10 rounded-none border-blue-300 bg-white font-mono font-bold text-slate-800" />
+                  <div className="space-y-1">
+                    <label className="text-xs font-extrabold uppercase tracking-widest text-blue-700">Sueldo básico</label>
+                    <Input type="number" min="0" placeholder="Sueldo básico" value={String(draft.sueldo_defecto)}
+                      onChange={e => setDraft(d => ({ ...d, sueldo_defecto: Number(e.target.value) || 0 }))}
+                      className="h-10 rounded-none border-blue-300 bg-white font-mono font-bold text-slate-800" />
+                    <p className="text-xs text-slate-500">El valor que aparece en 0 es el sueldo básico individual, antes de sumar los extras por divisiones.</p>
+                  </div>
                 </div>
                 <p className="text-xs text-slate-500">Cada división asignada suma automáticamente +15 Coins al salario.</p>
               </div>
