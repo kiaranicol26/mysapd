@@ -7,7 +7,7 @@ import { UserRound, ShieldCheck } from "lucide-react";
 import type { Session } from "@/lib/session";
 
 type Member = { id:string; instructor_id:string|null; nombre:string; rango:string|null; foto:string|null; placa:string|null; es_instructor:boolean };
-type User = { id:string; name:string; avatar_url:string|null; role:string|null; placa:string|null; discord_joined_at:string|null };
+type User = { id:string; name:string; avatar_url:string|null; role:string|null; placa:string|null; discord_joined_at:string|null; discord_inhabilitado:boolean };
 
 const CARGO: Record<string,string> = {
   Comisario:"Encargado de SAPD", Cupula:"Cúpula", Usuario:"Agente"
@@ -30,7 +30,7 @@ export function RegistroPdPublicView({session}:{session:Session|null}) {
     let active=true;
     Promise.all([
       db.from("pd_members").select("id, instructor_id, nombre, rango, foto, placa, es_instructor").order("nombre",{ascending:true}),
-      db.from("instructors").select("id, name, avatar_url, role, placa, discord_joined_at").order("name",{ascending:true})
+      db.from("instructors").select("id, name, avatar_url, role, placa, discord_joined_at, discord_inhabilitado").order("name",{ascending:true})
     ]).then(([a,b])=>{
       if(!active)return;
       if(a.data)setMembers(a.data as Member[]);
@@ -40,7 +40,7 @@ export function RegistroPdPublicView({session}:{session:Session|null}) {
     return ()=>{active=false};
   },[]);
 
-  const rows=useMemo(()=>users.map(u=>{
+  const rows=useMemo(()=>users.filter(u=>!u.discord_inhabilitado).map(u=>{
     const m=members.find(x=>x.instructor_id===u.id) ??
       members.find(x=>x.nombre.trim().toLowerCase()===u.name.trim().toLowerCase());
     return {u,m};
