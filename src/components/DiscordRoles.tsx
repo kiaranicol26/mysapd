@@ -7,7 +7,7 @@ import { Plus, X } from "lucide-react";
 type Role = { id: string; name: string; color: string | null; editable: boolean };
 
 /** Muestra los roles de Discord de un usuario; Alto Mando puede darlos o quitarlos. */
-export function DiscordRoles({ targetId, canManage, onName }: { targetId?: string; canManage?: boolean; onName?: (info: { name: string; placa: string | null; avatar_url: string | null }) => void }) {
+export function DiscordRoles({ targetId, canManage, onName }: { targetId?: string; canManage?: boolean; onName?: (info: { name: string; tag: string | null; placa: string | null; avatar_url: string | null }) => void }) {
   const [roles, setRoles] = useState<Role[] | null>(null);
   const [all, setAll] = useState<Role[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +18,7 @@ export function DiscordRoles({ targetId, canManage, onName }: { targetId?: strin
     const r = await getDiscordInfo({ data: { token: getToken() ?? "", targetId } });
     if (!r.ok) { setError(r.error); setRoles([]); return; }
     setError(null); setRoles(r.roles); setAll(r.allRoles);
-    onName?.({ name: r.name, placa: r.placa, avatar_url: r.avatar_url ?? null });
+    onName?.({ name: r.name, tag: r.tag, placa: r.placa, avatar_url: r.avatar_url ?? null });
   }
   useEffect(() => { load(); }, [targetId]);
 
