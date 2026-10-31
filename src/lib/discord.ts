@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 const CHANGES_KEY = "discord_webhook_url";
 const RNAP_KEY = "discord_rnap_webhook_url";
 const ARCHIVO_KEY = "discord_archivo_webhook_url";
+const DISCORD_LOGIN_KEY = "discord_code_login_enabled";
 
 const cache: Record<string, { value: string; at: number }> = {};
 
@@ -31,6 +32,14 @@ export const getRnapWebhookUrl = (force = false) => getKey(RNAP_KEY, force);
 export const setRnapWebhookUrl = (url: string) => setKey(RNAP_KEY, url);
 export const getArchivoWebhookUrl = (force = false) => getKey(ARCHIVO_KEY, force);
 export const setArchivoWebhookUrl = (url: string) => setKey(ARCHIVO_KEY, url);
+
+export async function getDiscordCodeLoginEnabled(force = false): Promise<boolean> {
+  const value = await getKey(DISCORD_LOGIN_KEY, force);
+  return value !== "false";
+}
+
+export const setDiscordCodeLoginEnabled = (enabled: boolean) =>
+  setKey(DISCORD_LOGIN_KEY, enabled ? "true" : "false");
 
 export async function sendArchivoToDiscord(params: {
   editorName: string;
