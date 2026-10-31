@@ -183,15 +183,22 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
       deny();
 
     case "instructors": {
-      if (!claims) deny();
       if (spec.op === "select") {
-        if (alto) return spec;
         const cols = (spec.columns ?? "*").split(",").map(c => c.trim()).filter(Boolean);
+        // Public Registro PD needs only these profile fields. Keep anonymous reads
+        // restricted to this exact allowlist; all writes remain authenticated.
+        if (!claims) {
+          const anonymousPublicCols = new Set(["id", "name", "avatar_url", "role", "placa", "discord_joined_at"]);
+          if (cols.length > 0 && cols.every(c => anonymousPublicCols.has(c))) return spec;
+          deny();
+        }
+        if (alto) return spec;
         const publicCols = new Set(["id", "name", "avatar_url", "descripcion", "role", "banner_url", "color_perfil", "pronombres", "placa",
           "discord_username", "is_alto_mando", "can_delete", "can_emit_rnap", "can_edit_files", "can_edit_pd", "secciones", "discord_inhabilitado", "discord_joined_at"]);
         if (cols.length > 0 && cols.every(c => publicCols.has(c))) return spec;
         return { ...spec, filters: [{ type: "eq", column: "id", value: claims.id }] };
       }
+      if (!claims) deny();
       if (spec.op === "update") {
         if (alto) return spec;
         const target = filterValue(spec, "id");
