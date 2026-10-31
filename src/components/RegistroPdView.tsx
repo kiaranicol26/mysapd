@@ -16,7 +16,7 @@ import {
 import { RANGOS, RANGO_PLURAL, DIVISIONES, DIVISION_RANGOS, sortByRango } from "@/lib/rangos";
 import { fileToCompressedDataUrl } from "@/lib/appearance";
 import { toast } from "sonner";
-import { Trash2, Plus, Pencil, BadgeCheck, UserRound, Upload } from "lucide-react";
+import { Trash2, Plus, Pencil, BadgeCheck, UserRound, Upload, Check, Loader2 } from "lucide-react";
 
 type PdMember = {
   id: string;
@@ -88,6 +88,7 @@ export function RegistroPdView({ session }: { session: Session }) {
   const [users, setUsers] = useState<{ id: string; name: string; avatar_url: string | null; role: string | null }[]>([]);
   const [capConfirm, setCapConfirm] = useState<{ m: PdMember; cap: CapKey; value: boolean } | null>(null);
   const [capSaving, setCapSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const canEdit = !!session.is_alto_mando || !!session.can_edit_pd;
   const canEditCaps = canEdit || session.role === "Instructor" || session.role === "Cupula";
@@ -112,7 +113,13 @@ export function RegistroPdView({ session }: { session: Session }) {
   const fotoDe = (m: PdMember) =>
     avatars[m.nombre.trim().toLowerCase()] || m.foto || null;
 
-  useEffect(() => { load(); loadAvatars(); }, []);
+  useEffect(() => {
+    let active = true;
+    Promise.all([load(), loadAvatars()]).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, []);
 
   function openNew() {
     setDraft(emptyDraft);
@@ -262,7 +269,13 @@ export function RegistroPdView({ session }: { session: Session }) {
         </div>
       </Card>
 
-      {groups.map(g => (
+      {loading ? (
+        <Card className="border-2 border-blue-200 bg-white rounded-none p-10 flex flex-col items-center justify-center gap-3 text-blue-700">
+          <Loader2 className="w-8 h-8 animate-spin" />
+          <p className="text-sm font-extrabold uppercase tracking-[0.2em]">Cargando Registro PD…</p>
+          <p className="text-xs text-slate-500">Estamos obteniendo el personal y sus fichas.</p>
+        </Card>
+      ) : groups.map(g => (
         <div key={g.rango} className="space-y-3">
           <div className="flex items-center gap-3 bg-blue-700 text-white px-4 py-2">
             <h3 className="font-display font-black uppercase tracking-[0.25em] text-sm">[{g.label}]</h3>
@@ -322,7 +335,7 @@ export function RegistroPdView({ session }: { session: Session }) {
         </div>
       ))}
 
-      {groups.length === 0 && (
+      {!loading && groups.length === 0 && (
         <Card className="border-2 border-blue-300 bg-white rounded-none p-10 text-center text-slate-400 uppercase tracking-widest font-bold">
           Sin policías registrados.
         </Card>
@@ -428,18 +441,18 @@ export function RegistroPdView({ session }: { session: Session }) {
               </div>
             )}
             {session.is_alto_mando && (
-              <div className="flex items-center justify-between gap-4 border-t-2 border-blue-200 pt-4 mt-2">
-                <div>
-                  <p className="text-sm font-extrabold uppercase tracking-wider text-blue-800">Es Instructor</p>
-                  <p className="text-xs text-slate-500">Si está activado, suma +10 Coins a la paga y figura como Instructor en su cargo.</p>
-                </div>
-                <button type="button" role="switch" aria-checked={draft.es_instructor}
-                  onClick={() => setDraft(d => ({ ...d, es_instructor: !d.es_instructor }))}
-                  className={`relative h-8 w-14 shrink-0 rounded-full transition-colors ${draft.es_instructor ? "bg-blue-700" : "bg-slate-300"}`}>
-                  <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-transform ${draft.es_instructor ? "translate-x-7" : "translate-x-1"}`} />
-                </button>
-                <span className="text-xs font-black uppercase text-slate-600">{draft.es_instructor ? "Sí" : "No"}</span>
-              </div>
+              <button type="button" role="checkbox" aria-checked={draft.es_instructor}
+                onClick={() => setDraft(d => ({ ...d, es_instructor: !d.es_instructor }))}
+                className="flex w-full items-center gap-3 border-t-2 border-blue-200 pt-4 mt-2 text-left group">
+                <span className={`flex h-6 w-6 shrink-0 items-center justify-center border-2 rounded-sm transition-colors ${draft.es_instructor ? "border-green-600 bg-green-600 text-white" : "border-slate-300 bg-white text-transparent group-hover:border-green-500"}`}>
+                  <Check className="h-4 w-4 stroke-[3]" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-extrabold uppercase tracking-wider text-blue-800">Es Instructor</span>
+                  <span className="block text-xs text-slate-500">Si está marcado, suma +10 Coins a la paga y figura como Instructor en su cargo.</span>
+                </span>
+                <span className={`ml-auto text-xs font-black uppercase ${draft.es_instructor ? "text-green-700" : "text-slate-400"}`}>{draft.es_instructor ? "Sí" : "No"}</span>
+              </button>
             )}
           </div>
 
