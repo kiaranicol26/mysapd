@@ -118,7 +118,6 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
       const { tag, placa, name } = nickParts(m);
       if (!name) continue;
       let row = byDiscord.get(m.user!.id) as any;
-      const isNewInstructor = !row;
       if (!row) {
         const { randomBytes } = await import("crypto");
         const id = `DC-${randomBytes(4).toString("hex").toUpperCase()}`;
@@ -148,34 +147,14 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
         const { error: profileError } = await admin.from("instructors").update(profilePatch).eq("id", row.id);
         if (profileError) throw new Error("No se pudo sincronizar el perfil desde Discord");
       }
-      // Los nombres solo sirven como vínculo de compatibilidad mientras existan fichas
-      // antiguas sin instructor_id. Nunca actualizar por nombre si hay homónimos.
-      const normalizedOldName = oldName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[|_]+/g, " ").replace(/\s+/g, " ").trim().toLocaleLowerCase("es");
-      const sameNameInstructors = existing.filter((item: any) =>
-        String(item.name ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-          .replace(/[|_]+/g, " ").replace(/\s+/g, " ").trim().toLocaleLowerCase("es") === normalizedOldName
-      );
-      const legacyNameIsUnique = !isNewInstructor && !!normalizedOldName && sameNameInstructors.length === 1;
-      let legacyPdId: string | null = null;
-      if (legacyNameIsUnique) {
-        const { data: legacyRows, error: legacyReadError } = await admin.from("pd_members")
-          .select("id").is("instructor_id", null).eq("nombre", oldName);
-        if (legacyReadError) throw new Error("No se pudo comprobar el registro anterior de PD");
-        if (legacyRows?.length === 1) legacyPdId = legacyRows[0].id;
-      }
-
+      // Las fichas históricas sin instructor_id no se vinculan por nombre:
+      // un nombre único hoy no demuestra identidad y puede pertenecer a otra persona.
       if (discordName && discordName !== oldName) {
         // Update the stable linked PD row first; legacy rows are handled only
         // when the old name identifies exactly one instructor.
         const { error: linkedRenameError } = await admin.from("pd_members")
           .update({ nombre: discordName }).eq("instructor_id", row.id);
         if (linkedRenameError) throw new Error("No se pudo actualizar el nombre en Registro PD");
-        // Link only a single unambiguous legacy row; never bulk-claim homonyms.
-        if (legacyPdId) {
-          const { error: legacyRenameError } = await admin.from("pd_members")
-            .update({ nombre: discordName, instructor_id: row.id }).eq("id", legacyPdId);
-          if (legacyRenameError) throw new Error("No se pudo vincular el registro anterior de PD");
-        }
         // Salary entries still lack instructor_id. Keep historical names intact
         // until a stable foreign key can be introduced and backfilled safely.
         row.name = discordName;
@@ -189,10 +168,6 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
       if (rangoDiscord) pdPatch.rango = rangoDiscord;
       const { error: linkedPdError } = await admin.from("pd_members").update(pdPatch).eq("instructor_id", row.id);
       if (linkedPdError) throw new Error("No se pudo sincronizar el rango/estado de Instructor en Registro PD");
-      if (legacyPdId) {
-        const { error: legacyPdError } = await admin.from("pd_members").update(pdPatch).eq("id", legacyPdId);
-        if (legacyPdError) throw new Error("No se pudo sincronizar el registro anterior de PD");
-      }
       row.tag = tag;
       row.discord_username = m.user!.username;
       row.avatar_url = avatar ?? row.avatar_url;
