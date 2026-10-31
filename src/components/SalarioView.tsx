@@ -228,11 +228,9 @@ export function SalarioView({ session }: { session: Session | null }) {
     ev.preventDefault();
     const label = newMonth.trim();
     if (!label) return toast.error("Escribe el nombre del mes");
-    const { data, error } = await db
+    const { error } = await db
       .from("salary_months")
-      .insert({ label, created_by: session?.id ?? null } as any)
-      .select("id")
-      .maybeSingle();
+      .insert({ label, created_by: session?.id ?? null } as any);
     if (error) return toast.error(error.message);
     await logAction(db, session, "CREATE_SALARY_MONTH", { label });
     setNewMonth("");
