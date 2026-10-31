@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 
 import { INSTRUCTOR_BONUS, sortByRango } from "@/lib/rangos";
+import { hasLegacySalaryEntryForName, normalizeSalaryName } from "@/lib/salaryEntries";
 import { toast } from "sonner";
 import { Trash2, Plus, ChevronDown, ChevronRight, Coins, Users, FileDown, ImageDown } from "lucide-react";
 
@@ -133,10 +134,22 @@ export function SalarioView({ session }: { session: Session | null }) {
         // Indexar los registros existentes en una sola pasada evita filtrar toda la
         // tabla de salarios una vez por cada mes.
         const idsByMonth = new Map<string, Set<string>>();
+        const legacyNamesByMonth = new Map<string, Set<string>>();
         for (const row of (e.data ?? []) as unknown as Entry[]) {
           let ids = idsByMonth.get(row.month_id);
           if (!ids) idsByMonth.set(row.month_id, ids = new Set<string>());
-          if (row.pd_member_id) ids.add(row.pd_member_id);
+          if (row.pd_member_id) {
+            ids.add(row.pd_member_id);
+          } else {
+            // Legacy rows remain visible and are never claimed by name. Their names
+            // only suppress an automatic second row until an administrator reviews them.
+            const name = normalizeSalaryName(row.nombre);
+            if (name) {
+              let names = legacyNamesByMonth.get(row.month_id);
+              if (!names) legacyNamesByMonth.set(row.month_id, names = new Set<string>());
+              names.add(name);
+            }
+          }
         }
         // Insertar los faltantes en lotes reduce las solicitudes cuando hay muchos meses.
         const rowsToInsert: {
@@ -150,8 +163,9 @@ export function SalarioView({ session }: { session: Session | null }) {
 
         for (const month of m.data as Month[]) {
           const existingIds = idsByMonth.get(month.id) ?? new Set<string>();
+          const legacyNames = legacyNamesByMonth.get(month.id) ?? new Set<string>();
           for (const member of currentPd) {
-            if (existingIds.has(member.id)) continue;
+            if (existingIds.has(member.id) || legacyNames.has(normalizeSalaryName(member.nombre))) continue;
             existingIds.add(member.id);
             rowsToInsert.push({
               month_id: month.id,
@@ -185,7 +199,9 @@ export function SalarioView({ session }: { session: Session | null }) {
 
   async function syncMonth(monthId: string, existing: Entry[], silent = false) {
     const existingIds = new Set(existing.map(row => row.pd_member_id).filter((id): id is string => !!id));
-    const missing = pd.filter(member => !existingIds.has(member.id));
+    const missing = pd.filter(member =>
+      !existingIds.has(member.id) && !hasLegacySalaryEntryForName(member.nombre, existing),
+    );
     if (missing.length === 0) {
       if (!silent) toast.info("La tabla ya tiene a todo el Registro PD");
       return;
