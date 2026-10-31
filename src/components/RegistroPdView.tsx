@@ -421,7 +421,7 @@ export function RegistroPdView({ session }: { session: Session }) {
                     <p className="text-xs text-slate-500">El valor que aparece en 0 es el sueldo básico individual, antes de sumar los extras por divisiones.</p>
                   </div>
                 </div>
-                <p className="text-xs text-slate-500">Cada división asignada suma automáticamente +15 Coins al salario.</p>
+                <p className="text-xs text-slate-500">Cada división asignada suma automáticamente +10 Coins al salario.</p>
               </div>
             )}
           </div>
