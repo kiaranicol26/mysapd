@@ -97,10 +97,10 @@ export function ListaPdView(_props: { session: Session }) {
                     <td className="p-3 border border-blue-200 font-bold text-slate-600">{m.rango ?? "—"}</td>
                     <td className="p-3 border border-blue-200 font-mono font-bold">{Number(m.sueldo_defecto) || 0} Coins</td>
                     <td className="p-3 border border-blue-200 font-mono font-bold text-emerald-700">
-                      {((m.division && m.division !== "Ninguna" && m.division !== "N/A" ? 15 : 0) + (m.division2 && m.division2 !== "Ninguna" && m.division2 !== "N/A" ? 15 : 0))} Coins
+                      {((m.division && m.division !== "Ninguna" && m.division !== "N/A" ? 10 : 0) + (m.division2 && m.division2 !== "Ninguna" && m.division2 !== "N/A" ? 10 : 0))} Coins
                     </td>
                     <td className="p-3 border border-blue-200 font-mono font-black text-blue-800">
-                      {(Number(m.sueldo_defecto) || 0) + (m.division && m.division !== "Ninguna" ? 15 : 0) + (m.division2 && m.division2 !== "Ninguna" ? 15 : 0)} Coins
+                      {(Number(m.sueldo_defecto) || 0) + (m.division && m.division !== "Ninguna" ? 10 : 0) + (m.division2 && m.division2 !== "Ninguna" ? 10 : 0)} Coins
                     </td>
                     <td className="p-3 border border-blue-200 text-xs font-semibold text-slate-600">
                       {[m.division && m.division !== "Ninguna" && m.division !== "N/A" ? m.division : null, m.division2 && m.division2 !== "Ninguna" && m.division2 !== "N/A" ? m.division2 : null].filter(Boolean).join(" · ") || "Sin división"}
