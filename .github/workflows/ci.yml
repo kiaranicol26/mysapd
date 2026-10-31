@@ -30,3 +30,6 @@ jobs:
 
       - name: TypeScript
         run: bunx tsc --noEmit
+
+      - name: Tests
+        run: bun test
