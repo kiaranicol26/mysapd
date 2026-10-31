@@ -119,7 +119,7 @@ export function SalarioView({ session }: { session: Session | null }) {
     const [m, e, p] = await Promise.all([
       db.from("salary_months").select("*").order("created_at", { ascending: false }),
       db.from("salary_entries").select("*").order("created_at", { ascending: true }),
-      db.from("pd_members").select("id, nombre, rango, sueldo_defecto, es_instructor, division, division2, placa").order("nombre", { ascending: true }),
+      db.from("pd_members").select("id, instructor_id, nombre, rango, sueldo_defecto, es_instructor, division, division2, placa").order("nombre", { ascending: true }),
     ]);
     if (m.data) {
       setMonths(m.data as Month[]);
