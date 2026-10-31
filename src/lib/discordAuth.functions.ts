@@ -126,7 +126,7 @@ export const verifyDiscordCode = createServerFn({ method: "POST" })
     return { ok: true as const, ...buildLogin(row) };
   });
 
-/** Reenvía por MD la clave de acceso actual a quien ya tiene usuario en la web. */
+/** Envía instrucciones de acceso seguro por MD a un usuario ya registrado. */
 export const recoverDiscordKey = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ username: usernameSchema }).parse(d))
   .handler(async ({ data }) => {
@@ -136,6 +136,11 @@ export const recoverDiscordKey = createServerFn({ method: "POST" })
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { data: row } = await supabaseAdmin.from("instructors").select("id, name").eq("discord_id", member.id).maybeSingle();
       if (!row) return { ok: false as const, error: "Todavía no tenés usuario en la web. Registrate con un código." };
+      const { data: allowed, error: throttleError } = await (supabaseAdmin as any).rpc("reserve_discord_recovery", {
+        p_discord_id: member.id,
+      });
+      if (throttleError) throw throttleError;
+      if (!allowed) return { ok: false as const, error: "Esperá un minuto antes de volver a solicitar ayuda." };
       const dm = await discord("users/@me/channels", { method: "POST", body: JSON.stringify({ recipient_id: member.id }) });
       await discord(`channels/${dm.id}/messages`, {
         method: "POST",
