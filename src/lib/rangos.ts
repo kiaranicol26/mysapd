@@ -27,7 +27,6 @@ export const DIVISIONES = [
   "Ninguna",
   "SWAT",
   "Relaciones Publicas",
-  "Instructores",
   "N/A",
   "N/A",
   "N/A",
@@ -66,4 +65,4 @@ export function sortByRango<T>(
 }
 
 /** Extra pay (Coins) for agents marked as Instructor. */
-export const INSTRUCTOR_BONUS = 15;
+export const INSTRUCTOR_BONUS = 10;
