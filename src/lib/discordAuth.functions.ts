@@ -10,7 +10,8 @@ async function discord(path: string, init?: RequestInit) {
 
 async function hashCode(discordId: string, code: string) {
   const { createHmac } = await import("crypto");
-  const s = process.env["SUPABASE_SERVICE_ROLE_KEY"] || process.env["SUPABASE_DB_URL"] || "";
+  const s = process.env["SUPABASE_SERVICE_ROLE_KEY"] || process.env["SUPABASE_DB_URL"];
+  if (!s) throw new Error("Server misconfigured");
   return createHmac("sha256", s).update(`${discordId}:${code}`).digest("hex");
 }
 
