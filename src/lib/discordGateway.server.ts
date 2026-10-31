@@ -1,4 +1,5 @@
 import { FACTION_GUILD_ID, membershipDisabled } from "./discordMembership";
+import { rangoFromTag } from "./rangos";
 
 export async function discord(path: string, init?: RequestInit) {
   const lovable = process.env["LOVABLE_API_KEY"];
@@ -122,6 +123,23 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
         if (oldName) await admin.from("salary_entries").update({ nombre: discordName }).eq("nombre", oldName);
         row.name = discordName;
         renamed++;
+      }
+      // El tag de Discord determina el rango oficial y la condición de Instructor.
+      const rangoDiscord = rangoFromTag(tag);
+      if (rangoDiscord) {
+        const pdPatch = { rango: rangoDiscord, es_instructor: rangoDiscord === "Instructor" };
+        const { error: linkedPdError } = await admin.from("pd_members").update(pdPatch).eq("instructor_id", row.id);
+        if (linkedPdError) throw new Error("No se pudo sincronizar el rango en Registro PD");
+        if (oldName) {
+          const { error: legacyPdError } = await admin.from("pd_members").update(pdPatch)
+            .is("instructor_id", null).eq("nombre", oldName);
+          if (legacyPdError) throw new Error("No se pudo sincronizar el rango de un registro anterior");
+        }
+        if (discordName && discordName !== oldName) {
+          const { error: renamedPdError } = await admin.from("pd_members").update(pdPatch)
+            .is("instructor_id", null).eq("nombre", discordName);
+          if (renamedPdError) throw new Error("No se pudo sincronizar el rango del registro renombrado");
+        }
       }
       row.tag = tag;
       row.discord_username = m.user!.username;
