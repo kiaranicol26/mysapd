@@ -45,7 +45,7 @@ const TABLES = new Set([
 const PUBLIC_BG_KEY = "site_background_url";
 const PUBLIC_LOGIN_KEY = "discord_code_login_enabled";
 export const LOGIN_COLUMNS =
-  "id, name, is_alto_mando, can_delete, can_emit_rnap, can_edit_files, can_edit_pd, can_edit_capacitaciones, role, avatar_url, descripcion, secciones, discord_id, discord_inhabilitado";
+  "id, name, is_alto_mando, can_delete, can_emit_rnap, can_edit_files, can_edit_pd, can_edit_capacitaciones, role, avatar_url, descripcion, secciones, discord_id, discord_inhabilitado, discord_checked_at";
 
 /** Builds the browser session and signed token from a fresh instructors row. */
 export function buildLogin(r: any) {
@@ -76,9 +76,20 @@ export async function freshClaims(claims: Claims | null, admin: { from: (t: stri
   if (!claims) return null;
   const { data: r } = await admin.from("instructors").select(LOGIN_COLUMNS).eq("id", claims.id).maybeSingle();
   if (!r) return null;
-  const { checkInstructorMembership } = await import("./discordGateway.server");
-  const { LOGIN_MEMBERSHIP_ERROR } = await import("./discordMembership");
-  if (!(await checkInstructorMembership(r, admin))) throw new Error(LOGIN_MEMBERSHIP_ERROR);
+  // Discord no necesita consultarse en cada lectura de la aplicación.
+  // Reutilizamos la verificación reciente y la renovamos como máximo cada 60 s.
+  // Si la cuenta no tiene Discord vinculado o ya figura inhabilitada, se deniega.
+  const checkedAt = r.discord_checked_at ? Date.parse(r.discord_checked_at) : 0;
+  const membershipFresh = Number.isFinite(checkedAt) && Date.now() - checkedAt < 60_000;
+  if (!r.discord_id || (membershipFresh && r.discord_inhabilitado)) {
+    const { LOGIN_MEMBERSHIP_ERROR } = await import("./discordMembership");
+    throw new Error(LOGIN_MEMBERSHIP_ERROR);
+  }
+  if (!membershipFresh) {
+    const { checkInstructorMembership } = await import("./discordGateway.server");
+    const { LOGIN_MEMBERSHIP_ERROR } = await import("./discordMembership");
+    if (!(await checkInstructorMembership(r, admin))) throw new Error(LOGIN_MEMBERSHIP_ERROR);
+  }
   const alto = !!r.is_alto_mando;
   return {
     ...claims, name: r.name, alto, del: alto || !!r.can_delete, rnap: alto || !!r.can_emit_rnap,
