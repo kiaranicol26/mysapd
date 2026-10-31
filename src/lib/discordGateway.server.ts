@@ -118,6 +118,7 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
       const { tag, placa, name } = nickParts(m);
       if (!name) continue;
       let row = byDiscord.get(m.user!.id) as any;
+      const isNewInstructor = !row;
       if (!row) {
         const { randomBytes } = await import("crypto");
         const id = `DC-${randomBytes(4).toString("hex").toUpperCase()}`;
@@ -154,7 +155,7 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
         String(item.name ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
           .replace(/[|_]+/g, " ").replace(/\s+/g, " ").trim().toLocaleLowerCase("es") === normalizedOldName
       );
-      const legacyNameIsUnique = !!normalizedOldName && sameNameInstructors.length === 1;
+      const legacyNameIsUnique = !isNewInstructor && !!normalizedOldName && sameNameInstructors.length === 1;
       let legacyPdId: string | null = null;
       if (legacyNameIsUnique) {
         const { data: legacyRows, error: legacyReadError } = await admin.from("pd_members")
