@@ -29,7 +29,7 @@ export function ProfileCard({ u, foto, extra, footer }: { u: ProfileUser; foto?:
       <div className="h-20 bg-cover bg-center" style={{ backgroundColor: color, backgroundImage: u.banner_url ? `url(${u.banner_url})` : undefined }} />
       <div className="px-3 pb-3 flex-1">
         <div className="-mt-10 w-20 h-20 rounded-full border-[5px] border-card bg-muted overflow-hidden flex items-center justify-center">
-          {avatar ? <img src={avatar} alt={u.name} className="w-full h-full object-cover" /> : <UserRound className="w-8 h-8 text-muted-foreground" />}
+          {avatar ? <img src={avatar} alt={u.name} loading="lazy" decoding="async" className="w-full h-full object-cover" /> : <UserRound className="w-8 h-8 text-muted-foreground" />}
         </div>
         <div className="mt-2 rounded-md bg-muted/60 p-3 space-y-2">
           <div>
