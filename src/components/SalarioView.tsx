@@ -140,20 +140,57 @@ export function SalarioView({ session }: { session: Session | null }) {
       setPd(currentPd);
       // Todos los integrantes de Registro PD aparecen en cada mes, aunque su sueldo sea 0.
       if (m.data?.length) {
-        const salaryRows = (e.data ?? []) as unknown as Entry[];
-        await Promise.all((m.data as Month[]).map(async month => {
-          const existingNames = new Set(salaryRows.filter(row => row.month_id === month.id).map(row => normalizeName(row.nombre)));
-          const missing = currentPd.filter(member => !existingNames.has(normalizeName(member.nombre)));
-          if (missing.length) {
-            const { error } = await db.from("salary_entries").insert(missing.map(member => ({
-              month_id: month.id, nombre: member.nombre, paga: Number(member.sueldo_defecto) || 0,
-              pagado: false, ultima_edicion_por: session?.name ?? null,
-            })) as any);
-            if (error) console.error("No se pudieron incorporar integrantes de Registro PD a Salarios:", error.message);
+        // Indexar los registros existentes en una sola pasada evita filtrar toda la
+        // tabla de salarios una vez por cada mes.
+        const namesByMonth = new Map<string, Set<string>>();
+        for (const row of (e.data ?? []) as unknown as Entry[]) {
+          let names = namesByMonth.get(row.month_id);
+          if (!names) {
+            names = new Set<string>();
+            namesByMonth.set(row.month_id, names);
           }
-        }));
-        const refreshed = await db.from("salary_entries").select("*").order("created_at", { ascending: true });
-        if (refreshed.data) setEntries(refreshed.data as unknown as Entry[]);
+          const key = normalizeName(row.nombre);
+          if (key) names.add(key);
+        }
+
+        // Insertar los faltantes en lotes reduce las solicitudes cuando hay muchos meses.
+        const rowsToInsert: {
+          month_id: string;
+          nombre: string;
+          paga: number;
+          pagado: boolean;
+          ultima_edicion_por: string | null;
+        }[] = [];
+
+        for (const month of m.data as Month[]) {
+          const existingNames = namesByMonth.get(month.id) ?? new Set<string>();
+          for (const member of currentPd) {
+            const key = normalizeName(member.nombre);
+            if (!key || existingNames.has(key)) continue;
+            existingNames.add(key);
+            rowsToInsert.push({
+              month_id: month.id,
+              nombre: member.nombre,
+              paga: Number(member.sueldo_defecto) || 0,
+              pagado: false,
+              ultima_edicion_por: session?.name ?? null,
+            });
+          }
+        }
+
+        const batchSize = 500;
+        for (let i = 0; i < rowsToInsert.length; i += batchSize) {
+          const { error } = await db.from("salary_entries").insert(rowsToInsert.slice(i, i + batchSize) as any);
+          if (error) {
+            console.error("No se pudieron incorporar integrantes de Registro PD a Salarios:", error.message);
+            break;
+          }
+        }
+
+        if (rowsToInsert.length) {
+          const refreshed = await db.from("salary_entries").select("*").order("created_at", { ascending: true });
+          if (refreshed.data) setEntries(refreshed.data as unknown as Entry[]);
+        }
       }
     }
   }
@@ -198,10 +235,10 @@ export function SalarioView({ session }: { session: Session | null }) {
       .maybeSingle();
     if (error) return toast.error(error.message);
     await logAction(db, session, "CREATE_SALARY_MONTH", { label });
-    if (data?.id) await syncMonth(data.id as string, [], true);
     setNewMonth("");
     toast.success(`Mes "${label}" creado con Registro PD`);
-    loadAll();
+    // loadAll incorpora automáticamente los integrantes faltantes a todos los meses.
+    await loadAll();
   }
 
   async function removeMonth(m: Month) {
