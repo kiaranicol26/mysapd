@@ -1,0 +1,1 @@
+ALTER TABLE public.instructors ADD COLUMN IF NOT EXISTS can_edit_capacitaciones boolean NOT NULL DEFAULT false, ADD COLUMN IF NOT EXISTS tag text, ADD COLUMN IF NOT EXISTS discord_joined_at timestamptz;

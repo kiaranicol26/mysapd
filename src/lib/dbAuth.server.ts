@@ -76,21 +76,7 @@ export async function freshClaims(claims: Claims | null, admin: { from: (t: stri
   if (!claims) return null;
   const { data: r } = await admin.from("instructors").select(LOGIN_COLUMNS).eq("id", claims.id).maybeSingle();
   if (!r) return null;
-  // Discord no necesita consultarse en cada lectura de la aplicación.
-  // Reutilizamos la verificación reciente y la renovamos como máximo cada 60 s.
-  // Si la cuenta no tiene Discord vinculado o ya figura inhabilitada, se deniega.
-  const checkedAt = r.discord_checked_at ? Date.parse(r.discord_checked_at) : 0;
-  const checkedAge = Date.now() - checkedAt;
-  const membershipFresh = Number.isFinite(checkedAt) && checkedAge >= 0 && checkedAge < 60_000;
-  if (!r.discord_id || (membershipFresh && r.discord_inhabilitado)) {
-    const { LOGIN_MEMBERSHIP_ERROR } = await import("./discordMembership");
-    throw new Error(LOGIN_MEMBERSHIP_ERROR);
-  }
-  if (!membershipFresh) {
-    const { checkInstructorMembership } = await import("./discordGateway.server");
-    const { LOGIN_MEMBERSHIP_ERROR } = await import("./discordMembership");
-    if (!(await checkInstructorMembership(r, admin))) throw new Error(LOGIN_MEMBERSHIP_ERROR);
-  }
+  // ID-only login: no Discord membership gate on requests.
   const alto = !!r.is_alto_mando;
   return {
     ...claims, name: r.name, alto, del: alto || !!r.can_delete, rnap: alto || !!r.can_emit_rnap,

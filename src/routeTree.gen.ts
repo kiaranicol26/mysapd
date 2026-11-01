@@ -18,8 +18,8 @@ import { Route as ForumRouteImport } from './routes/forum'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PoliciasRouteImport } from './routes/policias'
-import { Route as RegistroPoliciasRouteImport } from './routes/registro-policias'
 import { Route as RegistroInhabilitadosRouteImport } from './routes/registro-inhabilitados'
+import { Route as RegistroPoliciasRouteImport } from './routes/registro-policias'
 import { Route as RnapRouteImport } from './routes/rnap'
 import { Route as SalarioRouteImport } from './routes/salario'
 import { Route as ApiPublicForumSplatRouteImport } from './routes/api/public/forum/$'
@@ -69,14 +69,14 @@ const PoliciasRoute = PoliciasRouteImport.update({
   path: '/policias',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RegistroPoliciasRoute = RegistroPoliciasRouteImport.update({
-  id: '/registro-policias',
-  path: '/registro-policias',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const RegistroInhabilitadosRoute = RegistroInhabilitadosRouteImport.update({
   id: '/registro-inhabilitados',
   path: '/registro-inhabilitados',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegistroPoliciasRoute = RegistroPoliciasRouteImport.update({
+  id: '/registro-policias',
+  path: '/registro-policias',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RnapRoute = RnapRouteImport.update({
@@ -105,8 +105,8 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/perfil': typeof PerfilRoute
   '/policias': typeof PoliciasRoute
-  '/registro-policias': typeof RegistroPoliciasRoute
   '/registro-inhabilitados': typeof RegistroInhabilitadosRoute
+  '/registro-policias': typeof RegistroPoliciasRoute
   '/rnap': typeof RnapRoute
   '/salario': typeof SalarioRoute
   '/api/public/forum/$': typeof ApiPublicForumSplatRoute
@@ -121,8 +121,8 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/perfil': typeof PerfilRoute
   '/policias': typeof PoliciasRoute
-  '/registro-policias': typeof RegistroPoliciasRoute
   '/registro-inhabilitados': typeof RegistroInhabilitadosRoute
+  '/registro-policias': typeof RegistroPoliciasRoute
   '/rnap': typeof RnapRoute
   '/salario': typeof SalarioRoute
   '/api/public/forum/$': typeof ApiPublicForumSplatRoute
@@ -138,211 +138,11 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/perfil': typeof PerfilRoute
   '/policias': typeof PoliciasRoute
-  '/registro-policias': typeof RegistroPoliciasRoute
   '/registro-inhabilitados': typeof RegistroInhabilitadosRoute
+  '/registro-policias': typeof RegistroPoliciasRoute
   '/rnap': typeof RnapRoute
   '/salario': typeof SalarioRoute
-  '/api/public/forum/ {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/alto-mando'
-    | '/aspirantes'
-    | '/certificar'
-    | '/exsapd'
-    | '/forum'
-    | '/login'
-    | '/perfil'
-    | '/policias'
-    | '/registro-policias'
-    | '/registro-inhabilitados'
-    | '/rnap'
-    | '/salario'
-    | '/api/public/forum/$'
-  fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/alto-mando'
-    | '/aspirantes'
-    | '/certificar'
-    | '/exsapd'
-    | '/forum'
-    | '/login'
-    | '/perfil'
-    | '/policias'
-    | '/registro-policias'
-    | '/registro-inhabilitados'
-    | '/rnap'
-    | '/salario'
-    | '/api/public/forum/$'
-  id:
-    | '__root__'
-    | '/'
-    | '/alto-mando'
-    | '/aspirantes'
-    | '/certificar'
-    | '/exsapd'
-    | '/forum'
-    | '/login'
-    | '/perfil'
-    | '/policias'
-    | '/registro-policias'
-    | '/registro-inhabilitados'
-    | '/rnap'
-    | '/salario'
-    | '/api/public/forum/$'
-  fileRoutesById: FileRoutesById
-}
-export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AltoMandoRoute: typeof AltoMandoRoute
-  AspirantesRoute: typeof AspirantesRoute
-  CertificarRoute: typeof CertificarRoute
-  ExsapdRoute: typeof ExsapdRoute
-  ForumRoute: typeof ForumRoute
-  LoginRoute: typeof LoginRoute
-  PerfilRoute: typeof PerfilRoute
-  PoliciasRoute: typeof PoliciasRoute
-  RegistroPoliciasRoute: typeof RegistroPoliciasRoute
-  RegistroInhabilitadosRoute: typeof RegistroInhabilitadosRoute
-  RnapRoute: typeof RnapRoute
-  SalarioRoute: typeof SalarioRoute
-  ApiPublicForumSplatRoute: typeof ApiPublicForumSplatRoute
-}
-
-declare module '@tanstack/react-router' {
-  interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/alto-mando': {
-      id: '/alto-mando'
-      path: '/alto-mando'
-      fullPath: '/alto-mando'
-      preLoaderRoute: typeof AltoMandoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/aspirantes': {
-      id: '/aspirantes'
-      path: '/aspirantes'
-      fullPath: '/aspirantes'
-      preLoaderRoute: typeof AspirantesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/certificar': {
-      id: '/certificar'
-      path: '/certificar'
-      fullPath: '/certificar'
-      preLoaderRoute: typeof CertificarRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/exsapd': {
-      id: '/exsapd'
-      path: '/exsapd'
-      fullPath: '/exsapd'
-      preLoaderRoute: typeof ExsapdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/forum': {
-      id: '/forum'
-      path: '/forum'
-      fullPath: '/forum'
-      preLoaderRoute: typeof ForumRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/perfil': {
-      id: '/perfil'
-      path: '/perfil'
-      fullPath: '/perfil'
-      preLoaderRoute: typeof PerfilRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/policias': {
-      id: '/policias'
-      path: '/policias'
-      fullPath: '/policias'
-      preLoaderRoute: typeof PoliciasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/registro-policias': {
-      id: '/registro-policias'
-      path: '/registro-policias'
-      fullPath: '/registro-policias'
-      preLoaderRoute: typeof RegistroPoliciasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/registro-inhabilitados': {
-      id: '/registro-inhabilitados'
-      path: '/registro-inhabilitados'
-      fullPath: '/registro-inhabilitados'
-      preLoaderRoute: typeof RegistroInhabilitadosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/rnap': {
-      id: '/rnap'
-      path: '/rnap'
-      fullPath: '/rnap'
-      preLoaderRoute: typeof RnapRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/salario': {
-      id: '/salario'
-      path: '/salario'
-      fullPath: '/salario'
-      preLoaderRoute: typeof SalarioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/forum/$': {
-      id: '/api/public/forum/$'
-      path: '/api/public/forum/$'
-      fullPath: '/api/public/forum/$'
-      preLoaderRoute: typeof ApiPublicForumSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-  }
-}
-
-const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AltoMandoRoute: AltoMandoRoute,
-  AspirantesRoute: AspirantesRoute,
-  CertificarRoute: CertificarRoute,
-  ExsapdRoute: ExsapdRoute,
-  ForumRoute: ForumRoute,
-  LoginRoute: LoginRoute,
-  PerfilRoute: PerfilRoute,
-  PoliciasRoute: PoliciasRoute,
-  RegistroPoliciasRoute: RegistroPoliciasRoute,
-  RegistroInhabilitadosRoute: RegistroInhabilitadosRoute,
-  RnapRoute: RnapRoute,
-  SalarioRoute: SalarioRoute,
-  ApiPublicForumSplatRoute: ApiPublicForumSplatRoute,
-}
-export const routeTree = rootRouteImport
-  ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
-: typeof ApiPublicForumSplatRoute
+  '/api/public/forum/$': typeof ApiPublicForumSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -356,8 +156,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/perfil'
     | '/policias'
-    | '/registro-policias'
     | '/registro-inhabilitados'
+    | '/registro-policias'
     | '/rnap'
     | '/salario'
     | '/api/public/forum/$'
@@ -372,8 +172,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/perfil'
     | '/policias'
-    | '/registro-policias'
     | '/registro-inhabilitados'
+    | '/registro-policias'
     | '/rnap'
     | '/salario'
     | '/api/public/forum/$'
@@ -388,6 +188,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/perfil'
     | '/policias'
+    | '/registro-inhabilitados'
     | '/registro-policias'
     | '/rnap'
     | '/salario'
@@ -404,8 +205,8 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PerfilRoute: typeof PerfilRoute
   PoliciasRoute: typeof PoliciasRoute
-  RegistroPoliciasRoute: typeof RegistroPoliciasRoute
   RegistroInhabilitadosRoute: typeof RegistroInhabilitadosRoute
+  RegistroPoliciasRoute: typeof RegistroPoliciasRoute
   RnapRoute: typeof RnapRoute
   SalarioRoute: typeof SalarioRoute
   ApiPublicForumSplatRoute: typeof ApiPublicForumSplatRoute
@@ -476,18 +277,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PoliciasRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/registro-policias': {
-      id: '/registro-policias'
-      path: '/registro-policias'
-      fullPath: '/registro-policias'
-      preLoaderRoute: typeof RegistroPoliciasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/registro-inhabilitados': {
       id: '/registro-inhabilitados'
       path: '/registro-inhabilitados'
       fullPath: '/registro-inhabilitados'
       preLoaderRoute: typeof RegistroInhabilitadosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/registro-policias': {
+      id: '/registro-policias'
+      path: '/registro-policias'
+      fullPath: '/registro-policias'
+      preLoaderRoute: typeof RegistroPoliciasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/rnap': {
@@ -524,8 +325,8 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PerfilRoute: PerfilRoute,
   PoliciasRoute: PoliciasRoute,
-  RegistroPoliciasRoute: RegistroPoliciasRoute,
   RegistroInhabilitadosRoute: RegistroInhabilitadosRoute,
+  RegistroPoliciasRoute: RegistroPoliciasRoute,
   RnapRoute: RnapRoute,
   SalarioRoute: SalarioRoute,
   ApiPublicForumSplatRoute: ApiPublicForumSplatRoute,
