@@ -76,14 +76,13 @@ export const dbQuery = createServerFn({ method: "POST" })
     }
   });
 
-/**
- * Legacy ID-only login is intentionally disabled.
- * Knowing an instructor ID does not prove control of the linked Discord account.
- * Use the one-time code delivered by Discord DM instead.
- */
+/** ID-only login, as requested by the owners. */
 export const loginWithId = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => z.object({ id: z.string().trim().min(1).max(64) }).parse(data))
-  .handler(async () => ({
-    ok: false as const,
-    error: "El acceso por ID fue deshabilitado. Ingresá mediante el código enviado por Discord.",
-  }));
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { buildLogin, LOGIN_COLUMNS } = await import("@/lib/dbAuth.server");
+    const { data: r } = await (supabaseAdmin as any).from("instructors").select(LOGIN_COLUMNS).ilike("id", data.id).maybeSingle();
+    if (!r) return { ok: false as const, error: "ID de acceso inválido." };
+    return { ok: true as const, ...buildLogin(r) };
+  });
