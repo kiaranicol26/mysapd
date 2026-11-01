@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { DiscordLogin } from "@/components/DiscordLogin";
+import { IdLogin } from "@/components/IdLogin";
 
 export function LoginView() {
   const [bg, setBg] = useState("");
@@ -90,11 +90,7 @@ export function LoginView() {
                 </p>
               </div>
 
-              <p className="mt-8 text-center text-sm font-semibold text-slate-600">
-                Para proteger tu cuenta, el acceso se realiza verificando un código enviado por mensaje directo a tu Discord.
-              </p>
-
-              <DiscordLogin />
+              <IdLogin />
 
               <Button asChild variant="outline"
                 className="mt-4 h-11 w-full rounded-none border-blue-300 bg-white text-blue-800 font-bold tracking-wider hover:bg-blue-50">
