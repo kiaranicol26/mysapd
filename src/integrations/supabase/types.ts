@@ -190,21 +190,6 @@ export type Database = {
         }
         Relationships: []
       }
-      discord_recovery_requests: {
-        Row: {
-          created_at: string
-          discord_id: string
-        }
-        Insert: {
-          created_at?: string
-          discord_id: string
-        }
-        Update: {
-          created_at?: string
-          discord_id?: string
-        }
-        Relationships: []
-      }
       forum_posts: {
         Row: {
           adjuntos: Json
@@ -253,7 +238,6 @@ export type Database = {
           banner_url: string | null
           can_delete: boolean
           can_edit_files: boolean
-          can_edit_capacitaciones: boolean
           can_edit_pd: boolean
           can_emit_rnap: boolean
           color_perfil: string | null
@@ -261,7 +245,6 @@ export type Database = {
           created_by: string | null
           descripcion: string | null
           discord_checked_at: string | null
-          discord_joined_at: string | null
           discord_id: string | null
           discord_inhabilitado: boolean
           discord_username: string | null
@@ -273,14 +256,12 @@ export type Database = {
           role: string
           secciones: string[]
           sync_avatar: boolean
-          tag: string | null
         }
         Insert: {
           avatar_url?: string | null
           banner_url?: string | null
           can_delete?: boolean
           can_edit_files?: boolean
-          can_edit_capacitaciones?: boolean
           can_edit_pd?: boolean
           can_emit_rnap?: boolean
           color_perfil?: string | null
@@ -288,7 +269,6 @@ export type Database = {
           created_by?: string | null
           descripcion?: string | null
           discord_checked_at?: string | null
-          discord_joined_at?: string | null
           discord_id?: string | null
           discord_inhabilitado?: boolean
           discord_username?: string | null
@@ -300,14 +280,12 @@ export type Database = {
           role?: string
           secciones?: string[]
           sync_avatar?: boolean
-          tag?: string | null
         }
         Update: {
           avatar_url?: string | null
           banner_url?: string | null
           can_delete?: boolean
           can_edit_files?: boolean
-          can_edit_capacitaciones?: boolean
           can_edit_pd?: boolean
           can_emit_rnap?: boolean
           color_perfil?: string | null
@@ -315,7 +293,6 @@ export type Database = {
           created_by?: string | null
           descripcion?: string | null
           discord_checked_at?: string | null
-          discord_joined_at?: string | null
           discord_id?: string | null
           discord_inhabilitado?: boolean
           discord_username?: string | null
@@ -327,7 +304,6 @@ export type Database = {
           role?: string
           secciones?: string[]
           sync_avatar?: boolean
-          tag?: string | null
         }
         Relationships: []
       }
@@ -370,8 +346,6 @@ export type Database = {
           created_by: string | null
           division: string | null
           division_rango: string | null
-          division2: string | null
-          division2_rango: string | null
           es_instructor: boolean
           foto: string | null
           id: string
@@ -393,8 +367,6 @@ export type Database = {
           created_by?: string | null
           division?: string | null
           division_rango?: string | null
-          division2?: string | null
-          division2_rango?: string | null
           es_instructor?: boolean
           foto?: string | null
           id?: string
@@ -416,8 +388,6 @@ export type Database = {
           created_by?: string | null
           division?: string | null
           division_rango?: string | null
-          division2?: string | null
-          division2_rango?: string | null
           es_instructor?: boolean
           foto?: string | null
           id?: string
@@ -541,11 +511,9 @@ export type Database = {
         Row: {
           created_at: string
           es_instructor: boolean
-          extras: number
           id: string
           month_id: string
           nombre: string | null
-          pd_member_id: string | null
           nota: string | null
           paga: number
           pagado: boolean
@@ -555,11 +523,9 @@ export type Database = {
         Insert: {
           created_at?: string
           es_instructor?: boolean
-          extras?: number
           id?: string
           month_id: string
           nombre?: string | null
-          pd_member_id?: string | null
           nota?: string | null
           paga?: number
           pagado?: boolean
@@ -569,11 +535,9 @@ export type Database = {
         Update: {
           created_at?: string
           es_instructor?: boolean
-          extras?: number
           id?: string
           month_id?: string
           nombre?: string | null
-          pd_member_id?: string | null
           nota?: string | null
           paga?: number
           pagado?: boolean
@@ -586,13 +550,6 @@ export type Database = {
             columns: ["month_id"]
             isOneToOne: false
             referencedRelation: "salary_months"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "salary_entries_pd_member_id_fkey"
-            columns: ["pd_member_id"]
-            isOneToOne: false
-            referencedRelation: "pd_members"
             referencedColumns: ["id"]
           },
         ]
@@ -626,33 +583,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      reserve_discord_recovery: {
-        Args: {
-          p_discord_id: string
-        }
-        Returns: boolean
-      }
-      reserve_discord_verification: {
-        Args: {
-          p_discord_id: string
-          p_discord_username: string
-          p_code_hash: string
-          p_expires_at: string
-        }
-        Returns: boolean
-      }
-      verify_discord_login_code: {
-        Args: {
-          p_discord_username: string
-          p_code_hash: string
-          p_consume?: boolean
-        }
-        Returns: {
-          discord_id: string
-          discord_username: string
-          status: string
-        }[]
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
