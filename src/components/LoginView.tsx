@@ -1,59 +1,23 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Coins, IdCard } from "lucide-react";
-import { db, setToken } from "@/lib/db";
-import { loginWithId } from "@/lib/data.functions";
 
-
-import { setSession, logAction } from "@/lib/session";
 import { getBackground } from "@/lib/appearance";
-import { getDiscordCodeLoginEnabled } from "@/lib/discord";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { toast } from "sonner";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { DiscordLogin } from "@/components/DiscordLogin";
+import { IdLogin } from "@/components/IdLogin";
 
 export function LoginView() {
-  const [id, setId] = useState("");
-  const [loading, setLoading] = useState(false);
   const [bg, setBg] = useState("");
-  const [discordCodeLoginEnabled, setDiscordCodeLoginEnabled] = useState(true);
 
   useEffect(() => {
     const load = () => getBackground().then(setBg).catch(() => {});
     load();
-    getDiscordCodeLoginEnabled(true).then(setDiscordCodeLoginEnabled).catch(() => setDiscordCodeLoginEnabled(true));
     window.addEventListener("background-change", load);
     return () => window.removeEventListener("background-change", load);
   }, []);
-
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-
-    if (!id.trim()) return;
-
-    setLoading(true);
-
-    const res = await loginWithId({ data: { id: id.trim() } }).catch(() => ({ ok: false as const, error: "No se pudo verificar Discord. Intentá nuevamente." }));
-
-    setLoading(false);
-
-    if (!res.ok) {
-      toast.error(res.error);
-      return;
-    }
-
-    setToken(res.token);
-    setSession(res.session);
-
-    await logAction(db, res.session, "LOGIN", { id: res.session.id });
-
-    toast.success(`Bienvenido, ${res.session.name}`);
-
-  }
 
   return (
     <div
@@ -126,55 +90,7 @@ export function LoginView() {
                 </p>
               </div>
 
-              <form
-                onSubmit={handleLogin}
-                className="mt-8 space-y-5"
-              >
-                <Input
-                  placeholder="Ingrese su ID de acceso"
-                  value={id}
-                  onChange={(e) => setId(e.target.value)}
-                  autoFocus
-                  className="
-                    h-12
-                    rounded-none
-                    border
-                    border-blue-300
-                    bg-white
-                    text-center
-                    text-lg
-                    text-slate-800
-                    placeholder:text-slate-400
-                    focus:border-blue-600
-                    focus:ring-2
-                    focus:ring-blue-600/20
-                    transition-all
-                  "
-                />
-
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="
-                    h-12
-                    w-full
-                    rounded-none
-                    bg-blue-600
-                    text-white
-                    font-semibold
-                    tracking-wider
-                    transition-all
-                    duration-200
-                    hover:bg-blue-700
-                    hover:scale-[1.01]
-                    active:scale-[0.99]
-                  "
-                >
-                  {loading ? "VERIFICANDO..." : "INGRESAR AL SISTEMA"}
-                </Button>
-              </form>
-
-              {discordCodeLoginEnabled && <DiscordLogin />}
+              <IdLogin />
 
               <Button asChild variant="outline"
                 className="mt-4 h-11 w-full rounded-none border-blue-300 bg-white text-blue-800 font-bold tracking-wider hover:bg-blue-50">

@@ -18,6 +18,7 @@ import { Route as ForumRouteImport } from './routes/forum'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PoliciasRouteImport } from './routes/policias'
+import { Route as RegistroInhabilitadosRouteImport } from './routes/registro-inhabilitados'
 import { Route as RegistroPoliciasRouteImport } from './routes/registro-policias'
 import { Route as RnapRouteImport } from './routes/rnap'
 import { Route as SalarioRouteImport } from './routes/salario'
@@ -68,6 +69,11 @@ const PoliciasRoute = PoliciasRouteImport.update({
   path: '/policias',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RegistroInhabilitadosRoute = RegistroInhabilitadosRouteImport.update({
+  id: '/registro-inhabilitados',
+  path: '/registro-inhabilitados',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RegistroPoliciasRoute = RegistroPoliciasRouteImport.update({
   id: '/registro-policias',
   path: '/registro-policias',
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/perfil': typeof PerfilRoute
   '/policias': typeof PoliciasRoute
+  '/registro-inhabilitados': typeof RegistroInhabilitadosRoute
   '/registro-policias': typeof RegistroPoliciasRoute
   '/rnap': typeof RnapRoute
   '/salario': typeof SalarioRoute
@@ -114,6 +121,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/perfil': typeof PerfilRoute
   '/policias': typeof PoliciasRoute
+  '/registro-inhabilitados': typeof RegistroInhabilitadosRoute
   '/registro-policias': typeof RegistroPoliciasRoute
   '/rnap': typeof RnapRoute
   '/salario': typeof SalarioRoute
@@ -130,6 +138,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/perfil': typeof PerfilRoute
   '/policias': typeof PoliciasRoute
+  '/registro-inhabilitados': typeof RegistroInhabilitadosRoute
   '/registro-policias': typeof RegistroPoliciasRoute
   '/rnap': typeof RnapRoute
   '/salario': typeof SalarioRoute
@@ -147,6 +156,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/perfil'
     | '/policias'
+    | '/registro-inhabilitados'
     | '/registro-policias'
     | '/rnap'
     | '/salario'
@@ -162,6 +172,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/perfil'
     | '/policias'
+    | '/registro-inhabilitados'
     | '/registro-policias'
     | '/rnap'
     | '/salario'
@@ -177,6 +188,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/perfil'
     | '/policias'
+    | '/registro-inhabilitados'
     | '/registro-policias'
     | '/rnap'
     | '/salario'
@@ -193,6 +205,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PerfilRoute: typeof PerfilRoute
   PoliciasRoute: typeof PoliciasRoute
+  RegistroInhabilitadosRoute: typeof RegistroInhabilitadosRoute
   RegistroPoliciasRoute: typeof RegistroPoliciasRoute
   RnapRoute: typeof RnapRoute
   SalarioRoute: typeof SalarioRoute
@@ -264,6 +277,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PoliciasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/registro-inhabilitados': {
+      id: '/registro-inhabilitados'
+      path: '/registro-inhabilitados'
+      fullPath: '/registro-inhabilitados'
+      preLoaderRoute: typeof RegistroInhabilitadosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/registro-policias': {
       id: '/registro-policias'
       path: '/registro-policias'
@@ -305,6 +325,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PerfilRoute: PerfilRoute,
   PoliciasRoute: PoliciasRoute,
+  RegistroInhabilitadosRoute: RegistroInhabilitadosRoute,
   RegistroPoliciasRoute: RegistroPoliciasRoute,
   RnapRoute: RnapRoute,
   SalarioRoute: SalarioRoute,

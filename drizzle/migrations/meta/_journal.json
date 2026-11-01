@@ -36,6 +36,13 @@
       "when": 1793058840066,
       "tag": "0004_pd_members_capacitaciones",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793493438853,
+      "tag": "0005_instructors_missing_columns",
+      "breakpoints": true
     }
   ]
 }

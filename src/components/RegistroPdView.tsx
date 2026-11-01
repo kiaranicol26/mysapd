@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { db } from "@/lib/db";
 import { ProfileCard, type ProfileUser } from "@/components/ProfileCard";
-import { personnelForUser } from "@/lib/pdProfile";
 import { Session, logAction } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,14 +77,13 @@ const emptyDraft: Draft = {
   division2: "Ninguna", division2_rango: "Miembro", sueldo_defecto: 0, es_instructor: false,
 };
 
-export function RegistroPdView({ session }: { session: Session }) {
+export function RegistroPdView({ session, onlyDisabled = false }: { session: Session; onlyDisabled?: boolean }) {
   const [members, setMembers] = useState<PdMember[]>([]);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [saving, setSaving] = useState(false);
-  const [avatars, setAvatars] = useState<Record<string, string>>({});
-  const [users, setUsers] = useState<{ id: string; name: string; avatar_url: string | null; role: string | null }[]>([]);
+  const [users, setUsers] = useState<{ id: string; name: string; avatar_url: string | null; role: string | null; discord_inhabilitado: boolean }[]>([]);
   const [capConfirm, setCapConfirm] = useState<{ m: PdMember; cap: CapKey; value: boolean } | null>(null);
   const [capSaving, setCapSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -94,24 +92,15 @@ export function RegistroPdView({ session }: { session: Session }) {
   const canEditCaps = !!session.is_alto_mando || !!session.can_edit_capacitaciones;
 
   async function load() {
-    const { data } = await db.from("pd_members").select("*").order("nombre", { ascending: true });
+    const { data } = await db.from("pd_members").select("id, instructor_id, nombre, rango, foto, placa, division, division_rango, division2, division2_rango, sueldo_defecto, es_instructor, cap_m4, cap_edc, cap_mary, cap_sniper, cap_air, cap_ak47, created_at").order("nombre", { ascending: true });
     if (data) setMembers(data as unknown as PdMember[]);
   }
 
   async function loadAvatars() {
-    const { data } = await db.from("instructors").select("id, name, avatar_url, role, descripcion, banner_url, color_perfil, pronombres, discord_username, is_alto_mando, can_delete, can_emit_rnap, can_edit_files, can_edit_pd, secciones, placa, discord_inhabilitado");
+    const { data } = await db.from("instructors").select("id, name, avatar_url, role, discord_inhabilitado");
     if (!data) return;
     setUsers(data as any);
-    const map: Record<string, string> = {};
-    (data as any[]).forEach(u => {
-      if (u?.name) map[String(u.name).trim().toLowerCase()] = u.avatar_url || "";
-      if (u?.name && u?.avatar_url) map[String(u.name).trim().toLowerCase()] = u.avatar_url;
-    });
-    setAvatars(map);
   }
-
-  const fotoDe = (m: PdMember) =>
-    avatars[m.nombre.trim().toLowerCase()] || m.foto || null;
 
   useEffect(() => {
     let active = true;
@@ -190,9 +179,27 @@ export function RegistroPdView({ session }: { session: Session }) {
     load();
   }
 
+  const personnelIndex = useMemo(() => {
+    const byInstructor = new Map<string, PdMember>();
+    const byLegacyName = new Map<string, PdMember>();
+    for (const member of members) {
+      if (member.instructor_id) {
+        if (!byInstructor.has(member.instructor_id)) byInstructor.set(member.instructor_id, member);
+      } else {
+        const key = member.nombre.trim().toLowerCase();
+        if (!byLegacyName.has(key)) byLegacyName.set(key, member);
+      }
+    }
+    return { byInstructor, byLegacyName };
+  }, [members]);
+
   const groups = useMemo(() => {
     const rows = users
-      .map(u => ({ u, m: personnelForUser(members, u) }))
+      .filter(u => onlyDisabled ? !!u.discord_inhabilitado : !u.discord_inhabilitado)
+      .map(u => ({
+        u,
+        m: personnelIndex.byInstructor.get(u.id) ?? personnelIndex.byLegacyName.get(u.name.trim().toLowerCase()),
+      }))
       .filter(({ u, m }) =>
         (u.name + " " + (u.role ?? "") + " " + (m?.rango ?? "") + " " + (m?.placa ?? "") + " " + (m?.division ?? ""))
           .toLowerCase().includes(q.toLowerCase()));
@@ -200,7 +207,7 @@ export function RegistroPdView({ session }: { session: Session }) {
       rango: r.value, label: r.plural,
       items: sortByRango(rows.filter(x => roleKey(x.u.role) === r.value), x => x.m?.rango ?? null, x => x.u.name),
     })).filter(g => g.items.length > 0);
-  }, [members, q, users]);
+  }, [onlyDisabled, personnelIndex, q, users]);
 
   async function changeRole(u: { id: string; name: string }, role: string) {
     const alto = role === "Comisario";
@@ -239,13 +246,13 @@ export function RegistroPdView({ session }: { session: Session }) {
                 San Andreas Police Department
               </p>
               <h2 className="text-2xl font-black uppercase tracking-wide text-slate-900 font-display">
-                Registro de Policías
+                {onlyDisabled ? "Registro de Policías Inhabilitados" : "Registro de Policías"}
               </h2>
             </div>
             <div className="ml-auto flex items-center gap-3">
               <div className="flex items-center gap-2 px-3 py-2 bg-blue-700 text-white">
                 <BadgeCheck className="w-4 h-4" />
-                <span className="font-mono font-bold">{users.length}</span>
+                <span className="font-mono font-bold">{users.filter(u => onlyDisabled ? !!u.discord_inhabilitado : !u.discord_inhabilitado).length}</span>
                 <span className="text-[10px] uppercase tracking-widest font-bold">Carnets</span>
               </div>
               {canEdit && (
@@ -336,7 +343,7 @@ export function RegistroPdView({ session }: { session: Session }) {
 
       {!loading && groups.length === 0 && (
         <Card className="border-2 border-blue-300 bg-white rounded-none p-10 text-center text-slate-400 uppercase tracking-widest font-bold">
-          Sin policías registrados.
+          {onlyDisabled ? "No hay policías inhabilitados." : "Sin policías registrados."}
         </Card>
       )}
 
@@ -434,7 +441,7 @@ export function RegistroPdView({ session }: { session: Session }) {
                     <p className="text-xs text-slate-500">El valor que aparece en 0 es el sueldo básico individual, antes de sumar los extras por divisiones e instructor.</p>
                   </div>
                 </div>
-                <p className="text-xs text-slate-500">Cada división asignada suma automáticamente +10 Coins al salario.</p>
+                <p className="text-xs text-slate-500">Cada división asignada suma automáticamente +15 Coins al salario.</p>
               </div>
             )}
             <div className="flex w-full items-center gap-3 border-t-2 border-blue-200 pt-4 mt-2">

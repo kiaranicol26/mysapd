@@ -12,7 +12,10 @@ export const TAG_RANGOS: Record<string, string> = {
 
 export function rangoFromTag(tag?: string | null): string | null {
   if (!tag) return null;
-  return TAG_RANGOS[tag.replace(/^\[|\]$/g, "").toUpperCase()] ?? null;
+  // Accept the extracted Discord tag ([INS]) and the complete displayed label
+  // ([INS] INSPECTOR), while keeping plain three-letter codes supported.
+  const code = tag.match(/\[([A-Za-z]{3})\]/)?.[1] ?? tag.trim();
+  return TAG_RANGOS[code.toUpperCase()] ?? null;
 }
 
 export const RANGOS = [
