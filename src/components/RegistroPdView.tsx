@@ -13,7 +13,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { RANGOS, RANGO_PLURAL, DIVISIONES, DIVISION_RANGOS, sortByRango } from "@/lib/rangos";
+import { RANGO_PLURAL, DIVISIONES, DIVISION_RANGOS, sortByRango } from "@/lib/rangos";
 import { fileToCompressedDataUrl } from "@/lib/appearance";
 import { toast } from "sonner";
 import { Trash2, Plus, Pencil, BadgeCheck, UserRound, Upload, Check, Loader2 } from "lucide-react";
@@ -78,14 +78,14 @@ const emptyDraft: Draft = {
   division2: "Ninguna", division2_rango: "Miembro", sueldo_defecto: 0, es_instructor: false,
 };
 
-export function RegistroPdView({ session }: { session: Session }) {
+export function RegistroPdView({ session, onlyDisabled = false }: { session: Session; onlyDisabled?: boolean }) {
   const [members, setMembers] = useState<PdMember[]>([]);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [saving, setSaving] = useState(false);
   const [avatars, setAvatars] = useState<Record<string, string>>({});
-  const [users, setUsers] = useState<{ id: string; name: string; avatar_url: string | null; role: string | null }[]>([]);
+  const [users, setUsers] = useState<{ id: string; name: string; avatar_url: string | null; role: string | null; discord_inhabilitado: boolean }[]>([]);
   const [capConfirm, setCapConfirm] = useState<{ m: PdMember; cap: CapKey; value: boolean } | null>(null);
   const [capSaving, setCapSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -169,7 +169,6 @@ export function RegistroPdView({ session }: { session: Session }) {
         division2: draft.division2 || "Ninguna",
         division2_rango: draft.division2 === "Ninguna" ? null : draft.division2_rango || null,
         sueldo_defecto: Math.max(0, Number(draft.sueldo_defecto) || 0),
-        es_instructor: !!draft.es_instructor,
       } : {}),
     };
     const res = draft.id
@@ -193,6 +192,7 @@ export function RegistroPdView({ session }: { session: Session }) {
 
   const groups = useMemo(() => {
     const rows = users
+      .filter(u => onlyDisabled ? !!u.discord_inhabilitado : !u.discord_inhabilitado)
       .map(u => ({ u, m: personnelForUser(members, u) }))
       .filter(({ u, m }) =>
         (u.name + " " + (u.role ?? "") + " " + (m?.rango ?? "") + " " + (m?.placa ?? "") + " " + (m?.division ?? ""))
@@ -201,7 +201,7 @@ export function RegistroPdView({ session }: { session: Session }) {
       rango: r.value, label: r.plural,
       items: sortByRango(rows.filter(x => roleKey(x.u.role) === r.value), x => x.m?.rango ?? null, x => x.u.name),
     })).filter(g => g.items.length > 0);
-  }, [members, q, users]);
+  }, [members, onlyDisabled, q, users]);
 
   async function changeRole(u: { id: string; name: string }, role: string) {
     const alto = role === "Comisario";
@@ -240,13 +240,13 @@ export function RegistroPdView({ session }: { session: Session }) {
                 San Andreas Police Department
               </p>
               <h2 className="text-2xl font-black uppercase tracking-wide text-slate-900 font-display">
-                Registro de Policías
+                {onlyDisabled ? "Registro de Policías Inhabilitados" : "Registro de Policías"}
               </h2>
             </div>
             <div className="ml-auto flex items-center gap-3">
               <div className="flex items-center gap-2 px-3 py-2 bg-blue-700 text-white">
                 <BadgeCheck className="w-4 h-4" />
-                <span className="font-mono font-bold">{users.length}</span>
+                <span className="font-mono font-bold">{users.filter(u => onlyDisabled ? !!u.discord_inhabilitado : !u.discord_inhabilitado).length}</span>
                 <span className="text-[10px] uppercase tracking-widest font-bold">Carnets</span>
               </div>
               {canEdit && (
@@ -337,7 +337,7 @@ export function RegistroPdView({ session }: { session: Session }) {
 
       {!loading && groups.length === 0 && (
         <Card className="border-2 border-blue-300 bg-white rounded-none p-10 text-center text-slate-400 uppercase tracking-widest font-bold">
-          Sin policías registrados.
+          {onlyDisabled ? "No hay policías inhabilitados." : "Sin policías registrados."}
         </Card>
       )}
 
@@ -376,14 +376,12 @@ export function RegistroPdView({ session }: { session: Session }) {
               className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800" />
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <Select value={draft.rango} onValueChange={v => setDraft(d => ({ ...d, rango: v }))}>
-                <SelectTrigger className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800">
-                  <SelectValue placeholder="Rango" />
-                </SelectTrigger>
-                <SelectContent className="bg-white border border-blue-200 rounded-none">
-                  {RANGOS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="space-y-1">
+                <label className="text-xs font-extrabold uppercase tracking-widest text-blue-700">Rango · Discord</label>
+                <Input value={draft.rango || "Sin rango asignado"} disabled
+                  className="h-10 rounded-none border-blue-300 bg-slate-100 font-semibold text-slate-600" />
+                <p className="text-[10px] text-slate-500">Se actualiza automáticamente según la etiqueta de rango de Discord.</p>
+              </div>
               <Input placeholder="Número de placa" value={draft.placa}
                 onChange={e => setDraft(d => ({ ...d, placa: e.target.value }))}
                 className="h-10 rounded-none border-blue-300 bg-white font-mono font-bold text-slate-800" />
@@ -440,20 +438,16 @@ export function RegistroPdView({ session }: { session: Session }) {
                 <p className="text-xs text-slate-500">Cada división asignada suma automáticamente +10 Coins al salario.</p>
               </div>
             )}
-            {session.is_alto_mando && (
-              <button type="button" role="checkbox" aria-checked={draft.es_instructor}
-                onClick={() => setDraft(d => ({ ...d, es_instructor: !d.es_instructor }))}
-                className="flex w-full items-center gap-3 border-t-2 border-blue-200 pt-4 mt-2 text-left group">
-                <span className={`flex h-6 w-6 shrink-0 items-center justify-center border-2 rounded-sm transition-colors ${draft.es_instructor ? "border-green-600 bg-green-600 text-white" : "border-slate-300 bg-white text-transparent group-hover:border-green-500"}`}>
-                  <Check className="h-4 w-4 stroke-[3]" />
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-sm font-extrabold uppercase tracking-wider text-blue-800">Es Instructor</span>
-                  <span className="block text-xs text-slate-500">Si está marcado, suma +10 Coins a la paga y figura como Instructor en su cargo.</span>
-                </span>
-                <span className={`ml-auto text-xs font-black uppercase ${draft.es_instructor ? "text-green-700" : "text-slate-400"}`}>{draft.es_instructor ? "Sí" : "No"}</span>
-              </button>
-            )}
+            <div className="flex w-full items-center gap-3 border-t-2 border-blue-200 pt-4 mt-2">
+              <span className={`flex h-6 w-6 shrink-0 items-center justify-center border-2 rounded-sm ${draft.es_instructor ? "border-green-600 bg-green-600 text-white" : "border-slate-300 bg-white text-transparent"}`}>
+                <Check className="h-4 w-4 stroke-[3]" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-extrabold uppercase tracking-wider text-blue-800">Es Instructor</span>
+                <span className="block text-xs text-slate-500">Se determina automáticamente por el rol @Equipo de instructores en Discord y suma +10 Coins a la paga.</span>
+              </span>
+              <span className={`ml-auto text-xs font-black uppercase ${draft.es_instructor ? "text-green-700" : "text-slate-400"}`}>{draft.es_instructor ? "Sí" : "No"}</span>
+            </div>
           </div>
 
           <DialogFooter>

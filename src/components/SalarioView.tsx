@@ -52,8 +52,10 @@ export function SalarioView({ session }: { session: Session | null }) {
 
   const slug = (s: string) =>
     s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "mes";
+  // Nombre_Apellido y Nombre Apellido identifican al mismo integrante.
   const normalizeName = (s: string | null | undefined) =>
-    (s ?? "").replace(/\|/g, " ").replace(/\s+/g, " ").trim().toLocaleLowerCase("es");
+    (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[|_]+/g, " ").replace(/\s+/g, " ").trim().toLocaleLowerCase("es");
 
   async function capture(monthId: string) {
     const node = cardRefs.current[monthId];
@@ -168,7 +170,7 @@ export function SalarioView({ session }: { session: Session | null }) {
       return true;
     });
     if (missing.length === 0) {
-      if (!silent) toast.info("La tabla ya tiene a toda la Lista PD");
+      if (!silent) toast.info("La tabla ya tiene a todo el Registro PD");
       return;
     }
     const { error } = await db.from("salary_entries").insert(
@@ -181,7 +183,7 @@ export function SalarioView({ session }: { session: Session | null }) {
       })) as any,
     );
     if (error) return toast.error(error.message);
-    if (!silent) toast.success(`${missing.length} agentes cargados desde la Lista PD`);
+    if (!silent) toast.success(`${missing.length} agentes cargados desde Registro PD`);
     loadAll();
   }
 
@@ -198,7 +200,7 @@ export function SalarioView({ session }: { session: Session | null }) {
     await logAction(db, session, "CREATE_SALARY_MONTH", { label });
     if (data?.id) await syncMonth(data.id as string, [], true);
     setNewMonth("");
-    toast.success(`Mes "${label}" creado con la Lista PD`);
+    toast.success(`Mes "${label}" creado con Registro PD`);
     loadAll();
   }
 
@@ -232,7 +234,7 @@ export function SalarioView({ session }: { session: Session | null }) {
   }
 
   const fmt = (n: number) => `${Math.round(n).toLocaleString("es-ES")} Coins`;
-  const pdDe = (nombre: string | null) => pd.find(p => p.nombre === nombre) ?? null;
+  const pdDe = (nombre: string | null) => pd.find(p => normalizeName(p.nombre) === normalizeName(nombre)) ?? null;
   const rangoDe = (nombre: string | null) => pdDe(nombre)?.rango ?? null;
   const baseDe = (r: Entry) => {
     const m = pdDe(r.nombre);
@@ -340,7 +342,7 @@ export function SalarioView({ session }: { session: Session | null }) {
                     <Button size="sm" variant="outline"
                       onClick={() => syncMonth(m.id, rows.map(r => r.nombre ?? ""))}
                       className="h-9 rounded-none border-blue-300 bg-white text-blue-800 font-bold hover:bg-blue-50">
-                      <Users className="w-4 h-4 mr-1" /> Cargar Lista PD
+                      <Users className="w-4 h-4 mr-1" /> Sincronizar Registro PD
                     </Button>
                     <Button size="icon" variant="ghost" onClick={() => removeMonth(m)}
                       className="h-9 w-9 rounded-none hover:bg-red-100">

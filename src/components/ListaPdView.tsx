@@ -21,7 +21,8 @@ export type PdMember = {
 };
 
 const normalizePdName = (name: string) =>
-  name.replace(/\|/g, " ").replace(/\s+/g, " ").trim().toLocaleLowerCase("es");
+  name.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[|_]+/g, " ").replace(/\s+/g, " ").trim().toLocaleLowerCase("es");
 
 export function ListaPdView(_props: { session: Session }) {
   const [members, setMembers] = useState<PdMember[]>([]);
@@ -80,7 +81,7 @@ export function ListaPdView(_props: { session: Session }) {
           </div>
 
           <p className="text-xs text-slate-500 font-semibold">
-            Los datos se sincronizan directamente desde Registro PD. El sueldo individual, las divisiones y la condición de Instructor se administran allí por Alto Mando.
+            Los rangos se sincronizan desde las etiquetas de Discord y la condición de Instructor desde el rol @Equipo de instructores. El sueldo individual y las divisiones se administran desde Registro PD por Alto Mando.
           </p>
         </div>
       </Card>

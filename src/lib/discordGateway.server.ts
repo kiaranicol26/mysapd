@@ -1,4 +1,5 @@
 import { FACTION_GUILD_ID, membershipDisabled } from "./discordMembership";
+import { rangoFromTag } from "./rangos";
 
 export async function discord(path: string, init?: RequestInit) {
   const lovable = process.env["LOVABLE_API_KEY"];
@@ -50,6 +51,10 @@ function nickParts(m: GuildMember) {
   return { tag, placa, name };
 }
 
+function normalizeRoleName(roleName: string): string {
+  return roleName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
 function buildNick(tag: string | null, name: string, placa: string | null) {
   const suf = ` #${placa ?? "0000"}`;
   const pre = tag ? `${tag} ` : "";
@@ -70,6 +75,9 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
     const roles = (await discord(`guilds/${FACTION_GUILD_ID}/roles`)) as { id: string; name: string }[];
     const policeRole = roles.find(r => r.name.toLowerCase().includes("polic"));
     if (!policeRole) return null;
+
+    const instructorRole = roles.find(r => normalizeRoleName(r.name) === "equipodeinstructores");
+    if (!instructorRole) throw new Error("No se encontró el rol @Equipo de instructores en Discord. No se modificaron los estados de Instructor.");
 
     const members: GuildMember[] = [];
     for (let after = "0"; members.length < 5000;) {
@@ -122,6 +130,23 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
         if (oldName) await admin.from("salary_entries").update({ nombre: discordName }).eq("nombre", oldName);
         row.name = discordName;
         renamed++;
+      }
+      // El rango se determina por la etiqueta; Instructor, por el rol específico de Discord.
+      const rangoDiscord = rangoFromTag(tag);
+      const esInstructorDiscord = Boolean(instructorRole && m.roles?.includes(instructorRole.id));
+      const pdPatch: Record<string, unknown> = { es_instructor: esInstructorDiscord };
+      if (rangoDiscord) pdPatch.rango = rangoDiscord;
+      const { error: linkedPdError } = await admin.from("pd_members").update(pdPatch).eq("instructor_id", row.id);
+      if (linkedPdError) throw new Error("No se pudo sincronizar el rango/estado de Instructor en Registro PD");
+      if (oldName) {
+        const { error: legacyPdError } = await admin.from("pd_members").update(pdPatch)
+          .is("instructor_id", null).eq("nombre", oldName);
+        if (legacyPdError) throw new Error("No se pudo sincronizar el registro anterior de PD");
+      }
+      if (discordName && discordName !== oldName) {
+        const { error: renamedPdError } = await admin.from("pd_members").update(pdPatch)
+          .is("instructor_id", null).eq("nombre", discordName);
+        if (renamedPdError) throw new Error("No se pudo sincronizar el registro renombrado de PD");
       }
       row.tag = tag;
       row.discord_username = m.user!.username;
