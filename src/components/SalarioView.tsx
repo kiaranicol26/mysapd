@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 
-import { INSTRUCTOR_BONUS, sortByRango } from "@/lib/rangos";
-import { calculateSalaryExtras, hasLegacySalaryEntryForName, normalizeSalaryName } from "@/lib/salaryEntries";
+import { sortByRango } from "@/lib/rangos";
 import { toast } from "sonner";
 import { Trash2, Plus, ChevronDown, ChevronRight, Coins, Users, FileDown, ImageDown } from "lucide-react";
 
@@ -18,15 +17,13 @@ type Month = {
   created_at: string;
 };
 
-const DIVISION_BONUS = 15;
+const DIVISION_BONUS = 10;
 
 type Entry = {
   id: string;
   month_id: string;
   nombre: string | null;
-  pd_member_id: string | null;
   paga: number;
-  extras: number;
   pagado: boolean;
   nota: string | null;
   ultima_edicion_por: string | null;
@@ -51,11 +48,15 @@ export function SalarioView({ session }: { session: Session | null }) {
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [newMonth, setNewMonth] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
-  const [legacyReviewCount, setLegacyReviewCount] = useState(0);
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const slug = (s: string) =>
     s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "mes";
+  // Nombre_Apellido y Nombre Apellido identifican al mismo integrante.
+  const normalizeName = (s: string | null | undefined) =>
+    (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[|_]+/g, " ").replace(/\s+/g, " ").trim().toLocaleLowerCase("es");
+
   async function capture(monthId: string) {
     const node = cardRefs.current[monthId];
     if (!node) throw new Error("No se encontró la tabla");
@@ -127,121 +128,62 @@ export function SalarioView({ session }: { session: Session | null }) {
       });
     }
     if (e.data) setEntries(e.data as unknown as Entry[]);
-    if (m.data && e.data && p.data) setLegacyReviewCount(0);
     if (p.data) {
-      // Cada ficha PD tiene su propio ID estable, incluso cuando hay homónimos.
-      const currentPd = p.data as unknown as PdMember[];
+      // Registro PD es la fuente única; elimina duplicados por diferencias de formato.
+      const seenPd = new Set<string>();
+      const currentPd = (p.data as unknown as PdMember[]).filter(member => {
+        const key = normalizeName(member.nombre);
+        if (!key || seenPd.has(key)) return false;
+        seenPd.add(key);
+        return true;
+      });
       setPd(currentPd);
       // Todos los integrantes de Registro PD aparecen en cada mes, aunque su sueldo sea 0.
-      if (m.data?.length && e.data && p.data) {
-        // Indexar los registros existentes en una sola pasada evita filtrar toda la
-        // tabla de salarios una vez por cada mes.
-        const idsByMonth = new Map<string, Set<string>>();
-        const legacyNamesByMonth = new Map<string, Set<string>>();
-        for (const row of (e.data ?? []) as unknown as Entry[]) {
-          let ids = idsByMonth.get(row.month_id);
-          if (!ids) idsByMonth.set(row.month_id, ids = new Set<string>());
-          if (row.pd_member_id) {
-            ids.add(row.pd_member_id);
-          } else {
-            // Legacy rows remain visible and are never claimed by name. Their names
-            // only suppress an automatic second row until an administrator reviews them.
-            const name = normalizeSalaryName(row.nombre);
-            if (name) {
-              let names = legacyNamesByMonth.get(row.month_id);
-              if (!names) legacyNamesByMonth.set(row.month_id, names = new Set<string>());
-              names.add(name);
-            }
+      if (m.data?.length) {
+        const salaryRows = (e.data ?? []) as unknown as Entry[];
+        await Promise.all((m.data as Month[]).map(async month => {
+          const existingNames = new Set(salaryRows.filter(row => row.month_id === month.id).map(row => normalizeName(row.nombre)));
+          const missing = currentPd.filter(member => !existingNames.has(normalizeName(member.nombre)));
+          if (missing.length) {
+            const { error } = await db.from("salary_entries").insert(missing.map(member => ({
+              month_id: month.id, nombre: member.nombre, paga: Number(member.sueldo_defecto) || 0,
+              pagado: false, ultima_edicion_por: session?.name ?? null,
+            })) as any);
+            if (error) console.error("No se pudieron incorporar integrantes de Registro PD a Salarios:", error.message);
           }
-        }
-        // Insertar los faltantes en lotes reduce las solicitudes cuando hay muchos meses.
-        const legacyReviewKeys = new Set<string>();
-        const rowsToInsert: {
-          month_id: string;
-          nombre: string;
-          pd_member_id: string;
-          paga: number;
-          extras: number;
-          pagado: boolean;
-          ultima_edicion_por: string | null;
-        }[] = [];
-
-        for (const month of m.data as Month[]) {
-          const existingIds = idsByMonth.get(month.id) ?? new Set<string>();
-          const legacyNames = legacyNamesByMonth.get(month.id) ?? new Set<string>();
-          for (const member of currentPd) {
-            if (existingIds.has(member.id)) continue;
-            if (legacyNames.has(normalizeSalaryName(member.nombre))) {
-              legacyReviewKeys.add(`${month.id}:${member.id}`);
-              continue;
-            }
-            existingIds.add(member.id);
-            rowsToInsert.push({
-              month_id: month.id,
-              nombre: member.nombre,
-              pd_member_id: member.id,
-              paga: Number(member.sueldo_defecto) || 0,
-              extras: calculateSalaryExtras(member, DIVISION_BONUS, INSTRUCTOR_BONUS),
-              pagado: false,
-              ultima_edicion_por: session?.name ?? null,
-            });
-          }
-        }
-
-        setLegacyReviewCount(legacyReviewKeys.size);
-        const batchSize = 500;
-        for (let i = 0; i < rowsToInsert.length; i += batchSize) {
-          const { error } = await db.from("salary_entries").insert(rowsToInsert.slice(i, i + batchSize) as any);
-          if (error) {
-            console.error("No se pudieron incorporar integrantes de Registro PD a Salarios:", error.message);
-            break;
-          }
-        }
-
-        if (rowsToInsert.length) {
-          const refreshed = await db.from("salary_entries").select("*").order("created_at", { ascending: true });
-          if (refreshed.data) setEntries(refreshed.data as unknown as Entry[]);
-        }
+        }));
+        const refreshed = await db.from("salary_entries").select("*").order("created_at", { ascending: true });
+        if (refreshed.data) setEntries(refreshed.data as unknown as Entry[]);
       }
     }
   }
 
   useEffect(() => { loadAll(); }, []);
 
-  async function syncMonth(monthId: string, existing: Entry[], silent = false) {
-    const existingIds = new Set(existing.map(row => row.pd_member_id).filter((id): id is string => !!id));
-    const legacyMatches = pd.filter(
-      member => !existingIds.has(member.id) && hasLegacySalaryEntryForName(member.nombre, existing),
-    );
-    const missing = pd.filter(member =>
-      !existingIds.has(member.id) && !hasLegacySalaryEntryForName(member.nombre, existing),
-    );
+  async function syncMonth(monthId: string, existing: string[], silent = false) {
+    const existingNames = new Set(existing.map(normalizeName));
+    const seen = new Set<string>();
+    const missing = pd.filter(p => {
+      const key = normalizeName(p.nombre);
+      if (!key || existingNames.has(key) || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
     if (missing.length === 0) {
-      if (!silent && legacyMatches.length) {
-        toast.info(`${legacyMatches.length} coincidencias históricas omitidas; requieren revisión manual`);
-      } else if (!silent) {
-        toast.info("La tabla ya tiene a todo el Registro PD");
-      }
+      if (!silent) toast.info("La tabla ya tiene a todo el Registro PD");
       return;
     }
     const { error } = await db.from("salary_entries").insert(
       missing.map(p => ({
         month_id: monthId,
         nombre: p.nombre,
-        pd_member_id: p.id,
         paga: Number(p.sueldo_defecto) || 0,
-        extras: calculateSalaryExtras(p, DIVISION_BONUS, INSTRUCTOR_BONUS),
         pagado: false,
         ultima_edicion_por: session?.name ?? null,
       })) as any,
     );
     if (error) return toast.error(error.message);
-    if (!silent) {
-      toast.success(`${missing.length} agentes cargados desde Registro PD`);
-      if (legacyMatches.length) {
-        toast.info(`${legacyMatches.length} coincidencias históricas omitidas; requieren revisión manual`);
-      }
-    }
+    if (!silent) toast.success(`${missing.length} agentes cargados desde Registro PD`);
     loadAll();
   }
 
@@ -249,15 +191,17 @@ export function SalarioView({ session }: { session: Session | null }) {
     ev.preventDefault();
     const label = newMonth.trim();
     if (!label) return toast.error("Escribe el nombre del mes");
-    const { error } = await db
+    const { data, error } = await db
       .from("salary_months")
-      .insert({ label, created_by: session?.id ?? null } as any);
+      .insert({ label, created_by: session?.id ?? null } as any)
+      .select("id")
+      .maybeSingle();
     if (error) return toast.error(error.message);
     await logAction(db, session, "CREATE_SALARY_MONTH", { label });
+    if (data?.id) await syncMonth(data.id as string, [], true);
     setNewMonth("");
     toast.success(`Mes "${label}" creado con Registro PD`);
-    // loadAll incorpora automáticamente los integrantes faltantes a todos los meses.
-    await loadAll();
+    loadAll();
   }
 
   async function removeMonth(m: Month) {
@@ -290,14 +234,18 @@ export function SalarioView({ session }: { session: Session | null }) {
   }
 
   const fmt = (n: number) => `${Math.round(n).toLocaleString("es-ES")} Coins`;
-  // Only the stable Registro PD row ID may resolve a current profile; names are not identities.
-  const pdDe = (entry: Entry) => entry.pd_member_id
-    ? pd.find(member => member.id === entry.pd_member_id) ?? null
-    : null;
-  const rangoDe = (entry: Entry) => pdDe(entry)?.rango ?? null;
-  // Monetary values are snapshots stored on the salary row; PD edits only affect future rows.
-  const baseDe = (r: Entry) => Number(r.paga) || 0;
-  const extrasDe = (r: Entry) => Number(r.extras) || 0;
+  const pdDe = (nombre: string | null) => pd.find(p => normalizeName(p.nombre) === normalizeName(nombre)) ?? null;
+  const rangoDe = (nombre: string | null) => pdDe(nombre)?.rango ?? null;
+  const baseDe = (r: Entry) => {
+    const m = pdDe(r.nombre);
+    return m ? Number(m.sueldo_defecto) || 0 : Number(r.paga) || 0;
+  };
+  const extrasDe = (r: Entry) => {
+    const m = pdDe(r.nombre);
+    return (m?.division && m.division !== "Ninguna" && m.division !== "N/A" ? DIVISION_BONUS : 0) +
+      (m?.division2 && m.division2 !== "Ninguna" && m.division2 !== "N/A" ? DIVISION_BONUS : 0) +
+      (m?.es_instructor ? DIVISION_BONUS : 0);
+  };
   const totalDe = (r: Entry) => baseDe(r) + extrasDe(r);
 
   return (
@@ -335,25 +283,11 @@ export function SalarioView({ session }: { session: Session | null }) {
           )}
           <p className="text-xs text-slate-500 font-semibold">
             {canEdit
-              ? "El sueldo y los extras (+15 por cada división y +10 por función de Instructor) se guardan como una captura al crear cada fila; los cambios posteriores en Registro PD solo afectan filas nuevas."
+              ? "Los nombres y la paga se toman de Registro PD (sueldo individual +10 por cada división asignada) y no se editan aquí."
               : "Vista pública de solo lectura. Solo el Alto Mando puede editar los salarios."}
           </p>
         </div>
       </Card>
-
-      {legacyReviewCount > 0 && (
-        <Card className="border-2 border-amber-300 bg-amber-50 rounded-none">
-          <div className="p-4">
-            <p className="text-sm font-black uppercase tracking-wide text-amber-900">
-              Revisión de salarios históricos pendiente
-            </p>
-            <p className="mt-1 text-sm font-semibold text-amber-800">
-              {legacyReviewCount} coincidencias de nombre no se duplicaron ni se vincularon automáticamente.
-              Las filas antiguas permanecen intactas y requieren revisión manual para confirmar a quién corresponden.
-            </p>
-          </div>
-        </Card>
-      )}
 
       {months.length === 0 && (
         <Card className="border-2 border-blue-300 bg-white rounded-none">
@@ -365,11 +299,14 @@ export function SalarioView({ session }: { session: Session | null }) {
 
       {months.map(m => {
         const monthRows = entries.filter(e => e.month_id === m.id);
-        // Keep every legacy salary row visible: without a stable ID, equal names
-        // may represent different people or separate historical payment records.
+        const uniqueRows = new Map<string, Entry>();
+        for (const entry of monthRows) {
+          const key = normalizeName(entry.nombre) || entry.id;
+          if (!uniqueRows.has(key)) uniqueRows.set(key, entry);
+        }
         const rows = sortByRango(
-          monthRows,
-          r => rangoDe(r),
+          [...uniqueRows.values()],
+          r => rangoDe(r.nombre),
           r => r.nombre,
         );
         const total = rows.reduce((s, r) => s + totalDe(r), 0);
@@ -403,7 +340,7 @@ export function SalarioView({ session }: { session: Session | null }) {
                 {canEdit && (
                   <>
                     <Button size="sm" variant="outline"
-                      onClick={() => syncMonth(m.id, monthRows)}
+                      onClick={() => syncMonth(m.id, rows.map(r => r.nombre ?? ""))}
                       className="h-9 rounded-none border-blue-300 bg-white text-blue-800 font-bold hover:bg-blue-50">
                       <Users className="w-4 h-4 mr-1" /> Sincronizar Registro PD
                     </Button>
@@ -443,10 +380,10 @@ export function SalarioView({ session }: { session: Session | null }) {
                         <tr key={r.id}
                           className={`border-t border-blue-200 hover:bg-blue-100 transition-colors ${idx % 2 ? "bg-slate-50" : "bg-blue-50/40"}`}>
                           <td className="p-3 border border-blue-200 font-mono font-bold text-slate-800 whitespace-nowrap">
-                            {r.nombre || "—"}{pdDe(r)?.placa ? `#${pdDe(r)?.placa}` : ""}
+                            {r.nombre || "—"}{pdDe(r.nombre)?.placa ? `#${pdDe(r.nombre)?.placa}` : ""}
                           </td>
                           <td className="p-3 border border-blue-200 font-bold text-slate-600 whitespace-nowrap">
-                            {rangoDe(r) ?? "—"}
+                            {rangoDe(r.nombre) ?? "—"}
                           </td>
                           <td className="p-3 border border-blue-200 font-semibold text-slate-600 whitespace-nowrap">{m.label}</td>
                           <td className="p-3 border border-blue-200 whitespace-nowrap">

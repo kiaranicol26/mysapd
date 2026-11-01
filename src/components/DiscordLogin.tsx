@@ -47,7 +47,7 @@ export function DiscordLogin() {
     const r = await recoverDiscordKey({ data: { username: username.trim() } }).catch(() => ({ ok: false as const, error: "Usuario inválido" }));
     setBusy(false);
     if (!r.ok) return toast.error(r.error);
-    toast.success("Te enviamos instrucciones de acceso seguro por MD en Discord");
+    toast.success("Te enviamos tu clave actual por MD en Discord");
   }
 
   function switchMode(next: "code" | "recover") {
@@ -73,7 +73,7 @@ export function DiscordLogin() {
           Código de registro
         </button>
         <button type="button" onClick={() => switchMode("recover")} className={tab(mode === "recover")}>
-          Ayuda para ingresar
+          Solicitar clave nuevamente
         </button>
       </div>
 
@@ -101,7 +101,7 @@ export function DiscordLogin() {
         <Button type="button" disabled={busy} onClick={recover}
           className="h-11 w-full rounded-none bg-blue-600 hover:bg-blue-700 text-white font-bold tracking-wider">
           <KeyRound className="w-4 h-4 mr-2" />
-          {busy ? "..." : "RECIBIR AYUDA POR MD"}
+          {busy ? "..." : "ENVIARME MI CLAVE POR MD"}
         </Button>
       )}
 
@@ -113,7 +113,7 @@ export function DiscordLogin() {
       )}
       {mode === "recover" && (
         <p className="text-center text-xs text-slate-500 font-bold">
-          Si ya tenés usuario, te explicamos cómo ingresar con un código de un solo uso enviado a tu Discord.
+          Si ya tenés usuario en la web, te mandamos tu clave actual por MD.
         </p>
       )}
     </div>

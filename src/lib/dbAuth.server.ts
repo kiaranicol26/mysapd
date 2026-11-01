@@ -45,7 +45,7 @@ const TABLES = new Set([
 const PUBLIC_BG_KEY = "site_background_url";
 const PUBLIC_LOGIN_KEY = "discord_code_login_enabled";
 export const LOGIN_COLUMNS =
-  "id, name, is_alto_mando, can_delete, can_emit_rnap, can_edit_files, can_edit_pd, can_edit_capacitaciones, role, avatar_url, descripcion, secciones, discord_id, discord_inhabilitado, discord_checked_at";
+  "id, name, is_alto_mando, can_delete, can_emit_rnap, can_edit_files, can_edit_pd, can_edit_capacitaciones, role, avatar_url, descripcion, secciones, discord_id, discord_inhabilitado";
 
 /** Builds the browser session and signed token from a fresh instructors row. */
 export function buildLogin(r: any) {
@@ -76,7 +76,9 @@ export async function freshClaims(claims: Claims | null, admin: { from: (t: stri
   if (!claims) return null;
   const { data: r } = await admin.from("instructors").select(LOGIN_COLUMNS).eq("id", claims.id).maybeSingle();
   if (!r) return null;
-  // ID-only login: no Discord membership gate on requests.
+  const { checkInstructorMembership } = await import("./discordGateway.server");
+  const { LOGIN_MEMBERSHIP_ERROR } = await import("./discordMembership");
+  if (!(await checkInstructorMembership(r, admin))) throw new Error(LOGIN_MEMBERSHIP_ERROR);
   const alto = !!r.is_alto_mando;
   return {
     ...claims, name: r.name, alto, del: alto || !!r.can_delete, rnap: alto || !!r.can_emit_rnap,
@@ -97,9 +99,7 @@ function b64url(input: Buffer | string): string {
 }
 
 function sign(payload: string): string {
-  // Versioned signing context intentionally invalidates every token issued
-  // before the Discord one-time-code authentication hardening.
-  return createHmac("sha256", secret()).update("mysapd-session-v2:").update(payload).digest("base64url");
+  return createHmac("sha256", secret()).update(payload).digest("base64url");
 }
 
 export function issueToken(claims: Omit<Claims, "exp">): string {
@@ -239,35 +239,7 @@ type AdminClient = {
 };
 
 export async function runQuery(spec: QuerySpec, claims: Claims | null, admin: AdminClient) {
-  let safe = authorize(spec, claims);
-
-  // Never trust client-supplied authorship for audit records or forum posts.
-  // The signed, freshly revalidated session is the source of actor identity.
-  if (safe.table === "logs" && safe.op === "insert" && claims) {
-    const stamp = (value: unknown) => ({
-      ...(value && typeof value === "object" ? value : {}),
-      instructor_id: claims.id,
-      instructor_name: claims.name,
-    });
-    safe = { ...safe, values: Array.isArray(safe.values) ? safe.values.map(stamp) : stamp(safe.values) };
-  }
-  if (safe.table === "forum_posts" && safe.op === "insert" && claims) {
-    const stamp = (value: unknown) => ({
-      ...(value && typeof value === "object" ? value : {}),
-      created_by_id: claims.id,
-      created_by: claims.name,
-    });
-    safe = { ...safe, values: Array.isArray(safe.values) ? safe.values.map(stamp) : stamp(safe.values) };
-  }
-  if (safe.table === "forum_posts" && safe.op === "update") {
-    const stripAuthorFields = (value: unknown) => {
-      const next = value && typeof value === "object" ? { ...(value as Record<string, unknown>) } : {};
-      delete next.created_by_id;
-      delete next.created_by;
-      return next;
-    };
-    safe = { ...safe, values: Array.isArray(safe.values) ? safe.values.map(stripAuthorFields) : stripAuthorFields(safe.values) };
-  }
+  const safe = authorize(spec, claims);
   if (safe.table === "instructors" && ["insert", "upsert", "update"].includes(safe.op)) {
     const values = Array.isArray(safe.values) ? safe.values : [safe.values];
     const { factionMember } = await import("./discordGateway.server");
