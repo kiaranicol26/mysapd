@@ -20,7 +20,6 @@ const TABS: Tab[] = [
   { to: "/rnap", label: "R.N.A.P", icon: FileSearch, public: false, alto: false, sec: "rnap", group: "Gestión" },
   { to: "/certificar", label: "Certificar", icon: Award, public: false, alto: false, sec: "certificar", group: "Gestión" },
   { to: "/registro-policias", label: "Registro PD", icon: IdCard, public: true, alto: false, group: "Personal" },
-  { to: "/registro-inhabilitados", label: "Inhabilitados", icon: IdCard, public: false, alto: false, sec: "registro", group: "Personal" },
   { to: "/policias", label: "Lista PD", icon: ListOrdered, public: false, alto: false, sec: "lista", group: "Personal" },
   { to: "/salario", label: "Salario", icon: Wallet, public: true, alto: false, group: "Personal" },
   { to: "/forum", label: "Forum", icon: MessagesSquare, public: false, alto: false, sec: "forum", group: "Comunidad" },
@@ -57,7 +56,6 @@ export function AppShell({ session, children }: { session: Session | null; child
   const tabs = TABS.filter(t => {
     if (!session) return t.public;
     if (t.alto) return session.is_alto_mando;
-    if (t.to === "/registro-inhabilitados" && session.can_edit_pd) return true;
     return t.public || puedeVer(session, t.sec);
   });
   const groups = [...new Set(tabs.map(t => t.group))];
