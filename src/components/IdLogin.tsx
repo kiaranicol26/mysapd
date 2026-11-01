@@ -26,7 +26,7 @@ export function IdLogin() {
 
   return (
     <form onSubmit={submit} className="mt-6 space-y-3">
-      <Input placeholder="Ingrese su ID de acceso (ej: KI-26WZRP)" value={id} onChange={e => setId(e.target.value)}
+      <Input placeholder="Ingrese su código de acceso" value={id} onChange={e => setId(e.target.value)}
         className="h-11 rounded-none border-blue-300 bg-white text-center font-mono text-slate-800" />
       <Button type="submit" disabled={busy}
         className="h-11 w-full rounded-none bg-blue-600 hover:bg-blue-700 text-white font-bold tracking-wider">
