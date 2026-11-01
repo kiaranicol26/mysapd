@@ -237,7 +237,6 @@ export type Database = {
           avatar_url: string | null
           banner_url: string | null
           can_delete: boolean
-          can_edit_capacitaciones: boolean
           can_edit_files: boolean
           can_edit_pd: boolean
           can_emit_rnap: boolean
@@ -248,7 +247,6 @@ export type Database = {
           discord_checked_at: string | null
           discord_id: string | null
           discord_inhabilitado: boolean
-          discord_joined_at: string | null
           discord_username: string | null
           id: string
           is_alto_mando: boolean
@@ -258,13 +256,11 @@ export type Database = {
           role: string
           secciones: string[]
           sync_avatar: boolean
-          tag: string | null
         }
         Insert: {
           avatar_url?: string | null
           banner_url?: string | null
           can_delete?: boolean
-          can_edit_capacitaciones?: boolean
           can_edit_files?: boolean
           can_edit_pd?: boolean
           can_emit_rnap?: boolean
@@ -275,7 +271,6 @@ export type Database = {
           discord_checked_at?: string | null
           discord_id?: string | null
           discord_inhabilitado?: boolean
-          discord_joined_at?: string | null
           discord_username?: string | null
           id: string
           is_alto_mando?: boolean
@@ -285,13 +280,11 @@ export type Database = {
           role?: string
           secciones?: string[]
           sync_avatar?: boolean
-          tag?: string | null
         }
         Update: {
           avatar_url?: string | null
           banner_url?: string | null
           can_delete?: boolean
-          can_edit_capacitaciones?: boolean
           can_edit_files?: boolean
           can_edit_pd?: boolean
           can_emit_rnap?: boolean
@@ -302,7 +295,6 @@ export type Database = {
           discord_checked_at?: string | null
           discord_id?: string | null
           discord_inhabilitado?: boolean
-          discord_joined_at?: string | null
           discord_username?: string | null
           id?: string
           is_alto_mando?: boolean
@@ -312,7 +304,6 @@ export type Database = {
           role?: string
           secciones?: string[]
           sync_avatar?: boolean
-          tag?: string | null
         }
         Relationships: []
       }
