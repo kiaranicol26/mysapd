@@ -32,13 +32,14 @@ export function hasLegacySalaryEntryForName(
 export type SalaryBonusSource = {
   division: string | null;
   division2: string | null;
+  division3: string | null;
   es_instructor: boolean;
 };
 
 /** Capture division and instructor bonuses as a fixed amount for one salary row. */
 export function calculateSalaryExtras(
   member: SalaryBonusSource,
-  divisionBonus = 15,
+  divisionBonus = 10,
   instructorBonus = 10,
 ): number {
   const hasDivision = (value: string | null) => {
@@ -48,5 +49,6 @@ export function calculateSalaryExtras(
 
   return (hasDivision(member.division) ? divisionBonus : 0) +
     (hasDivision(member.division2) ? divisionBonus : 0) +
+    (hasDivision(member.division3) ? divisionBonus : 0) +
     (member.es_instructor ? instructorBonus : 0);
 }

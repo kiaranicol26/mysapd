@@ -51,10 +51,6 @@ function nickParts(m: GuildMember) {
   return { tag, placa, name };
 }
 
-function normalizeRoleName(roleName: string): string {
-  return roleName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-
 function buildNick(tag: string | null, name: string, placa: string | null) {
   const suf = ` #${placa ?? "0000"}`;
   const pre = tag ? `${tag} ` : "";
@@ -79,9 +75,6 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
     const roles = (await discord(`guilds/${FACTION_GUILD_ID}/roles`)) as { id: string; name: string }[];
     const policeRole = roles.find(r => r.name.toLowerCase().includes("polic"));
     if (!policeRole) return null;
-
-    const instructorRole = roles.find(r => normalizeRoleName(r.name) === "equipodeinstructores");
-    if (!instructorRole) throw new Error("No se encontró el rol @Equipo de instructores en Discord. No se modificaron los estados de Instructor.");
 
     const members: GuildMember[] = [];
     for (let after = "0";;) {
@@ -157,10 +150,10 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
         renamed++;
       }
 
-      // El rango se determina por la etiqueta; Instructor, por el rol específico de Discord.
+      // Solo el rango se determina por la etiqueta de Discord.
+      // El estado de Instructor se administra manualmente desde Registro PD.
       const rangoDiscord = rangoFromTag(tag);
-      const esInstructorDiscord = Boolean(instructorRole && m.roles?.includes(instructorRole.id));
-      const pdPatch: Record<string, unknown> = { es_instructor: esInstructorDiscord };
+      const pdPatch: Record<string, unknown> = {};
       if (rangoDiscord) pdPatch.rango = rangoDiscord;
       const { error: linkedPdError } = await admin.from("pd_members").update(pdPatch).eq("instructor_id", row.id);
       if (linkedPdError) throw new Error("No se pudo sincronizar el rango/estado de Instructor en Registro PD");

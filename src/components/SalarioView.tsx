@@ -18,7 +18,7 @@ type Month = {
   created_at: string;
 };
 
-const DIVISION_BONUS = 15;
+const DIVISION_BONUS = 10;
 
 type Entry = {
   id: string;
@@ -40,6 +40,7 @@ type PdMember = {
   es_instructor: boolean;
   division: string | null;
   division2: string | null;
+  division3: string | null;
   placa?: string | null;
 };
 
@@ -116,7 +117,7 @@ export function SalarioView({ session }: { session: Session | null }) {
     const [m, e, p] = await Promise.all([
       db.from("salary_months").select("*").order("created_at", { ascending: false }),
       db.from("salary_entries").select("*").order("created_at", { ascending: true }),
-      db.from("pd_members").select("id, nombre, rango, sueldo_defecto, es_instructor, division, division2, placa").order("nombre", { ascending: true }),
+      db.from("pd_members").select("id, nombre, rango, sueldo_defecto, es_instructor, division, division2, division3, placa").order("nombre", { ascending: true }),
     ]);
     if (m.data) {
       setMonths(m.data as Month[]);
@@ -335,7 +336,7 @@ export function SalarioView({ session }: { session: Session | null }) {
           )}
           <p className="text-xs text-slate-500 font-semibold">
             {canEdit
-              ? "El sueldo y los extras (+15 por cada división y +10 por función de Instructor) se guardan como una captura al crear cada fila; los cambios posteriores en Registro PD solo afectan filas nuevas."
+              ? "El sueldo y los extras (+10 por cada división y +10 por función de Instructor) se guardan como una captura al crear cada fila; los cambios posteriores en Registro PD solo afectan filas nuevas."
               : "Vista pública de solo lectura. Solo el Alto Mando puede editar los salarios."}
           </p>
         </div>

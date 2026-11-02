@@ -425,7 +425,7 @@ export function AltoMando({ session }: { session: Session }) {
             <RefreshCw className="w-5 h-5 text-blue-700" />
             <h2 className="text-xl font-black uppercase tracking-wide text-slate-900 font-display">Sincronizar bot de Discord</h2>
           </div>
-          <p className="text-slate-600 text-sm">Recorre los miembros con el rol Policía, crea los usuarios que falten y sincroniza perfiles, etiquetas, rangos, estado de Instructor y fechas. El rango se obtiene de la etiqueta del apodo y el estado de Instructor del rol @Equipo de instructores. No modifica roles de Discord. Esta acción fuerza una sincronización aunque se haya ejecutado hace menos de 10 minutos.</p>
+          <p className="text-slate-600 text-sm">Recorre los miembros con el rol Policía, crea los usuarios que falten y sincroniza perfiles, etiquetas, rangos y fechas. El rango se obtiene de la etiqueta del apodo. El estado de Instructor se administra manualmente desde Registro PD y no se sincroniza desde roles de Discord. Esta acción fuerza una sincronización aunque se haya ejecutado hace menos de 10 minutos.</p>
           <Button onClick={resyncDiscord} disabled={syncingDiscord} className="gap-2 bg-blue-700 hover:bg-blue-800 text-white">
             <RefreshCw className={`h-4 w-4 ${syncingDiscord ? "animate-spin" : ""}`} />
             {syncingDiscord ? "Sincronizando Discord..." : "Resincronizar todos los miembros"}

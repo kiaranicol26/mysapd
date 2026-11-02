@@ -41,6 +41,7 @@ describe("frozen salary extras", () => {
     expect(calculateSalaryExtras({
       division: "Patrulla",
       division2: "Tránsito",
+      division3: "SWAT",
       es_instructor: true,
     })).toBe(40);
   });
@@ -49,6 +50,7 @@ describe("frozen salary extras", () => {
     expect(calculateSalaryExtras({
       division: "",
       division2: "Ninguna",
+      division3: "Ninguna",
       es_instructor: false,
     })).toBe(0);
   });
@@ -57,7 +59,8 @@ describe("frozen salary extras", () => {
     expect(calculateSalaryExtras({
       division: "Patrulla",
       division2: null,
+      division3: null,
       es_instructor: false,
-    })).toBe(15);
+    })).toBe(10);
   });
 });

@@ -15,7 +15,7 @@ import {
 import { RANGO_PLURAL, DIVISIONES, DIVISION_RANGOS, sortByRango } from "@/lib/rangos";
 import { fileToCompressedDataUrl } from "@/lib/appearance";
 import { toast } from "sonner";
-import { Trash2, Plus, Pencil, BadgeCheck, UserRound, Upload, Check, Loader2 } from "lucide-react";
+import { Trash2, Plus, Pencil, BadgeCheck, UserRound, Upload, Loader2 } from "lucide-react";
 
 type PdMember = {
   id: string;
@@ -28,6 +28,8 @@ type PdMember = {
   division_rango: string | null;
   division2: string | null;
   division2_rango: string | null;
+  division3: string | null;
+  division3_rango: string | null;
   sueldo_defecto: number;
   es_instructor: boolean;
   cap_m4: boolean;
@@ -60,6 +62,8 @@ type Draft = {
   division_rango: string;
   division2: string;
   division2_rango: string;
+  division3: string;
+  division3_rango: string;
   sueldo_defecto: number;
   es_instructor: boolean;
 };
@@ -74,7 +78,8 @@ const roleKey = (r: string | null) => (r && ROLES.some(x => x.value === r) ? r :
 const emptyDraft: Draft = {
   nombre: "", rango: "Oficial", foto: "", placa: "",
   division: "Ninguna", division_rango: "Miembro",
-  division2: "Ninguna", division2_rango: "Miembro", sueldo_defecto: 0, es_instructor: false,
+  division2: "Ninguna", division2_rango: "Miembro",
+  division3: "Ninguna", division3_rango: "Miembro", sueldo_defecto: 0, es_instructor: false,
 };
 
 export function RegistroPdView({ session, onlyDisabled = false }: { session: Session; onlyDisabled?: boolean }) {
@@ -92,7 +97,7 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
   const canEditCaps = !!session.is_alto_mando || !!session.can_edit_capacitaciones;
 
   async function load() {
-    const { data } = await db.from("pd_members").select("id, instructor_id, nombre, rango, foto, placa, division, division_rango, division2, division2_rango, sueldo_defecto, es_instructor, cap_m4, cap_edc, cap_mary, cap_sniper, cap_air, cap_ak47, created_at").order("nombre", { ascending: true });
+    const { data } = await db.from("pd_members").select("id, instructor_id, nombre, rango, foto, placa, division, division_rango, division2, division2_rango, division3, division3_rango, sueldo_defecto, es_instructor, cap_m4, cap_edc, cap_mary, cap_sniper, cap_air, cap_ak47, created_at").order("nombre", { ascending: true });
     if (data) setMembers(data as unknown as PdMember[]);
   }
 
@@ -127,6 +132,8 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
       division_rango: m?.division_rango ?? "Miembro",
       division2: m?.division2 ?? "Ninguna",
       division2_rango: m?.division2_rango ?? "Miembro",
+      division3: m?.division3 ?? "Ninguna",
+      division3_rango: m?.division3_rango ?? "Miembro",
       sueldo_defecto: Number(m?.sueldo_defecto) || 0,
       es_instructor: !!m?.es_instructor,
     });
@@ -157,8 +164,11 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
         division_rango: draft.division === "Ninguna" ? null : draft.division_rango || null,
         division2: draft.division2 || "Ninguna",
         division2_rango: draft.division2 === "Ninguna" ? null : draft.division2_rango || null,
+        division3: draft.division3 || "Ninguna",
+        division3_rango: draft.division3 === "Ninguna" ? null : draft.division3_rango || null,
         sueldo_defecto: Math.max(0, Number(draft.sueldo_defecto) || 0),
       } : {}),
+      ...(canEdit ? { es_instructor: !!draft.es_instructor } : {}),
     };
     const res = draft.id
       ? await db.from("pd_members").update(values as any).eq("id", draft.id)
@@ -294,7 +304,7 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
                   <div className="border-t pt-2 text-sm text-foreground space-y-2">
                     <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Registro PD</p>
                     <p className="font-bold">{m.rango ?? "Sin rango"} · Placa {(u as any).placa || m.placa || "—"}</p>
-                    <p className="text-xs text-muted-foreground">{[m.division && m.division !== "Ninguna" ? m.division + " · " + (m.division_rango ?? "—") : null, m.division2 && m.division2 !== "Ninguna" ? m.division2 + " · " + (m.division2_rango ?? "—") : null].filter(Boolean).join(" | ") || "Sin división"}</p>
+                    <p className="text-xs text-muted-foreground">{[m.division && m.division !== "Ninguna" ? m.division + " · " + (m.division_rango ?? "—") : null, m.division2 && m.division2 !== "Ninguna" ? m.division2 + " · " + (m.division2_rango ?? "—") : null, m.division3 && m.division3 !== "Ninguna" ? m.division3 + " · " + (m.division3_rango ?? "—") : null].filter(Boolean).join(" | ") || "Sin división"}</p>
                     {m.es_instructor && <p className="text-xs font-bold text-blue-700">Cargo: Instructor</p> }
                     <div className="border-t pt-2">
                       <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground mb-1">Capacitaciones</p>
@@ -441,19 +451,40 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
                     <p className="text-xs text-slate-500">El valor que aparece en 0 es el sueldo básico individual, antes de sumar los extras por divisiones e instructor.</p>
                   </div>
                 </div>
-                <p className="text-xs text-slate-500">Cada división asignada suma automáticamente +15 Coins al salario.</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <label className="text-xs font-extrabold uppercase tracking-widest text-blue-700">División 3</label>
+                    <Select value={draft.division3} onValueChange={v => setDraft(d => ({ ...d, division3: v }))}>
+                      <SelectTrigger className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800">
+                        <SelectValue placeholder="Tercera división" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border border-blue-200 rounded-none">
+                        {DIVISIONES.filter(d => d === "Ninguna" || (d !== draft.division && d !== draft.division2)).map((d, i) => <SelectItem key={d + i} value={d}>{d}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Select value={draft.division3_rango} onValueChange={v => setDraft(d => ({ ...d, division3_rango: v }))}>
+                    <SelectTrigger disabled={draft.division3 === "Ninguna"} className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800 disabled:opacity-60">
+                      <SelectValue placeholder="Rango de tercera división" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border border-blue-200 rounded-none">
+                      {DIVISION_RANGOS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="text-xs text-slate-500">Cada división asignada suma automáticamente +10 Coins al salario.</p>
               </div>
             )}
-            <div className="flex w-full items-center gap-3 border-t-2 border-blue-200 pt-4 mt-2">
-              <span className={`flex h-6 w-6 shrink-0 items-center justify-center border-2 rounded-sm ${draft.es_instructor ? "border-green-600 bg-green-600 text-white" : "border-slate-300 bg-white text-transparent"}`}>
-                <Check className="h-4 w-4 stroke-[3]" />
-              </span>
+            <label className={`flex w-full items-center gap-3 border-t-2 border-blue-200 pt-4 mt-2 ${canEdit ? "cursor-pointer" : "cursor-default opacity-80"}`}>
+              <input type="checkbox" checked={draft.es_instructor} disabled={!canEdit}
+                onChange={e => setDraft(d => ({ ...d, es_instructor: e.target.checked }))}
+                className="h-5 w-5 accent-blue-700" />
               <span className="min-w-0">
                 <span className="block text-sm font-extrabold uppercase tracking-wider text-blue-800">Es Instructor</span>
-                <span className="block text-xs text-slate-500">Se determina automáticamente por el rol @Equipo de instructores en Discord y suma +10 Coins a la paga.</span>
+                <span className="block text-xs text-slate-500">Se marca manualmente desde Registro PD y suma +10 Coins a la paga. No se sincroniza desde Discord.</span>
               </span>
               <span className={`ml-auto text-xs font-black uppercase ${draft.es_instructor ? "text-green-700" : "text-slate-400"}`}>{draft.es_instructor ? "Sí" : "No"}</span>
-            </div>
+            </label>
           </div>
 
           <DialogFooter>

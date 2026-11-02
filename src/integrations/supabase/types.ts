@@ -346,6 +346,10 @@ export type Database = {
           created_by: string | null
           division: string | null
           division_rango: string | null
+          division2: string | null
+          division2_rango: string | null
+          division3: string | null
+          division3_rango: string | null
           es_instructor: boolean
           foto: string | null
           id: string
@@ -367,6 +371,10 @@ export type Database = {
           created_by?: string | null
           division?: string | null
           division_rango?: string | null
+          division2?: string | null
+          division2_rango?: string | null
+          division3?: string | null
+          division3_rango?: string | null
           es_instructor?: boolean
           foto?: string | null
           id?: string
@@ -388,6 +396,10 @@ export type Database = {
           created_by?: string | null
           division?: string | null
           division_rango?: string | null
+          division2?: string | null
+          division2_rango?: string | null
+          division3?: string | null
+          division3_rango?: string | null
           es_instructor?: boolean
           foto?: string | null
           id?: string
