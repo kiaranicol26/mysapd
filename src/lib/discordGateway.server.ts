@@ -153,10 +153,11 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
       // Solo el rango se determina por la etiqueta de Discord.
       // El estado de Instructor se administra manualmente desde Registro PD.
       const rangoDiscord = rangoFromTag(tag);
-      const pdPatch: Record<string, unknown> = {};
-      if (rangoDiscord) pdPatch.rango = rangoDiscord;
-      const { error: linkedPdError } = await admin.from("pd_members").update(pdPatch).eq("instructor_id", row.id);
-      if (linkedPdError) throw new Error("No se pudo sincronizar el rango/estado de Instructor en Registro PD");
+      if (rangoDiscord) {
+        const { error: linkedPdError } = await admin.from("pd_members")
+          .update({ rango: rangoDiscord }).eq("instructor_id", row.id);
+        if (linkedPdError) throw new Error("No se pudo sincronizar el rango en Registro PD");
+      }
       row.tag = tag;
       row.discord_username = m.user!.username;
       row.avatar_url = avatar ?? row.avatar_url;
