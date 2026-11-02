@@ -160,10 +160,35 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
       // El rango se determina por la etiqueta; Instructor, por el rol específico de Discord.
       const rangoDiscord = rangoFromTag(tag);
       const esInstructorDiscord = Boolean(instructorRole && m.roles?.includes(instructorRole.id));
-      const pdPatch: Record<string, unknown> = { es_instructor: esInstructorDiscord };
-      if (rangoDiscord) pdPatch.rango = rangoDiscord;
-      const { error: linkedPdError } = await admin.from("pd_members").update(pdPatch).eq("instructor_id", row.id);
-      if (linkedPdError) throw new Error("No se pudo sincronizar el rango/estado de Instructor en Registro de Policías");
+      if (esInstructorDiscord) {
+        // Con el rol @Equipo de instructores, "Es Instructor" queda marcado en
+        // Registro de Policías. Si la ficha todavía no existe, se crea.
+        const { data: linked } = await admin.from("pd_members")
+          .select("id").eq("instructor_id", row.id).maybeSingle();
+        if (linked) {
+          const { error: linkedPdError } = await admin.from("pd_members")
+            .update({ es_instructor: true, ...(rangoDiscord ? { rango: rangoDiscord } : {}) })
+            .eq("instructor_id", row.id);
+          if (linkedPdError) throw new Error("No se pudo sincronizar el estado de Instructor en Registro de Policías");
+        } else {
+          const ins = await admin.from("pd_members").insert({
+            instructor_id: row.id,
+            nombre: row.name,
+            es_instructor: true,
+            ...(rangoDiscord ? { rango: rangoDiscord } : {}),
+          });
+          if (ins.error) throw new Error("No se pudo crear la ficha de Registro de Policías del instructor");
+        }
+      } else {
+        // Sin el rol solo se sincroniza el rango; "Es Instructor" no se desmarca,
+        // para no borrar a mano lo que el Alto Mando marcó manualmente.
+        const pdPatch: Record<string, unknown> = {};
+        if (rangoDiscord) pdPatch.rango = rangoDiscord;
+        if (Object.keys(pdPatch).length) {
+          const { error: linkedPdError } = await admin.from("pd_members").update(pdPatch).eq("instructor_id", row.id);
+          if (linkedPdError) throw new Error("No se pudo sincronizar el rango en Registro de Policías");
+        }
+      }
       // El rol @Equipo de instructores habilita automáticamente la edición del Registro de Policías.
       if (esInstructorDiscord && !row.can_edit_pd) {
         const { error: permError } = await admin.from("instructors").update({ can_edit_pd: true }).eq("id", row.id);
