@@ -391,100 +391,115 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
               onChange={e => setDraft(d => ({ ...d, nombre: e.target.value }))}
               className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800" />
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-3">
               <div className="space-y-1">
                 <label className="text-xs font-extrabold uppercase tracking-widest text-blue-700">Rango · Discord</label>
                 <Input value={draft.rango || "Sin rango asignado"} disabled
                   className="h-10 rounded-none border-blue-300 bg-slate-100 font-semibold text-slate-600" />
                 <p className="text-[10px] text-slate-500">Se actualiza automáticamente según la etiqueta de rango de Discord.</p>
               </div>
-              <Input placeholder="Número de placa" value={draft.placa}
-                onChange={e => setDraft(d => ({ ...d, placa: e.target.value }))}
-                className="h-10 rounded-none border-blue-300 bg-white font-mono font-bold text-slate-800" />
-              <div className="space-y-1">
-                <label className="text-xs font-extrabold uppercase tracking-widest text-blue-700">División 1</label>
-                <Select value={draft.division} disabled={!session.is_alto_mando} onValueChange={v => setDraft(d => ({ ...d, division: v }))}>
-                  <SelectTrigger className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800">
-                    <SelectValue placeholder="División 1" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border border-blue-200 rounded-none">
-                    {DIVISIONES.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Select value={draft.division_rango} disabled={!session.is_alto_mando || draft.division === "Ninguna"}
-                onValueChange={v => setDraft(d => ({ ...d, division_rango: v }))}>
-                <SelectTrigger disabled={draft.division === "Ninguna"}
-                  className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800 disabled:opacity-60">
-                  <SelectValue placeholder="Rango de división" />
-                </SelectTrigger>
-                <SelectContent className="bg-white border border-blue-200 rounded-none">
-                  {DIVISION_RANGOS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            {session.is_alto_mando && (
-              <div className="space-y-3 border-t border-blue-200 pt-3">
-                <p className="text-xs font-extrabold uppercase tracking-widest text-blue-700">Segunda división y remuneración · Alto Mando</p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Select value={draft.division2} onValueChange={v => setDraft(d => ({ ...d, division2: v }))}>
-                    <SelectTrigger className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800">
-                      <SelectValue placeholder="Segunda división" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white border border-blue-200 rounded-none">
-                      {DIVISIONES.filter(d => d === "Ninguna" || d !== draft.division).map((d, i) => <SelectItem key={d + i} value={d}>{d}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Select value={draft.division2_rango} onValueChange={v => setDraft(d => ({ ...d, division2_rango: v }))}>
-                    <SelectTrigger disabled={draft.division2 === "Ninguna"} className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800 disabled:opacity-60">
-                      <SelectValue placeholder="Rango de segunda división" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white border border-blue-200 rounded-none">
-                      {DIVISION_RANGOS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+
+              {session.is_alto_mando && (
+                <div className="space-y-3">
                   <div className="space-y-1">
-                    <label className="text-xs font-extrabold uppercase tracking-widest text-blue-700">Sueldo básico</label>
-                    <Input type="number" min="0" placeholder="Sueldo básico" value={String(draft.sueldo_defecto)}
-                      onChange={e => setDraft(d => ({ ...d, sueldo_defecto: Number(e.target.value) || 0 }))}
-                      className="h-10 rounded-none border-blue-300 bg-white font-mono font-bold text-slate-800" />
-                    <p className="text-xs text-slate-500">El valor que aparece en 0 es el sueldo básico individual, antes de sumar los extras por divisiones e instructor.</p>
+                    <label className="text-xs font-extrabold uppercase tracking-widest text-blue-700">División 1</label>
+                    <Select
+                      value={draft.es_instructor ? "Cargo: Instructor" : draft.division}
+                      onValueChange={v => setDraft(d => v === "Cargo: Instructor"
+                        ? { ...d, es_instructor: true, division_rango: "Miembro" }
+                        : { ...d, es_instructor: false, division: v })}
+                    >
+                      <SelectTrigger className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800">
+                        <SelectValue placeholder="División 1" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border border-blue-200 rounded-none">
+                        {DIVISIONES.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                        <SelectItem value="Cargo: Instructor">Cargo: Instructor</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <label className="text-xs font-extrabold uppercase tracking-widest text-blue-700">Rango de División 1</label>
+                    <Select value={draft.es_instructor ? "Miembro" : draft.division_rango}
+                      disabled={draft.division === "Ninguna" || draft.es_instructor}
+                      onValueChange={v => setDraft(d => ({ ...d, division_rango: v }))}>
+                      <SelectTrigger disabled={draft.division === "Ninguna" || draft.es_instructor}
+                        className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800 disabled:opacity-60">
+                        <SelectValue placeholder="Rango de división" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border border-blue-200 rounded-none">
+                        <SelectItem value="Miembro">Miembro</SelectItem>
+                        {DIVISION_RANGOS.filter(r => r !== "Miembro").map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-extrabold uppercase tracking-widest text-blue-700">División 2</label>
+                    <Select value={draft.division2} onValueChange={v => setDraft(d => ({ ...d, division2: v }))}>
+                      <SelectTrigger className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800">
+                        <SelectValue placeholder="División 2" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border border-blue-200 rounded-none">
+                        {DIVISIONES.filter(d => d === "Ninguna" || d !== draft.division).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-extrabold uppercase tracking-widest text-blue-700">Rango de División 2</label>
+                    <Select value={draft.division2_rango} disabled={draft.division2 === "Ninguna"}
+                      onValueChange={v => setDraft(d => ({ ...d, division2_rango: v }))}>
+                      <SelectTrigger disabled={draft.division2 === "Ninguna"} className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800 disabled:opacity-60">
+                        <SelectValue placeholder="Rango de división" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border border-blue-200 rounded-none">
+                        {DIVISION_RANGOS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div className="space-y-1">
                     <label className="text-xs font-extrabold uppercase tracking-widest text-blue-700">División 3</label>
                     <Select value={draft.division3} onValueChange={v => setDraft(d => ({ ...d, division3: v }))}>
                       <SelectTrigger className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800">
-                        <SelectValue placeholder="Tercera división" />
+                        <SelectValue placeholder="División 3" />
                       </SelectTrigger>
                       <SelectContent className="bg-white border border-blue-200 rounded-none">
-                        {DIVISIONES.filter(d => d === "Ninguna" || (d !== draft.division && d !== draft.division2)).map((d, i) => <SelectItem key={d + i} value={d}>{d}</SelectItem>)}
+                        {DIVISIONES.filter(d => d === "Ninguna" || (d !== draft.division && d !== draft.division2)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
-                  <Select value={draft.division3_rango} onValueChange={v => setDraft(d => ({ ...d, division3_rango: v }))}>
-                    <SelectTrigger disabled={draft.division3 === "Ninguna"} className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800 disabled:opacity-60">
-                      <SelectValue placeholder="Rango de tercera división" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white border border-blue-200 rounded-none">
-                      {DIVISION_RANGOS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <div className="space-y-1">
+                    <label className="text-xs font-extrabold uppercase tracking-widest text-blue-700">Rango de División 3</label>
+                    <Select value={draft.division3_rango} disabled={draft.division3 === "Ninguna"}
+                      onValueChange={v => setDraft(d => ({ ...d, division3_rango: v }))}>
+                      <SelectTrigger disabled={draft.division3 === "Ninguna"} className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800 disabled:opacity-60">
+                        <SelectValue placeholder="Rango de división" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border border-blue-200 rounded-none">
+                        {DIVISION_RANGOS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1 border-t border-blue-200 pt-3">
+                    <label className="text-xs font-extrabold uppercase tracking-widest text-blue-700">Sueldo básico</label>
+                    <Input type="number" min="0" placeholder="Sueldo básico" value={String(draft.sueldo_defecto)}
+                      onChange={e => setDraft(d => ({ ...d, sueldo_defecto: Number(e.target.value) || 0 }))}
+                      className="h-10 rounded-none border-blue-300 bg-white font-mono font-bold text-slate-800" />
+                    <p className="text-xs text-slate-500">Sueldo básico individual, antes de sumar +10 Coins por división y +10 Coins por el cargo de Instructor.</p>
+                  </div>
                 </div>
-                <p className="text-xs text-slate-500">Cada división asignada suma automáticamente +10 Coins al salario.</p>
+              )}
+
+              <div className="space-y-1">
+                <label className="text-xs font-extrabold uppercase tracking-widest text-blue-700">Número de placa</label>
+                <Input placeholder="Número de placa" value={draft.placa}
+                  onChange={e => setDraft(d => ({ ...d, placa: e.target.value }))}
+                  className="h-10 rounded-none border-blue-300 bg-white font-mono font-bold text-slate-800" />
               </div>
-            )}
-            <label className={`flex w-full items-center gap-3 border-t-2 border-blue-200 pt-4 mt-2 ${canEdit ? "cursor-pointer" : "cursor-default opacity-80"}`}>
-              <input type="checkbox" checked={draft.es_instructor} disabled={!canEdit}
-                onChange={e => setDraft(d => ({ ...d, es_instructor: e.target.checked }))}
-                className="h-5 w-5 accent-blue-700" />
-              <span className="min-w-0">
-                <span className="block text-sm font-extrabold uppercase tracking-wider text-blue-800">Es Instructor</span>
-                <span className="block text-xs text-slate-500">Se marca manualmente desde Registro PD y suma +10 Coins a la paga. No se sincroniza desde Discord.</span>
-              </span>
-              <span className={`ml-auto text-xs font-black uppercase ${draft.es_instructor ? "text-green-700" : "text-slate-400"}`}>{draft.es_instructor ? "Sí" : "No"}</span>
-            </label>
+            </div>
+    </label>
           </div>
 
           <DialogFooter>
