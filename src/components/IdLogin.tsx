@@ -15,7 +15,10 @@ export function IdLogin() {
     e.preventDefault();
     if (!id.trim()) return;
     setBusy(true);
-    const r = await loginWithId({ data: { id: id.trim() } }).catch(() => ({ ok: false as const, error: "Error al ingresar" }));
+    const r = await loginWithId({ data: { id: id.trim() } }).catch((e: unknown) => {
+      console.error("loginWithId failed", e);
+      return { ok: false as const, error: `Error al ingresar: ${(e as Error)?.message ?? "desconocido"}` };
+    });
     setBusy(false);
     if (!r.ok) return toast.error(r.error);
     setToken(r.token);
