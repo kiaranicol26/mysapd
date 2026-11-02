@@ -43,6 +43,13 @@
       "when": 1793493438853,
       "tag": "0005_instructors_missing_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793580243993,
+      "tag": "0006_ensure_instructor_columns",
+      "breakpoints": true
     }
   ]
 }
