@@ -1,10 +1,10 @@
 export const SECCIONES = [
   { key: "exsapd", label: "Ex Policías" },
   { key: "aspirantes", label: "Aspirantes" },
-  { key: "rnap", label: "R.N.A.P" },
+  { key: "rnap", label: "Antecedentes (R.N.A.P.)" },
   { key: "certificar", label: "Certificar" },
-  { key: "registro", label: "Registro PD" },
-  { key: "lista", label: "Lista PD" },
+  { key: "registro", label: "Registro de Policías" },
+  { key: "lista", label: "Lista de Policías" },
   { key: "forum", label: "Forum" },
 ] as const;
 

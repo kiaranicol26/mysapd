@@ -107,7 +107,7 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
     }
 
     const police = members.filter(m => !m.user?.bot && m.user?.id && m.roles?.includes(policeRole.id));
-    const { data: existing, error: existingError } = await admin.from("instructors").select("id, name, tag, avatar_url, discord_id, discord_username, placa");
+    const { data: existing, error: existingError } = await admin.from("instructors").select("id, name, tag, avatar_url, discord_id, discord_username, placa, can_edit_pd");
     // Never create accounts from an incomplete snapshot: without this check a
     // transient database read failure could make every police member look new.
     if (existingError || !existing) throw new Error("No se pudo consultar el personal existente antes de sincronizar Discord");
@@ -150,7 +150,7 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
         // Only the stable instructor_id link may be renamed automatically.
         const { error: linkedRenameError } = await admin.from("pd_members")
           .update({ nombre: discordName }).eq("instructor_id", row.id);
-        if (linkedRenameError) throw new Error("No se pudo actualizar el nombre en Registro PD");
+        if (linkedRenameError) throw new Error("No se pudo actualizar el nombre en Registro de Policías");
         // Salary entries still lack instructor_id. Keep historical names intact
         // until a stable foreign key can be introduced and backfilled safely.
         row.name = discordName;
@@ -163,7 +163,13 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
       const pdPatch: Record<string, unknown> = { es_instructor: esInstructorDiscord };
       if (rangoDiscord) pdPatch.rango = rangoDiscord;
       const { error: linkedPdError } = await admin.from("pd_members").update(pdPatch).eq("instructor_id", row.id);
-      if (linkedPdError) throw new Error("No se pudo sincronizar el rango/estado de Instructor en Registro PD");
+      if (linkedPdError) throw new Error("No se pudo sincronizar el rango/estado de Instructor en Registro de Policías");
+      // El rol @Equipo de instructores habilita automáticamente la edición del Registro de Policías.
+      if (esInstructorDiscord && !row.can_edit_pd) {
+        const { error: permError } = await admin.from("instructors").update({ can_edit_pd: true }).eq("id", row.id);
+        if (permError) throw new Error("No se pudo habilitar el permiso de Registro de Policías");
+        row.can_edit_pd = true;
+      }
       row.tag = tag;
       row.discord_username = m.user!.username;
       row.avatar_url = avatar ?? row.avatar_url;

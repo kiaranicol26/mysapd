@@ -269,7 +269,7 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
             className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800 max-w-md" />
           {!canEdit && (
             <p className="text-xs text-slate-500 font-semibold">
-              Solo el Alto Mando (o con permiso “Registro PD”) puede crear, editar o borrar registros.
+              Solo el Alto Mando (o con permiso “Registro de Policías”) puede crear, editar o borrar registros.
             </p>
           )}
         </div>
@@ -278,7 +278,7 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
       {loading ? (
         <Card className="border-2 border-blue-200 bg-white rounded-none p-10 flex flex-col items-center justify-center gap-3 text-blue-700">
           <Loader2 className="w-8 h-8 animate-spin" />
-          <p className="text-sm font-extrabold uppercase tracking-[0.2em]">Cargando Registro PD…</p>
+          <p className="text-sm font-extrabold uppercase tracking-[0.2em]">Cargando Registro de Policías…</p>
           <p className="text-xs text-slate-500">Estamos obteniendo el personal y sus fichas.</p>
         </Card>
       ) : groups.map(g => (
@@ -292,7 +292,7 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
               <ProfileCard key={u.id} u={{ ...u, role: m?.es_instructor ? "Instructor" : roleKey(u.role) } as ProfileUser} foto={m?.foto}
                 extra={m && (
                   <div className="border-t pt-2 text-sm text-foreground space-y-2">
-                    <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Registro PD</p>
+                    <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Registro de Policías</p>
                     <p className="font-bold">{m.rango ?? "Sin rango"} · Placa {(u as any).placa || m.placa || "—"}</p>
                     <p className="text-xs text-muted-foreground">{[m.division && m.division !== "Ninguna" ? m.division + " · " + (m.division_rango ?? "—") : null, m.division2 && m.division2 !== "Ninguna" ? m.division2 + " · " + (m.division2_rango ?? "—") : null].filter(Boolean).join(" | ") || "Sin división"}</p>
                     {m.es_instructor && <p className="text-xs font-bold text-blue-700">Cargo: Instructor</p> }
