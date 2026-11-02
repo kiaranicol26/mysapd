@@ -406,7 +406,7 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
                     <Select
                       value={draft.es_instructor ? "Cargo: Instructor" : draft.division}
                       onValueChange={v => setDraft(d => v === "Cargo: Instructor"
-                        ? { ...d, es_instructor: true, division_rango: "Miembro" }
+                        ? { ...d, es_instructor: true, division: "Ninguna", division_rango: "Miembro" }
                         : { ...d, es_instructor: false, division: v })}
                     >
                       <SelectTrigger className="h-10 rounded-none border-blue-300 bg-white font-semibold text-slate-800">
