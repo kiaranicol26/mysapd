@@ -499,7 +499,6 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
                   className="h-10 rounded-none border-blue-300 bg-white font-mono font-bold text-slate-800" />
               </div>
             </div>
-    </label>
           </div>
 
           <DialogFooter>
