@@ -132,7 +132,7 @@ export function SalarioView({ session }: { session: Session | null }) {
       // Cada ficha PD tiene su propio ID estable, incluso cuando hay homónimos.
       const currentPd = p.data as unknown as PdMember[];
       setPd(currentPd);
-      // Todos los integrantes de Registro PD aparecen en cada mes, aunque su sueldo sea 0.
+      // Todos los integrantes de Registro de Policías aparecen en cada mes, aunque su sueldo sea 0.
       if (m.data?.length && e.data && p.data) {
         // Indexar los registros existentes en una sola pasada evita filtrar toda la
         // tabla de salarios una vez por cada mes.
@@ -193,7 +193,7 @@ export function SalarioView({ session }: { session: Session | null }) {
         for (let i = 0; i < rowsToInsert.length; i += batchSize) {
           const { error } = await db.from("salary_entries").insert(rowsToInsert.slice(i, i + batchSize) as any);
           if (error) {
-            console.error("No se pudieron incorporar integrantes de Registro PD a Salarios:", error.message);
+            console.error("No se pudieron incorporar integrantes de Registro de Policías a Salarios:", error.message);
             break;
           }
         }
@@ -220,7 +220,7 @@ export function SalarioView({ session }: { session: Session | null }) {
       if (!silent && legacyMatches.length) {
         toast.info(`${legacyMatches.length} coincidencias históricas omitidas; requieren revisión manual`);
       } else if (!silent) {
-        toast.info("La tabla ya tiene a todo el Registro PD");
+        toast.info("La tabla ya tiene a todo el Registro de Policías");
       }
       return;
     }
@@ -237,7 +237,7 @@ export function SalarioView({ session }: { session: Session | null }) {
     );
     if (error) return toast.error(error.message);
     if (!silent) {
-      toast.success(`${missing.length} agentes cargados desde Registro PD`);
+      toast.success(`${missing.length} agentes cargados desde Registro de Policías`);
       if (legacyMatches.length) {
         toast.info(`${legacyMatches.length} coincidencias históricas omitidas; requieren revisión manual`);
       }
@@ -255,7 +255,7 @@ export function SalarioView({ session }: { session: Session | null }) {
     if (error) return toast.error(error.message);
     await logAction(db, session, "CREATE_SALARY_MONTH", { label });
     setNewMonth("");
-    toast.success(`Mes "${label}" creado con Registro PD`);
+    toast.success(`Mes "${label}" creado con Registro de Policías`);
     // loadAll incorpora automáticamente los integrantes faltantes a todos los meses.
     await loadAll();
   }
@@ -290,7 +290,7 @@ export function SalarioView({ session }: { session: Session | null }) {
   }
 
   const fmt = (n: number) => `${Math.round(n).toLocaleString("es-ES")} Coins`;
-  // Only the stable Registro PD row ID may resolve a current profile; names are not identities.
+  // Only the stable Registro de Policías row ID may resolve a current profile; names are not identities.
   const pdDe = (entry: Entry) => entry.pd_member_id
     ? pd.find(member => member.id === entry.pd_member_id) ?? null
     : null;
@@ -335,7 +335,7 @@ export function SalarioView({ session }: { session: Session | null }) {
           )}
           <p className="text-xs text-slate-500 font-semibold">
             {canEdit
-              ? "El sueldo y los extras (+15 por cada división y +10 por función de Instructor) se guardan como una captura al crear cada fila; los cambios posteriores en Registro PD solo afectan filas nuevas."
+              ? "El sueldo y los extras (+15 por cada división y +10 por función de Instructor) se guardan como una captura al crear cada fila; los cambios posteriores en Registro de Policías solo afectan filas nuevas."
               : "Vista pública de solo lectura. Solo el Alto Mando puede editar los salarios."}
           </p>
         </div>
@@ -405,7 +405,7 @@ export function SalarioView({ session }: { session: Session | null }) {
                     <Button size="sm" variant="outline"
                       onClick={() => syncMonth(m.id, monthRows)}
                       className="h-9 rounded-none border-blue-300 bg-white text-blue-800 font-bold hover:bg-blue-50">
-                      <Users className="w-4 h-4 mr-1" /> Sincronizar Registro PD
+                      <Users className="w-4 h-4 mr-1" /> Sincronizar con Registro de Policías
                     </Button>
                     <Button size="icon" variant="ghost" onClick={() => removeMonth(m)}
                       className="h-9 w-9 rounded-none hover:bg-red-100">

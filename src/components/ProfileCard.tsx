@@ -21,7 +21,7 @@ export function ProfileCard({ u, foto, extra, footer }: { u: ProfileUser; foto?:
     { label: "Borrar registros", on: !!u.can_delete },
     { label: "Emitir RNAP", on: !!u.can_emit_rnap },
     { label: "Editar archivos", on: !!u.can_edit_files },
-    { label: "Editar Registro PD", on: !!u.can_edit_pd },
+    { label: "Editar Registro de Policías", on: !!u.can_edit_pd },
   ];
   const sub = [u.discord_username ? `@${u.discord_username}` : null, u.placa ? `Placa #${u.placa}` : null, u.pronombres].filter(Boolean).join(" · ");
   return (

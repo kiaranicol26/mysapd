@@ -65,7 +65,7 @@ export function MiPerfilView({ session }: { session: Session }) {
     { label: "Borrar registros", on: session.can_delete },
     { label: "Emitir RNAP", on: session.can_emit_rnap },
     { label: "Editar archivos", on: !!session.can_edit_files },
-    { label: "Editar Registro PD", on: !!session.can_edit_pd },
+    { label: "Editar Registro de Policías", on: !!session.can_edit_pd },
   ];
   const label = "text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground";
   const inp = "mt-1 h-10 rounded-none font-semibold";

@@ -70,7 +70,7 @@ export function ListaPdView(_props: { session: Session }) {
                 San Andreas Police Department
               </p>
               <h2 className="text-2xl font-black uppercase tracking-wide text-slate-900 font-display">
-                Lista PD
+                Lista de Policías
               </h2>
             </div>
             <div className="ml-auto flex items-center gap-2 px-3 py-2 bg-blue-700 text-white">
@@ -81,7 +81,7 @@ export function ListaPdView(_props: { session: Session }) {
           </div>
 
           <p className="text-xs text-slate-500 font-semibold">
-            Los rangos se sincronizan desde las etiquetas de Discord y la condición de Instructor desde el rol @Equipo de instructores. El sueldo individual y las divisiones se administran desde Registro PD por Alto Mando.
+            Los rangos se sincronizan desde las etiquetas de Discord y la condición de Instructor desde el rol @Equipo de instructores. El sueldo individual y las divisiones se administran desde Registro de Policías por Alto Mando.
           </p>
         </div>
       </Card>
