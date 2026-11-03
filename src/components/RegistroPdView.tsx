@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { sueldoTotal } from "@/lib/sueldo";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { db } from "@/lib/db";
 import { ProfileCard, type ProfileUser } from "@/components/ProfileCard";
@@ -306,6 +307,7 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
                     <p className="font-bold">{m.rango ?? "Sin rango"} · Placa {(u as any).placa || m.placa || "—"}</p>
                     <p className="text-xs text-muted-foreground">{[m.division && m.division !== "Ninguna" ? m.division + " · " + (m.division_rango ?? "—") : null, m.division2 && m.division2 !== "Ninguna" ? m.division2 + " · " + (m.division2_rango ?? "—") : null, m.division3 && m.division3 !== "Ninguna" ? m.division3 + " · " + (m.division3_rango ?? "—") : null].filter(Boolean).join(" | ") || "Sin división"}</p>
                     {m.es_instructor && <p className="text-xs font-bold text-blue-700">Cargo: Instructor</p> }
+                    <p className="font-extrabold text-emerald-600">Sueldo: ${sueldoTotal(m)} (Coin)</p>
                     <div className="border-t pt-2">
                       <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground mb-1">Capacitaciones</p>
                       <div className="grid grid-cols-3 gap-1">
