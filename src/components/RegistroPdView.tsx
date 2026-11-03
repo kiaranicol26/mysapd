@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { sueldoTotal } from "@/lib/sueldo";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { db } from "@/lib/db";
 import { ProfileCard, type ProfileUser } from "@/components/ProfileCard";
