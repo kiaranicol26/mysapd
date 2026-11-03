@@ -1,6 +1,9 @@
 import { FACTION_GUILD_ID, membershipDisabled } from "./discordMembership";
 import { rangoFromTag } from "./rangos";
 
+/** Highest rank first: a member with several rank roles gets the highest. */
+const RANK_ORDER = ["Comisario", "Inspector", "Capitan", "Teniente", "Sargento", "Cabo", "Oficial", "Cadete", "Aspirante"];
+
 export async function discord(path: string, init?: RequestInit) {
   const lovable = process.env["LOVABLE_API_KEY"];
   const key = process.env["DISCORD_API_KEY"];
@@ -76,6 +79,21 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
     const policeRole = roles.find(r => r.name.toLowerCase().includes("polic"));
     if (!policeRole) return null;
 
+    // Ensure one Discord role exists per rank; create missing ones (needs "Manage Roles").
+    const normRole = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+    const rankRoleIds = new Map<string, string>();
+    for (const rango of RANK_ORDER) {
+      let role = roles.find(r => normRole(r.name) === normRole(rango));
+      if (!role) {
+        try {
+          role = (await discord(`guilds/${FACTION_GUILD_ID}/roles`, {
+            method: "POST", body: JSON.stringify({ name: rango, hoist: false, mentionable: false }),
+          })) as { id: string; name: string };
+        } catch { role = undefined; }
+      }
+      if (role?.id) rankRoleIds.set(rango, role.id);
+    }
+
     const members: GuildMember[] = [];
     for (let after = "0";;) {
       const page = (await discord(`guilds/${FACTION_GUILD_ID}/members?limit=1000&after=${after}`)) as GuildMember[];
@@ -150,9 +168,10 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
         renamed++;
       }
 
-      // Solo el rango se determina por la etiqueta de Discord.
+      // Rank comes from the highest Discord rank role; the [TAG] is the fallback.
       // El estado de Instructor se administra manualmente desde Registro PD.
-      const rangoDiscord = rangoFromTag(tag);
+      const rangoRol = RANK_ORDER.find(r => m.roles?.some(id => rankRoleIds.get(r) === id)) ?? null;
+      const rangoDiscord = rangoRol ?? rangoFromTag(tag);
       if (rangoDiscord) {
         const { error: linkedPdError } = await admin.from("pd_members")
           .update({ rango: rangoDiscord }).eq("instructor_id", row.id);
