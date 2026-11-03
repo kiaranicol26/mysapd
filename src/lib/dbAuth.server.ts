@@ -190,7 +190,7 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
         // Public Registro PD needs only these profile fields. Keep anonymous reads
         // restricted to this exact allowlist; all writes remain authenticated.
         if (!claims) {
-          const anonymousPublicCols = new Set(["id", "name", "avatar_url", "role", "placa", "discord_joined_at"]);
+          const anonymousPublicCols = new Set(["id", "name", "avatar_url", "role", "placa", "discord_joined_at", "discord_inhabilitado"]);
           if (cols.length > 0 && cols.every(c => anonymousPublicCols.has(c))) return spec;
           deny();
         }
