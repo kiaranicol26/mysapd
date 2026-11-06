@@ -94,6 +94,7 @@ export function ManualSalariosView({ session }: { session: Session }) {
 
   async function saveReport() {
     if (!preview.length) return toast.error("Primero pegá y procesá un informe.");
+    if (batches.some(batch => batch.raw_text.trim() === rawText.trim())) return toast.error("Este informe ya fue importado. No se creó una liquidación duplicada.");
     setBusy(true);
     try {
       const report = parseReport(rawText);
