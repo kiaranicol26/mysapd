@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 
 import { INSTRUCTOR_BONUS, sortByRango } from "@/lib/rangos";
-import { calculateSalaryExtras, hasLegacySalaryEntryForName, normalizeSalaryName } from "@/lib/salaryEntries";
+import { calculateSalaryExtras } from "@/lib/salaryEntries";
+import { activePdMembers, planMonthSync } from "@/lib/registroActivo";
 import { toast } from "sonner";
 import { Trash2, Plus, ChevronDown, ChevronRight, Coins, Users, FileDown, ImageDown } from "lucide-react";
 
@@ -35,6 +36,8 @@ type Entry = {
 
 type PdMember = {
   id: string;
+  instructor_id?: string | null;
+  created_at?: string | null;
   nombre: string;
   rango: string | null;
   sueldo_defecto: number;
@@ -115,10 +118,11 @@ export function SalarioView({ session }: { session: Session | null }) {
   }
 
   async function loadAll() {
-    const [m, e, p] = await Promise.all([
+    const [m, e, p, u] = await Promise.all([
       db.from("salary_months").select("*").order("created_at", { ascending: false }),
       db.from("salary_entries").select("*").order("created_at", { ascending: true }),
-      db.from("pd_members").select("id, nombre, rango, sueldo_defecto, es_instructor, division, division2, division3, placa").order("nombre", { ascending: true }),
+      db.from("pd_members").select("id, instructor_id, created_at, nombre, rango, sueldo_defecto, es_instructor, division, division2, division3, placa").order("nombre", { ascending: true }),
+      db.from("instructors").select("id, discord_inhabilitado"),
     ]);
     if (m.data) {
       setMonths(m.data as Month[]);
@@ -130,77 +134,17 @@ export function SalarioView({ session }: { session: Session | null }) {
     }
     if (e.data) setEntries(e.data as unknown as Entry[]);
     if (m.data && e.data && p.data) setLegacyReviewCount(0);
-    if (p.data) {
-      // Cada ficha PD tiene su propio ID estable, incluso cuando hay homónimos.
-      const currentPd = p.data as unknown as PdMember[];
+    if (p.data && u.data) {
+      // Registro de Policías manda: solo fichas vinculadas a un usuario habilitado.
+      const currentPd = activePdMembers(p.data as unknown as PdMember[], u.data as any);
       setPd(currentPd);
-      // Todos los integrantes de Registro PD aparecen en cada mes, aunque su sueldo sea 0.
-      if (m.data?.length && e.data && p.data) {
-        // Indexar los registros existentes en una sola pasada evita filtrar toda la
-        // tabla de salarios una vez por cada mes.
-        const idsByMonth = new Map<string, Set<string>>();
-        const legacyNamesByMonth = new Map<string, Set<string>>();
-        for (const row of (e.data ?? []) as unknown as Entry[]) {
-          let ids = idsByMonth.get(row.month_id);
-          if (!ids) idsByMonth.set(row.month_id, ids = new Set<string>());
-          if (row.pd_member_id) {
-            ids.add(row.pd_member_id);
-          } else {
-            // Legacy rows remain visible and are never claimed by name. Their names
-            // only suppress an automatic second row until an administrator reviews them.
-            const name = normalizeSalaryName(row.nombre);
-            if (name) {
-              let names = legacyNamesByMonth.get(row.month_id);
-              if (!names) legacyNamesByMonth.set(row.month_id, names = new Set<string>());
-              names.add(name);
-            }
-          }
-        }
-        // Insertar los faltantes en lotes reduce las solicitudes cuando hay muchos meses.
-        const legacyReviewKeys = new Set<string>();
-        const rowsToInsert: {
-          month_id: string;
-          nombre: string;
-          pd_member_id: string;
-          paga: number;
-          extras: number;
-          pagado: boolean;
-          ultima_edicion_por: string | null;
-        }[] = [];
-
+      if (canEdit && m.data && e.data) {
+        let changed = false;
         for (const month of m.data as Month[]) {
-          const existingIds = idsByMonth.get(month.id) ?? new Set<string>();
-          const legacyNames = legacyNamesByMonth.get(month.id) ?? new Set<string>();
-          for (const member of currentPd) {
-            if (existingIds.has(member.id)) continue;
-            if (legacyNames.has(normalizeSalaryName(member.nombre))) {
-              legacyReviewKeys.add(`${month.id}:${member.id}`);
-              continue;
-            }
-            existingIds.add(member.id);
-            rowsToInsert.push({
-              month_id: month.id,
-              nombre: member.nombre,
-              pd_member_id: member.id,
-              paga: Number(member.sueldo_defecto) || 0,
-              extras: calculateSalaryExtras(member, DIVISION_BONUS, INSTRUCTOR_BONUS),
-              pagado: false,
-              ultima_edicion_por: session?.name ?? null,
-            });
-          }
+          const rows = (e.data as unknown as Entry[]).filter(x => x.month_id === month.id);
+          if (await syncMonth(month.id, rows, true, currentPd, false)) changed = true;
         }
-
-        setLegacyReviewCount(legacyReviewKeys.size);
-        const batchSize = 500;
-        for (let i = 0; i < rowsToInsert.length; i += batchSize) {
-          const { error } = await db.from("salary_entries").insert(rowsToInsert.slice(i, i + batchSize) as any);
-          if (error) {
-            console.error("No se pudieron incorporar integrantes de Registro PD a Salarios:", error.message);
-            break;
-          }
-        }
-
-        if (rowsToInsert.length) {
+        if (changed) {
           const refreshed = await db.from("salary_entries").select("*").order("created_at", { ascending: true });
           if (refreshed.data) setEntries(refreshed.data as unknown as Entry[]);
         }
@@ -213,41 +157,40 @@ export function SalarioView({ session }: { session: Session | null }) {
     autoDiscordSync().then(r => { if (r?.ran) loadAll(); }).catch(() => {});
   }, []);
 
-  async function syncMonth(monthId: string, existing: Entry[], silent = false) {
-    const existingIds = new Set(existing.map(row => row.pd_member_id).filter((id): id is string => !!id));
-    const legacyMatches = pd.filter(
-      member => !existingIds.has(member.id) && hasLegacySalaryEntryForName(member.nombre, existing),
-    );
-    const missing = pd.filter(member =>
-      !existingIds.has(member.id) && !hasLegacySalaryEntryForName(member.nombre, existing),
-    );
-    if (missing.length === 0) {
-      if (!silent && legacyMatches.length) {
-        toast.info(`${legacyMatches.length} coincidencias históricas omitidas; requieren revisión manual`);
-      } else if (!silent) {
-        toast.info("La tabla ya tiene a todo el Registro PD");
-      }
-      return;
+  /** Always resyncs: drops rows not in Registro or duplicated, adds missing, refreshes unpaid amounts. */
+  async function syncMonth(monthId: string, existing: Entry[], silent = false, members: PdMember[] = pd, reload = true) {
+    const plan = planMonthSync(existing, members.map(x => x.id));
+    const byId = new Map(members.map(x => [x.id, x]));
+    let ops = 0;
+    if (plan.remove.length) {
+      for (const r of plan.remove) await db.from("salary_entries").delete().eq("id", r.id);
+      ops += plan.remove.length;
     }
-    const { error } = await db.from("salary_entries").insert(
-      missing.map(p => ({
-        month_id: monthId,
-        nombre: p.nombre,
-        pd_member_id: p.id,
-        paga: Number(p.sueldo_defecto) || 0,
-        extras: calculateSalaryExtras(p, DIVISION_BONUS, INSTRUCTOR_BONUS),
-        pagado: false,
-        ultima_edicion_por: session?.name ?? null,
-      })) as any,
-    );
-    if (error) return toast.error(error.message);
-    if (!silent) {
-      toast.success(`${missing.length} agentes cargados desde Registro PD`);
-      if (legacyMatches.length) {
-        toast.info(`${legacyMatches.length} coincidencias históricas omitidas; requieren revisión manual`);
-      }
+    if (plan.missing.length) {
+      const { error } = await db.from("salary_entries").insert(plan.missing.map(id => {
+        const p = byId.get(id)!;
+        return { month_id: monthId, nombre: p.nombre, pd_member_id: p.id, paga: Number(p.sueldo_defecto) || 0,
+          extras: calculateSalaryExtras(p, DIVISION_BONUS, INSTRUCTOR_BONUS), pagado: false, ultima_edicion_por: session?.name ?? null };
+      }) as any);
+      if (error) { if (!silent) toast.error(error.message); return false; }
+      ops += plan.missing.length;
     }
-    loadAll();
+    let updated = 0;
+    for (const r of plan.keep) {
+      const p = byId.get(r.pd_member_id!)!;
+      const patch: Partial<Entry> = {};
+      if (r.nombre !== p.nombre) patch.nombre = p.nombre;
+      if (!r.pagado) {
+        const paga = Number(p.sueldo_defecto) || 0, extras = calculateSalaryExtras(p, DIVISION_BONUS, INSTRUCTOR_BONUS);
+        if (Number(r.paga) !== paga) patch.paga = paga;
+        if (Number(r.extras) !== extras) patch.extras = extras;
+      }
+      if (Object.keys(patch).length) { await db.from("salary_entries").update(patch as any).eq("id", r.id); updated++; }
+    }
+    ops += updated;
+    if (!silent) toast.success(`Sincronizado: ${plan.missing.length} agregados, ${plan.remove.length} quitados, ${updated} actualizados`);
+    if (reload && ops) await loadAll();
+    return ops > 0;
   }
 
   async function addMonth(ev: React.FormEvent) {
