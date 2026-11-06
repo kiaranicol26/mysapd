@@ -159,7 +159,7 @@ export function ManualSalariosView({ session }: { session: Session }) {
       <div className="h-1 bg-blue-600" />
       <div className="p-5 space-y-3">
         <div className="flex items-center gap-2"><ClipboardPaste className="w-5 h-5 text-blue-700" /><h2 className="text-lg font-black uppercase text-slate-900">Carga masiva de actividad</h2></div>
-        <textarea value={rawText} onChange={e => setRawText(e.target.value)} rows={6}
+        <textarea value={rawText} onChange={e => { setRawText(e.target.value); setParsed([]); }} rows={6}
           placeholder={"**Actividad de SAPD - 06/11/2026**\nVance_Rhymun (18 horas y 26 minutos) - Naomi_Moretti (15 horas y 30 minutos) - ..."}
           className="w-full min-h-36 rounded-none border border-blue-300 bg-white p-3 text-sm font-mono text-slate-800 outline-none focus:border-blue-700" />
         <div className="flex flex-wrap gap-2">
