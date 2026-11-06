@@ -208,10 +208,54 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
         } catch { /* sin permiso para ese miembro (dueño, rol más alto) */ }
       }
     }
-    return { created, renamed, datesUpdated, total: police.length };
+    // Membership: anyone not present in the guild (or without Police role) stops
+    // showing as enabled. Alto Mando is never disabled to avoid locking admins out.
+    const policeIds = new Set(police.map(m => m.user!.id));
+    const { data: allRows } = await admin.from("instructors").select("id, discord_id, is_alto_mando, discord_inhabilitado");
+    let disabledCount = 0;
+    for (const r of (allRows ?? []) as any[]) {
+      const shouldDisable = !r.is_alto_mando && (!r.discord_id || !policeIds.has(r.discord_id));
+      if (!!r.discord_inhabilitado !== shouldDisable) {
+        await admin.from("instructors").update({ discord_inhabilitado: shouldDisable, discord_checked_at: new Date().toISOString() }).eq("id", r.id);
+      }
+      if (shouldDisable) disabledCount++;
+    }
+    await mergeDuplicatePdMembers(admin);
+    return { created, renamed, datesUpdated, total: police.length, disabled: disabledCount };
   } catch (e) {
     console.error("syncGuildPolice", e);
     if (options.force) throw e;
     return null;
   }
+}
+const normName = (s: string | null | undefined) => String(s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[\s_]+/g, " ").trim().toLowerCase();
+
+/** Merges legacy (unlinked) Registro PD rows into the linked row with the same name, moving salary rows without duplicating months. */
+export async function mergeDuplicatePdMembers(admin: { from: (table: string) => any }) {
+  const { data: pd } = await admin.from("pd_members").select("id, nombre, instructor_id, created_at");
+  if (!pd) return 0;
+  const linkedByName = new Map<string, any[]>();
+  for (const r of pd as any[]) if (r.instructor_id) {
+    const k = normName(r.nombre); linkedByName.set(k, [...(linkedByName.get(k) ?? []), r]);
+  }
+  let merged = 0;
+  for (const legacy of pd as any[]) {
+    if (legacy.instructor_id) continue;
+    const targets = linkedByName.get(normName(legacy.nombre));
+    if (!targets || targets.length !== 1) continue; // ambiguous: leave for manual review
+    const target = targets[0];
+    const { data: rows } = await admin.from("salary_entries").select("id, month_id, pd_member_id").in("pd_member_id", [legacy.id, target.id]);
+    const targetMonths = new Set((rows ?? []).filter((r: any) => r.pd_member_id === target.id).map((r: any) => r.month_id));
+    for (const r of (rows ?? []) as any[]) {
+      if (r.pd_member_id !== legacy.id) continue;
+      if (targetMonths.has(r.month_id)) {
+        // Keep the legacy row (it has history like pagado/nota) and drop the auto-created one.
+        await admin.from("salary_entries").delete().eq("pd_member_id", target.id).eq("month_id", r.month_id);
+      }
+      await admin.from("salary_entries").update({ pd_member_id: target.id }).eq("id", r.id);
+    }
+    const { error } = await admin.from("pd_members").delete().eq("id", legacy.id);
+    if (!error) merged++;
+  }
+  return merged;
 }

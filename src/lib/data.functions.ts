@@ -18,6 +18,14 @@ export const forceDiscordSync = createServerFn({ method: "POST" })
     }
   });
 
+/** Throttled (10 min) background sync launched when opening Registro PD or Salarios. */
+export const autoDiscordSync = createServerFn({ method: "POST" })
+  .handler(async () => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { syncGuildPolice } = await import("@/lib/discordGateway.server");
+    const result = await syncGuildPolice(supabaseAdmin as any).catch(() => null);
+    return { ran: !!result };
+  });
 
 const filterSchema = z.object({
   type: z.enum(["eq", "neq"]),
