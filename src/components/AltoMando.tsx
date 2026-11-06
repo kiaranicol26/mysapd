@@ -13,6 +13,7 @@ import {
   getRnapWebhookUrl, setRnapWebhookUrl,
   getArchivoWebhookUrl, setArchivoWebhookUrl,
   getDiscordCodeLoginEnabled, setDiscordCodeLoginEnabled,
+  getSalaryTabVisibility, setHideSalaryTab, setHideManualSalaryTab,
 } from "@/lib/discord";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -70,6 +71,9 @@ export function AltoMando({ session }: { session: Session }) {
   const [savingBg, setSavingBg] = useState(false);
   const [discordCodeLoginEnabled, setDiscordCodeLoginEnabledState] = useState(true);
   const [savingDiscordLoginSetting, setSavingDiscordLoginSetting] = useState(false);
+  const [hideSalaryTab, setHideSalaryTabState] = useState(false);
+  const [hideManualSalaryTab, setHideManualSalaryTabState] = useState(false);
+  const [savingSalaryVisibility, setSavingSalaryVisibility] = useState<"normal" | "manual" | null>(null);
   const search = useSearch({ from: "/alto-mando" });
   const navigate = useNavigate({ from: "/alto-mando" });
   const activeSection = search.section;
@@ -93,6 +97,7 @@ export function AltoMando({ session }: { session: Session }) {
     getArchivoWebhookUrl(true).then(setArchivoHook);
     getBackground().then(setBg);
     getDiscordCodeLoginEnabled(true).then(setDiscordCodeLoginEnabledState);
+    getSalaryTabVisibility(true).then(v => { setHideSalaryTabState(v.hideSalary); setHideManualSalaryTabState(v.hideManualSalary); });
   }, []);
 
   async function saveBg(value: string) {
@@ -157,6 +162,18 @@ export function AltoMando({ session }: { session: Session }) {
     } finally {
       setSavingDiscordLoginSetting(false);
     }
+  }
+
+  async function saveSalaryVisibility(which: "normal" | "manual", hidden: boolean) {
+    setSavingSalaryVisibility(which);
+    try {
+      if (which === "normal") { await setHideSalaryTab(hidden); setHideSalaryTabState(hidden); }
+      else { await setHideManualSalaryTab(hidden); setHideManualSalaryTabState(hidden); }
+      await logAction(db, session, "UPDATE_SALARY_TAB_VISIBILITY", { tab: which, hidden });
+      toast.success(hidden ? "Pestaña ocultada" : "Pestaña visible nuevamente");
+      window.dispatchEvent(new Event("salary-tabs-visibility-change"));
+    } catch (e: any) { toast.error(e.message ?? "No se pudo guardar la configuración"); }
+    finally { setSavingSalaryVisibility(null); }
   }
 
   async function resyncDiscord() {
@@ -611,4 +628,20 @@ export function AltoMando({ session }: { session: Session }) {
       </>}
     </div>
   );
-}
+}      <Card className="overflow-hidden border border-blue-200 bg-white shadow-sm rounded-none">
+        <div className="h-1 bg-blue-600" />
+        <div className="p-5 space-y-4">
+          <div><h2 className="text-lg font-black uppercase tracking-wide text-slate-900 font-display">Visibilidad de pestañas de salarios</h2>
+            <p className="text-sm text-slate-600">Oculta o muestra cada apartado en el menú lateral. Esto no elimina ni modifica sus datos.</p></div>
+          <div className="flex items-center justify-between gap-4 border-t pt-3">
+            <div><p className="font-bold text-slate-800">Ocultar pestaña: «Salarios»</p><p className="text-xs text-slate-500">{hideSalaryTab ? "Actualmente oculta" : "Actualmente visible"}</p></div>
+            <Switch checked={hideSalaryTab} disabled={savingSalaryVisibility !== null} onCheckedChange={value => saveSalaryVisibility("normal", value)} />
+          </div>
+          <div className="flex items-center justify-between gap-4 border-t pt-3">
+            <div><p className="font-bold text-slate-800">Ocultar pestaña: «[M] Salarios»</p><p className="text-xs text-slate-500">{hideManualSalaryTab ? "Actualmente oculta" : "Actualmente visible"}</p></div>
+            <Switch checked={hideManualSalaryTab} disabled={savingSalaryVisibility !== null} onCheckedChange={value => saveSalaryVisibility("manual", value)} />
+          </div>
+        </div>
+      </Card>
+
+
