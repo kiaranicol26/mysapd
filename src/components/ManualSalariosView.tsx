@@ -141,7 +141,7 @@ export function ManualSalariosView({ session }: { session: Session }) {
 
       for (const row of rowsToCheck) {
         let member = row.pd_member_id ? byId.get(row.pd_member_id) : undefined;
-        if (!member) {
+        if (!row.pd_member_id) {
           const matches = byName.get(normalize(row.nombre)) ?? [];
           if (matches.length === 1) member = matches[0];
         }
