@@ -43,6 +43,13 @@
       "when": 1793493438853,
       "tag": "0005_instructors_missing_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793987794737,
+      "tag": "0006_salary_entries_extras_pd_link",
+      "breakpoints": true
     }
   ]
 }

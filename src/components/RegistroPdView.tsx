@@ -103,7 +103,7 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
   }
 
   async function loadAvatars() {
-    const { data } = await db.from("instructors").select("id, name, avatar_url, role, discord_inhabilitado");
+    const { data } = await db.from("instructors").select("id, name, avatar_url, role, discord_inhabilitado, descripcion, banner_url, color_perfil, pronombres, placa, discord_username, tag, is_alto_mando, can_delete, can_emit_rnap, can_edit_files, can_edit_pd, secciones");
     if (!data) return;
     setUsers(data as any);
   }

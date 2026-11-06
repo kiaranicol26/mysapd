@@ -532,36 +532,42 @@ export type Database = {
         Row: {
           created_at: string
           es_instructor: boolean
+          extras: number
           id: string
           month_id: string
           nombre: string | null
           nota: string | null
           paga: number
           pagado: boolean
+          pd_member_id: string | null
           ultima_edicion_por: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           es_instructor?: boolean
+          extras?: number
           id?: string
           month_id: string
           nombre?: string | null
           nota?: string | null
           paga?: number
           pagado?: boolean
+          pd_member_id?: string | null
           ultima_edicion_por?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           es_instructor?: boolean
+          extras?: number
           id?: string
           month_id?: string
           nombre?: string | null
           nota?: string | null
           paga?: number
           pagado?: boolean
+          pd_member_id?: string | null
           ultima_edicion_por?: string | null
           updated_at?: string
         }
@@ -571,6 +577,13 @@ export type Database = {
             columns: ["month_id"]
             isOneToOne: false
             referencedRelation: "salary_months"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salary_entries_pd_member_id_fkey"
+            columns: ["pd_member_id"]
+            isOneToOne: false
+            referencedRelation: "pd_members"
             referencedColumns: ["id"]
           },
         ]
