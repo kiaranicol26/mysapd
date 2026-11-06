@@ -2,13 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import { db } from "@/lib/db";
 import { Session, logAction } from "@/lib/session";
 import { activePdMembers } from "@/lib/registroActivo";
+import { calculateSalaryExtras } from "@/lib/salaryEntries";
+import { INSTRUCTOR_BONUS } from "@/lib/rangos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { ClipboardPaste, Plus, Trash2, Wallet, RefreshCw } from "lucide-react";
 
-type PdMember = { id: string; instructor_id: string | null; created_at?: string | null; nombre: string; rango: string | null };
+type PdMember = { id: string; instructor_id: string | null; created_at?: string | null; nombre: string; rango: string | null; sueldo_defecto: number | null; es_instructor: boolean; division: string | null; division2: string | null; division3: string | null };
 type Batch = { id: string; label: string; report_date: string | null; raw_text: string; created_at: string };
 type Entry = { id: string; batch_id: string; pd_member_id: string | null; nombre: string; rango_snapshot: string | null; actividad: string; activity_minutes: number | null; sueldo: number; nota: string | null; pagado: boolean };
 
@@ -55,7 +57,7 @@ export function ManualSalariosView({ session }: { session: Session }) {
     const [b, e, p, u] = await Promise.all([
       db.from("manual_salary_batches").select("*").order("created_at", { ascending: false }),
       db.from("manual_salary_entries").select("*").order("created_at", { ascending: true }),
-      db.from("pd_members").select("id,instructor_id,created_at,nombre,rango").order("nombre", { ascending: true }),
+      db.from("pd_members").select("id,instructor_id,created_at,nombre,rango,sueldo_defecto,es_instructor,division,division2,division3").order("nombre", { ascending: true }),
       db.from("instructors").select("id,discord_inhabilitado"),
     ]);
     if (b.error) return toast.error(b.error.message);
@@ -81,7 +83,16 @@ export function ManualSalariosView({ session }: { session: Session }) {
     }
     return parsed.map(row => {
       const found = byName.get(normalize(row.nombre)) ?? [];
-      return { ...row, member: found.length === 1 ? found[0] : null, match: found.length === 1 ? "ok" : found.length > 1 ? "ambiguous" : "missing" };
+      const member = found.length === 1 ? found[0] : null;
+      const hasDivision = !![member?.division, member?.division2, member?.division3].some(value => {
+        const normalized = value?.trim();
+        return !!normalized && normalized !== "Ninguna" && normalized !== "N/A";
+      });
+      const baseSalary = Number(member?.sueldo_defecto) || 0;
+      const autoSalary = member && baseSalary > 0 && hasDivision
+        ? baseSalary + calculateSalaryExtras(member, 10, INSTRUCTOR_BONUS)
+        : null;
+      return { ...row, member, autoSalary, match: found.length === 1 ? "ok" : found.length > 1 ? "ambiguous" : "missing" };
     });
   }, [parsed, members]);
 
@@ -107,7 +118,7 @@ export function ManualSalariosView({ session }: { session: Session }) {
         batch_id: batch.id, pd_member_id: row.member?.id ?? null,
         nombre: row.nombre, rango_snapshot: row.member?.rango ?? "No encontrado",
         actividad: row.actividad, activity_minutes: row.minutes,
-        sueldo: 0, nota: null, pagado: false,
+        sueldo: row.autoSalary ?? 0, nota: null, pagado: false,
       }));
       const { error } = await db.from("manual_salary_entries").insert(rows as any);
       if (error) {
@@ -169,8 +180,8 @@ export function ManualSalariosView({ session }: { session: Session }) {
         {preview.length > 0 && <div className="border border-blue-200 overflow-x-auto">
           <div className="bg-blue-50 px-3 py-2 text-xs font-bold text-slate-700">{preview.length} integrantes · {preview.filter(x => x.match === "ok").length} vinculados · {preview.filter(x => x.match !== "ok").length} para revisar</div>
           <table className="w-full text-sm">
-            <thead><tr className="bg-blue-700 text-white"><th className="p-2 text-left">Nombre_Apellido</th><th className="p-2 text-left">Rango</th><th className="p-2 text-left">Actividad</th><th className="p-2 text-left">Coincidencia</th></tr></thead>
-            <tbody>{preview.map((row, i) => <tr key={row.nombre + i} className="border-t border-blue-100"><td className="p-2 font-mono font-bold text-slate-800">{row.nombre}</td><td className="p-2 text-slate-700">{row.member?.rango ?? (row.match === "ambiguous" ? "Coincidencia múltiple" : "No encontrado")}</td><td className="p-2 text-slate-700">{row.actividad}</td><td className="p-2">{row.match === "ok" ? <span className="text-emerald-700 font-bold">Vinculado</span> : <span className="text-amber-700 font-bold">Revisar</span>}</td></tr>)}</tbody>
+            <thead><tr className="bg-blue-700 text-white"><th className="p-2 text-left">Nombre_Apellido</th><th className="p-2 text-left">Rango</th><th className="p-2 text-left">Actividad</th><th className="p-2 text-left">Sueldo inicial</th><th className="p-2 text-left">Coincidencia</th></tr></thead>
+            <tbody>{preview.map((row, i) => <tr key={row.nombre + i} className="border-t border-blue-100"><td className="p-2 font-mono font-bold text-slate-800">{row.nombre}</td><td className="p-2 text-slate-700">{row.member?.rango ?? (row.match === "ambiguous" ? "Coincidencia múltiple" : "No encontrado")}</td><td className="p-2 text-slate-700">{row.actividad}</td><td className="p-2 font-bold text-slate-700">{row.autoSalary !== null ? `${Math.round(row.autoSalary).toLocaleString("es-AR")} Coins` : "Manual"}</td><td className="p-2">{row.match === "ok" ? <span className="text-emerald-700 font-bold">Vinculado</span> : <span className="text-amber-700 font-bold">Revisar</span>}</td></tr>)}</tbody>
           </table>
         </div>}
       </div>
