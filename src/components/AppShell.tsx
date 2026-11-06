@@ -15,15 +15,15 @@ type Tab = { to: string; label: string; icon: LucideIcon; public: boolean; alto:
 
 const TABS: Tab[] = [
   { to: "/perfil", label: "myPerfil", icon: UserRound, public: false, alto: false, group: "Cuenta" },
-  { to: "/exsapd", label: "Ex Policías", icon: Archive, public: false, alto: false, sec: "exsapd", group: "Gestión" },
+  { to: "/exsapd", label: "Anteriores Policías", icon: Archive, public: false, alto: false, sec: "exsapd", group: "Gestión" },
   { to: "/aspirantes", label: "Aspirantes", icon: GraduationCap, public: false, alto: false, sec: "aspirantes", group: "Gestión" },
-  { to: "/rnap", label: "R.N.A.P", icon: FileSearch, public: false, alto: false, sec: "rnap", group: "Gestión" },
-  { to: "/certificar", label: "Certificar", icon: Award, public: false, alto: false, sec: "certificar", group: "Gestión" },
-  { to: "/registro-policias", label: "Registro PD", icon: IdCard, public: true, alto: false, group: "Personal" },
-  { to: "/registro-inhabilitados", label: "Inhabilitados", icon: IdCard, public: false, alto: false, sec: "registro", group: "Personal" },
-  { to: "/policias", label: "Lista PD", icon: ListOrdered, public: false, alto: false, sec: "lista", group: "Personal" },
+  { to: "/rnap", label: "Antecedentes Penales", icon: FileSearch, public: false, alto: false, sec: "rnap", group: "Gestión" },
+  { to: "/certificar", label: "Crear Certificado", icon: Award, public: false, alto: false, sec: "certificar", group: "Gestión" },
+  { to: "/registro-policias", label: "Registro de Policías", icon: IdCard, public: true, alto: false, group: "Personal" },
+  { to: "/registro-inhabilitados", label: "Pol. Inhabilitados", icon: IdCard, public: false, alto: false, sec: "registro", group: "Personal" },
+  { to: "/policias", label: "Lista de Policías", icon: ListOrdered, public: false, alto: false, sec: "lista", group: "Personal" },
   { to: "/salario", label: "Salario", icon: Wallet, public: true, alto: false, group: "Personal" },
-  { to: "/forum", label: "Forum", icon: MessagesSquare, public: false, alto: false, sec: "forum", group: "Comunidad" },
+  { to: "/forum", label: "Foro Privado", icon: MessagesSquare, public: false, alto: false, sec: "forum", group: "Comunidad" },
   { to: "/alto-mando", label: "Configuración Web", icon: Settings, public: false, alto: true, group: "Administración", search: { section: "config" } },
   { to: "/alto-mando", label: "Gestión", icon: Users, public: false, alto: true, group: "Administración", search: { section: "gestion" } },
 ];
