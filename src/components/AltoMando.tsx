@@ -422,6 +422,22 @@ export function AltoMando({ session }: { session: Session }) {
 
       <Card className="overflow-hidden border border-blue-200 bg-white shadow-sm rounded-none">
         <div className="h-1 bg-blue-600" />
+        <div className="p-5 space-y-4">
+          <div><h2 className="text-lg font-black uppercase tracking-wide text-slate-900 font-display">Visibilidad de pestañas de salarios</h2>
+            <p className="text-sm text-slate-600">Oculta o muestra cada apartado en el menú lateral. Esto no elimina ni modifica sus datos.</p></div>
+          <div className="flex items-center justify-between gap-4 border-t pt-3">
+            <div><p className="font-bold text-slate-800">Ocultar pestaña: «Salarios»</p><p className="text-xs text-slate-500">{hideSalaryTab ? "Actualmente oculta" : "Actualmente visible"}</p></div>
+            <Switch checked={hideSalaryTab} disabled={savingSalaryVisibility !== null} onCheckedChange={value => saveSalaryVisibility("normal", value)} />
+          </div>
+          <div className="flex items-center justify-between gap-4 border-t pt-3">
+            <div><p className="font-bold text-slate-800">Ocultar pestaña: «[M] Salarios»</p><p className="text-xs text-slate-500">{hideManualSalaryTab ? "Actualmente oculta" : "Actualmente visible"}</p></div>
+            <Switch checked={hideManualSalaryTab} disabled={savingSalaryVisibility !== null} onCheckedChange={value => saveSalaryVisibility("manual", value)} />
+          </div>
+        </div>
+      </Card>
+
+      <Card className="overflow-hidden border border-blue-200 bg-white shadow-sm rounded-none">
+        <div className="h-1 bg-blue-600" />
         <div className="p-5 space-y-3">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-1">
@@ -628,20 +644,4 @@ export function AltoMando({ session }: { session: Session }) {
       </>}
     </div>
   );
-}      <Card className="overflow-hidden border border-blue-200 bg-white shadow-sm rounded-none">
-        <div className="h-1 bg-blue-600" />
-        <div className="p-5 space-y-4">
-          <div><h2 className="text-lg font-black uppercase tracking-wide text-slate-900 font-display">Visibilidad de pestañas de salarios</h2>
-            <p className="text-sm text-slate-600">Oculta o muestra cada apartado en el menú lateral. Esto no elimina ni modifica sus datos.</p></div>
-          <div className="flex items-center justify-between gap-4 border-t pt-3">
-            <div><p className="font-bold text-slate-800">Ocultar pestaña: «Salarios»</p><p className="text-xs text-slate-500">{hideSalaryTab ? "Actualmente oculta" : "Actualmente visible"}</p></div>
-            <Switch checked={hideSalaryTab} disabled={savingSalaryVisibility !== null} onCheckedChange={value => saveSalaryVisibility("normal", value)} />
-          </div>
-          <div className="flex items-center justify-between gap-4 border-t pt-3">
-            <div><p className="font-bold text-slate-800">Ocultar pestaña: «[M] Salarios»</p><p className="text-xs text-slate-500">{hideManualSalaryTab ? "Actualmente oculta" : "Actualmente visible"}</p></div>
-            <Switch checked={hideManualSalaryTab} disabled={savingSalaryVisibility !== null} onCheckedChange={value => saveSalaryVisibility("manual", value)} />
-          </div>
-        </div>
-      </Card>
-
-
+}
