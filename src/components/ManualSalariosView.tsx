@@ -114,12 +114,15 @@ export function ManualSalariosView({ session }: { session: Session }) {
     setSyncingRanges(true);
     try {
       // Read Registro PD again instead of relying on the page's cached member list.
-      const [p, u] = await Promise.all([
+      const [p, u, freshEntriesResult] = await Promise.all([
         db.from("pd_members").select("id,instructor_id,created_at,nombre,rango,sueldo_defecto,es_instructor,division,division2,division3").order("nombre", { ascending: true }),
         db.from("instructors").select("id,discord_inhabilitado"),
+        db.from("manual_salary_entries").select("*").order("created_at", { ascending: true }),
       ]);
       if (p.error) throw new Error(p.error.message);
       if (u.error) throw new Error(u.error.message);
+      if (freshEntriesResult.error) throw new Error(freshEntriesResult.error.message);
+      const latestEntries = (freshEntriesResult.data ?? []) as Entry[];
       const freshMembers = activePdMembers((p.data ?? []) as PdMember[], (u.data ?? []) as any[]);
       setMembers(freshMembers);
 
@@ -131,10 +134,10 @@ export function ManualSalariosView({ session }: { session: Session }) {
       }
 
       const batchIds = new Set(targetBatches.map(batch => batch.id));
-      const rowsToCheck = entries.filter(row => batchIds.has(row.batch_id) && !row.pagado);
+      const rowsToCheck = latestEntries.filter(row => batchIds.has(row.batch_id) && !row.pagado);
       let updated = 0;
       let unmatched = 0;
-      const patches: Promise<{ id: string; patch: Partial<Entry> } | null>[] = [];
+      const patches: PromiseLike<{ id: string; patch: Partial<Entry> }>[] = [];
 
       for (const row of rowsToCheck) {
         let member = row.pd_member_id ? byId.get(row.pd_member_id) : undefined;
@@ -159,7 +162,7 @@ export function ManualSalariosView({ session }: { session: Session }) {
       }
 
       const saved = await Promise.all(patches);
-      updated = saved.filter(Boolean).length;
+      updated = saved.length;
       const refreshed = await db.from("manual_salary_entries").select("*").order("created_at", { ascending: true });
       if (refreshed.error) throw new Error(refreshed.error.message);
       setEntries((refreshed.data ?? []) as Entry[]);
@@ -167,7 +170,7 @@ export function ManualSalariosView({ session }: { session: Session }) {
       const syncedAt = new Date().toISOString();
       setLastRangeSync(syncedAt);
       await logAction(db, session, "RESYNC_MANUAL_SALARY_RANGES", {
-        month: monthKey, batches: targetBatches.length, updated, unmatched, paidRowsSkipped: entries.filter(row => batchIds.has(row.batch_id) && row.pagado).length,
+        month: monthKey, batches: targetBatches.length, updated, unmatched, paidRowsSkipped: latestEntries.filter(row => batchIds.has(row.batch_id) && row.pagado).length,
       });
       toast.success(`Rangos actualizados: ${updated}. Sin coincidencia: ${unmatched}. Los registros PAGADOS se conservaron intactos.`);
     } catch (error: any) {
