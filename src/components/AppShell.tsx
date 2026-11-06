@@ -10,6 +10,7 @@ import {
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { puedeVer } from "@/lib/secciones";
+import { getSalaryTabVisibility } from "@/lib/discord";
 
 type Tab = { to: string; label: string; icon: LucideIcon; public: boolean; alto: boolean; sec?: string; group: string; search?: { section: "config" | "gestion" } };
 
@@ -23,6 +24,7 @@ const TABS: Tab[] = [
   { to: "/registro-inhabilitados", label: "Pol. Inhabilitados", icon: IdCard, public: false, alto: false, sec: "registro", group: "Personal" },
   { to: "/policias", label: "Lista de Policías", icon: ListOrdered, public: false, alto: false, sec: "lista", group: "Personal" },
   { to: "/salario", label: "Salario", icon: Wallet, public: true, alto: false, group: "Personal" },
+  { to: "/salarios-manuales", label: "[M] Salarios", icon: Wallet, public: false, alto: true, group: "Personal" },
   { to: "/forum", label: "Foro Privado", icon: MessagesSquare, public: false, alto: false, sec: "forum", group: "Comunidad" },
   { to: "/alto-mando", label: "Configuración Web", icon: Settings, public: false, alto: true, group: "Administración", search: { section: "config" } },
   { to: "/alto-mando", label: "Gestión", icon: Users, public: false, alto: true, group: "Administración", search: { section: "gestion" } },
@@ -32,14 +34,18 @@ export function AppShell({ session, children }: { session: Session | null; child
   const [bg, setBg] = useState("");
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [salaryVisibility, setSalaryVisibility] = useState({ hideSalary: false, hideManualSalary: false });
   const navigate = useNavigate();
 
   useEffect(() => {
     setCollapsed(localStorage.getItem("sapd_sidebar") === "1");
+    const loadSalaryVisibility = () => getSalaryTabVisibility(true).then(setSalaryVisibility).catch(() => {});
+    loadSalaryVisibility();
+    window.addEventListener("salary-tabs-visibility-change", loadSalaryVisibility);
     const load = () => getBackground().then(setBg).catch(() => {});
     load();
     window.addEventListener("background-change", load);
-    return () => window.removeEventListener("background-change", load);
+    return () => { window.removeEventListener("background-change", load); window.removeEventListener("salary-tabs-visibility-change", loadSalaryVisibility); };
   }, []);
 
   function toggleCollapse() {
