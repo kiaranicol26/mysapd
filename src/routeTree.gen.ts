@@ -22,6 +22,7 @@ import { Route as RegistroInhabilitadosRouteImport } from './routes/registro-inh
 import { Route as RegistroPoliciasRouteImport } from './routes/registro-policias'
 import { Route as RnapRouteImport } from './routes/rnap'
 import { Route as SalarioRouteImport } from './routes/salario'
+import { Route as SalariosManualesRouteImport } from './routes/salarios-manuales'
 import { Route as ApiPublicForumSplatRouteImport } from './routes/api/public/forum/$'
 
 const IndexRoute = IndexRouteImport.update({
