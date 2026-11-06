@@ -187,6 +187,7 @@ export interface FileRouteTypes {
     | '/rnap'
     | '/salario'
     | '/salarios-manuales'
+    | '/salarios-manuales'
     | '/api/public/forum/
   id:
     | '__root__'
@@ -203,6 +204,7 @@ export interface FileRouteTypes {
     | '/registro-policias'
     | '/rnap'
     | '/salario'
+    | '/salarios-manuales'
     | '/api/public/forum/$'
   fileRoutesById: FileRoutesById
 }
