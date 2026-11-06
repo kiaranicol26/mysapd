@@ -1,3 +1,4 @@
+import { autoDiscordSync } from "@/lib/data.functions";
 import { useEffect, useRef, useState } from "react";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { db } from "@/lib/db";
@@ -207,7 +208,10 @@ export function SalarioView({ session }: { session: Session | null }) {
     }
   }
 
-  useEffect(() => { loadAll(); }, []);
+  useEffect(() => {
+    loadAll();
+    autoDiscordSync().then(r => { if (r?.ran) loadAll(); }).catch(() => {});
+  }, []);
 
   async function syncMonth(monthId: string, existing: Entry[], silent = false) {
     const existingIds = new Set(existing.map(row => row.pd_member_id).filter((id): id is string => !!id));

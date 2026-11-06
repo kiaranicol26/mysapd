@@ -1,3 +1,4 @@
+import { autoDiscordSync } from "@/lib/data.functions";
 import { useEffect, useMemo, useState } from "react";
 import { sueldoTotal } from "@/lib/sueldo";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
@@ -113,6 +114,7 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
     Promise.all([load(), loadAvatars()]).finally(() => {
       if (active) setLoading(false);
     });
+    autoDiscordSync().then(r => { if (active && r?.ran) { load(); loadAvatars(); } }).catch(() => {});
     return () => { active = false; };
   }, []);
 
