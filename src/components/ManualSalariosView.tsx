@@ -5,7 +5,6 @@ import { activePdMembers } from "@/lib/registroActivo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { ClipboardPaste, Plus, Trash2, Wallet, RefreshCw } from "lucide-react";
 
