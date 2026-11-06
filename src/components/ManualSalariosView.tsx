@@ -50,6 +50,7 @@ export function ManualSalariosView({ session }: { session: Session }) {
   const [selectedBatch, setSelectedBatch] = useState("");
   const [members, setMembers] = useState<PdMember[]>([]);
   const [rawText, setRawText] = useState("");
+  const [batchLabel, setBatchLabel] = useState("");
   const [parsed, setParsed] = useState<Parsed[]>([]);
   const [busy, setBusy] = useState(false);
 
@@ -100,16 +101,20 @@ export function ManualSalariosView({ session }: { session: Session }) {
     const result = parseReport(rawText);
     if (!result.rows.length) return toast.error("No encontré integrantes con el formato Nombre (actividad).");
     setParsed(result.rows);
+    const periodDate = result.date ? new Date(`${result.date}T12:00:00`) : new Date();
+    const suggestedLabel = periodDate.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
+    setBatchLabel(current => current.trim() ? current : suggestedLabel.charAt(0).toUpperCase() + suggestedLabel.slice(1));
     toast.success(`Se detectaron ${result.rows.length} integrantes. Revisá las coincidencias antes de guardar.`);
   }
 
   async function saveReport() {
     if (!preview.length) return toast.error("Primero pegá y procesá un informe.");
+    if (!batchLabel.trim()) return toast.error("Ingresá un nombre para el mes o período.");
     if (batches.some(batch => batch.raw_text.trim() === rawText.trim())) return toast.error("Este informe ya fue importado. No se creó una liquidación duplicada.");
     setBusy(true);
     try {
       const report = parseReport(rawText);
-      const label = report.label === "Liquidación manual" ? `Liquidación · ${new Date().toLocaleDateString("es-AR")}` : report.label;
+      const label = batchLabel.trim();
       const { data: batch, error: batchError } = await db.from("manual_salary_batches").insert({
         label, report_date: report.date, raw_text: rawText, created_by: session.id,
       } as any).select("*").single();
@@ -126,7 +131,7 @@ export function ManualSalariosView({ session }: { session: Session }) {
         throw new Error(error.message);
       }
       await logAction(db, session, "CREATE_MANUAL_SALARY_BATCH", { label, entries: rows.length, unmatched: rows.filter(x => !x.pd_member_id).length });
-      setRawText(""); setParsed([]);
+      setRawText(""); setParsed([]); setBatchLabel("");
       await loadAll(batch.id);
       toast.success("Liquidación manual creada correctamente.");
     } catch (e: any) { toast.error(e.message ?? "No se pudo guardar la liquidación."); }
@@ -170,6 +175,7 @@ export function ManualSalariosView({ session }: { session: Session }) {
       <div className="h-1 bg-blue-600" />
       <div className="p-5 space-y-3">
         <div className="flex items-center gap-2"><ClipboardPaste className="w-5 h-5 text-blue-700" /><h2 className="text-lg font-black uppercase text-slate-900">Carga masiva de actividad</h2></div>
+        <div className="space-y-1"><label className="text-xs font-extrabold uppercase tracking-wide text-slate-700">Nombre del mes / período</label><Input value={batchLabel} onChange={e => setBatchLabel(e.target.value)} placeholder="Ej.: Noviembre 2026" className="h-10 rounded-none border-blue-300 bg-white text-slate-800" /><p className="text-xs text-slate-500">Este nombre identificará la liquidación en el historial. Podés usar el mes y año o el nombre que prefieras.</p></div>
         <textarea value={rawText} onChange={e => { setRawText(e.target.value); setParsed([]); }} rows={6}
           placeholder={"**Actividad de SAPD - 06/11/2026**\nVance_Rhymun (18 horas y 26 minutos) - Naomi_Moretti (15 horas y 30 minutos) - ..."}
           className="w-full min-h-36 rounded-none border border-blue-300 bg-white p-3 text-sm font-mono text-slate-800 outline-none focus:border-blue-700" />
