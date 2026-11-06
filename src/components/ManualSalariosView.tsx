@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { Session, logAction } from "@/lib/session";
 import { activePdMembers } from "@/lib/registroActivo";
 import { calculateSalaryExtras } from "@/lib/salaryEntries";
-import { INSTRUCTOR_BONUS } from "@/lib/rangos";
+import { INSTRUCTOR_BONUS, sortByRango } from "@/lib/rangos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -82,7 +82,7 @@ export function ManualSalariosView({ session }: { session: Session }) {
       const key = normalize(m.nombre);
       byName.set(key, [...(byName.get(key) ?? []), m]);
     }
-    return parsed.map(row => {
+    return sortByRango(parsed.map(row => {
       const found = byName.get(normalize(row.nombre)) ?? [];
       const member = found.length === 1 ? found[0] : null;
       const hasDivision = !![member?.division, member?.division2, member?.division3].some(value => {
@@ -94,7 +94,7 @@ export function ManualSalariosView({ session }: { session: Session }) {
         ? baseSalary + calculateSalaryExtras(member, 10, INSTRUCTOR_BONUS)
         : null;
       return { ...row, member, autoSalary, match: found.length === 1 ? "ok" : found.length > 1 ? "ambiguous" : "missing" };
-    });
+    }), row => row.member?.rango, row => row.nombre);
   }, [parsed, members]);
 
   async function prepareReport() {
@@ -154,7 +154,7 @@ export function ManualSalariosView({ session }: { session: Session }) {
   }
 
   const currentBatch = batches.find(x => x.id === selectedBatch);
-  const rows = entries.filter(x => x.batch_id === selectedBatch);
+  const rows = sortByRango(entries.filter(x => x.batch_id === selectedBatch), row => row.rango_snapshot, row => row.nombre);
   const total = rows.reduce((sum, row) => sum + (Number(row.sueldo) || 0), 0);
   const paid = rows.filter(x => x.pagado).reduce((sum, row) => sum + (Number(row.sueldo) || 0), 0);
   const fmt = (value: number) => `${Math.round(value).toLocaleString("es-AR")} Coins`;
