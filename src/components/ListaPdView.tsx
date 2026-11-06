@@ -1,3 +1,4 @@
+import { activePdMembers } from "@/lib/registroActivo";
 import { useEffect, useState } from "react";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { db } from "@/lib/db";
@@ -30,20 +31,14 @@ export function ListaPdView(_props: { session: Session }) {
  
 
   async function load() {
-    const { data } = await db
-      .from("pd_members")
-      .select("id, instructor_id, nombre, rango, sueldo_defecto, placa, division, division2, es_instructor, created_at")
-      .order("nombre", { ascending: true });
-    if (data) {
-      const unique = new Map<string, PdMember>();
-      for (const member of data as unknown as PdMember[]) {
-        const key = normalizePdName(member.nombre) || `id:${member.instructor_id ?? member.id}`;
-        const previous = unique.get(key);
-        // Prefer the row linked to its Discord account when a legacy duplicate exists.
-        if (!previous || (!previous.instructor_id && member.instructor_id)) unique.set(key, member);
-      }
-      setMembers([...unique.values()]);
-    }
+    const [{ data }, { data: users }] = await Promise.all([
+      db.from("pd_members")
+        .select("id, instructor_id, nombre, rango, sueldo_defecto, placa, division, division2, es_instructor, created_at")
+        .order("nombre", { ascending: true }),
+      db.from("instructors").select("id, discord_inhabilitado"),
+    ]);
+    // Registro de Policías manda: solo fichas de usuarios habilitados.
+    if (data && users) setMembers(activePdMembers(data as unknown as PdMember[], users as any));
   }
 
   useEffect(() => { load(); }, []);
