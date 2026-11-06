@@ -53,6 +53,8 @@ export function ManualSalariosView({ session }: { session: Session }) {
   const [batchLabel, setBatchLabel] = useState("");
   const [parsed, setParsed] = useState<Parsed[]>([]);
   const [busy, setBusy] = useState(false);
+  const [syncingRanges, setSyncingRanges] = useState(false);
+  const [lastRangeSync, setLastRangeSync] = useState<string | null>(null);
 
   async function loadAll(preferred?: string) {
     const [b, e, p, u] = await Promise.all([
@@ -96,6 +98,84 @@ export function ManualSalariosView({ session }: { session: Session }) {
       return { ...row, member, autoSalary, match: found.length === 1 ? "ok" : found.length > 1 ? "ambiguous" : "missing" };
     }), row => row.member?.rango, row => row.nombre);
   }, [parsed, members]);
+
+  async function resyncCurrentMonthRanges() {
+    const now = new Date();
+    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const targetBatches = batches.filter(batch => {
+      const sourceDate = batch.report_date || batch.created_at;
+      return sourceDate?.slice(0, 7) === monthKey;
+    });
+    if (!targetBatches.length) {
+      toast.error("No hay liquidaciones manuales del mes actual para resincronizar.");
+      return;
+    }
+
+    setSyncingRanges(true);
+    try {
+      // Read Registro PD again instead of relying on the page's cached member list.
+      const [p, u] = await Promise.all([
+        db.from("pd_members").select("id,instructor_id,created_at,nombre,rango,sueldo_defecto,es_instructor,division,division2,division3").order("nombre", { ascending: true }),
+        db.from("instructors").select("id,discord_inhabilitado"),
+      ]);
+      if (p.error) throw new Error(p.error.message);
+      if (u.error) throw new Error(u.error.message);
+      const freshMembers = activePdMembers((p.data ?? []) as PdMember[], (u.data ?? []) as any[]);
+      setMembers(freshMembers);
+
+      const byId = new Map(freshMembers.map(member => [member.id, member]));
+      const byName = new Map<string, PdMember[]>();
+      for (const member of freshMembers) {
+        const key = normalize(member.nombre);
+        byName.set(key, [...(byName.get(key) ?? []), member]);
+      }
+
+      const batchIds = new Set(targetBatches.map(batch => batch.id));
+      const rowsToCheck = entries.filter(row => batchIds.has(row.batch_id) && !row.pagado);
+      let updated = 0;
+      let unmatched = 0;
+      const patches: Promise<{ id: string; patch: Partial<Entry> } | null>[] = [];
+
+      for (const row of rowsToCheck) {
+        let member = row.pd_member_id ? byId.get(row.pd_member_id) : undefined;
+        if (!member) {
+          const matches = byName.get(normalize(row.nombre)) ?? [];
+          if (matches.length === 1) member = matches[0];
+        }
+        if (!member) {
+          unmatched++;
+          continue;
+        }
+        const patch: Partial<Entry> = {};
+        if (row.rango_snapshot !== member.rango) patch.rango_snapshot = member.rango;
+        if (row.pd_member_id !== member.id) patch.pd_member_id = member.id;
+        if (Object.keys(patch).length) {
+          patches.push(db.from("manual_salary_entries").update({ ...patch, updated_at: new Date().toISOString() } as any).eq("id", row.id)
+            .then((result: any) => {
+              if (result.error) throw new Error(result.error.message);
+              return { id: row.id, patch };
+            }));
+        }
+      }
+
+      const saved = await Promise.all(patches);
+      updated = saved.filter(Boolean).length;
+      const refreshed = await db.from("manual_salary_entries").select("*").order("created_at", { ascending: true });
+      if (refreshed.error) throw new Error(refreshed.error.message);
+      setEntries((refreshed.data ?? []) as Entry[]);
+      setSelectedBatch(targetBatches[0].id);
+      const syncedAt = new Date().toISOString();
+      setLastRangeSync(syncedAt);
+      await logAction(db, session, "RESYNC_MANUAL_SALARY_RANGES", {
+        month: monthKey, batches: targetBatches.length, updated, unmatched, paidRowsSkipped: entries.filter(row => batchIds.has(row.batch_id) && row.pagado).length,
+      });
+      toast.success(`Rangos actualizados: ${updated}. Sin coincidencia: ${unmatched}. Los registros PAGADOS se conservaron intactos.`);
+    } catch (error: any) {
+      toast.error(error?.message ?? "No se pudieron resincronizar los rangos.");
+    } finally {
+      setSyncingRanges(false);
+    }
+  }
 
   async function prepareReport() {
     const result = parseReport(rawText);
@@ -197,11 +277,16 @@ export function ManualSalariosView({ session }: { session: Session }) {
       <div className="h-1 bg-blue-600" />
       <div className="p-5 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div><h2 className="text-lg font-black uppercase text-slate-900">Liquidaciones guardadas</h2><p className="text-xs text-slate-500">Cada informe queda guardado por separado.</p></div>
-          <div className="flex items-center gap-2">
+          <div><h2 className="text-lg font-black uppercase text-slate-900">Liquidaciones guardadas</h2><p className="text-xs text-slate-500">Cada informe queda guardado por separado. La resincronización actualiza rangos y vínculos únicamente en liquidaciones del mes en curso; nunca modifica filas PAGADAS ni sus importes o notas.</p>{lastRangeSync && <p className="text-[11px] text-blue-700">Última resincronización: {new Date(lastRangeSync).toLocaleString("es-AR")}</p>}</div>
+          <div className="flex flex-wrap items-center gap-2">
             <select value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)} className="h-10 max-w-xs border border-blue-300 bg-white px-3 text-sm text-slate-800">
               {batches.map(batch => <option key={batch.id} value={batch.id}>{batch.label}</option>)}
             </select>
+            <Button size="sm" variant="outline" onClick={resyncCurrentMonthRanges} disabled={syncingRanges || !batches.length}
+              className="h-10 gap-2 border-blue-300 text-blue-800">
+              <RefreshCw className={`w-4 h-4 ${syncingRanges ? "animate-spin" : ""}`} />
+              {syncingRanges ? "Resincronizando…" : "Resincronizar rangos · mes actual"}
+            </Button>
             {currentBatch && <Button size="icon" variant="outline" onClick={() => deleteBatch(currentBatch)} className="border-red-200 text-red-600"><Trash2 className="w-4 h-4" /></Button>}
           </div>
         </div>
