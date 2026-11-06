@@ -4,6 +4,8 @@ const CHANGES_KEY = "discord_webhook_url";
 const RNAP_KEY = "discord_rnap_webhook_url";
 const ARCHIVO_KEY = "discord_archivo_webhook_url";
 const DISCORD_LOGIN_KEY = "discord_code_login_enabled";
+const HIDE_SALARY_KEY = "hide_salary_tab";
+const HIDE_MANUAL_SALARY_KEY = "hide_manual_salary_tab";
 
 const cache: Record<string, { value: string; at: number }> = {};
 
@@ -40,6 +42,13 @@ export async function getDiscordCodeLoginEnabled(force = false): Promise<boolean
 
 export const setDiscordCodeLoginEnabled = (enabled: boolean) =>
   setKey(DISCORD_LOGIN_KEY, enabled ? "true" : "false");
+
+export async function getSalaryTabVisibility(force = false) {
+  const [normal, manual] = await Promise.all([getKey(HIDE_SALARY_KEY, force), getKey(HIDE_MANUAL_SALARY_KEY, force)]);
+  return { hideSalary: normal === "true", hideManualSalary: manual === "true" };
+}
+export const setHideSalaryTab = (hidden: boolean) => setKey(HIDE_SALARY_KEY, hidden ? "true" : "false");
+export const setHideManualSalaryTab = (hidden: boolean) => setKey(HIDE_MANUAL_SALARY_KEY, hidden ? "true" : "false");
 
 export async function sendArchivoToDiscord(params: {
   editorName: string;
