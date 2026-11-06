@@ -35,6 +35,8 @@ const TABLES = new Set([
   "aspirantes",
   "instructors",
   "logs",
+  "manual_salary_batches",
+  "manual_salary_entries",
   "pd_members",
   "records",
   "rnap_certificates",
@@ -148,6 +150,11 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
   };
 
   switch (spec.table) {
+    case "manual_salary_batches":
+    case "manual_salary_entries":
+      if (!alto) deny("Solo Alto Mando puede acceder a los salarios manuales");
+      return spec;
+
     case "salary_months":
     case "salary_entries":
       if (write && !alto) deny("Solo Alto Mando puede editar");
