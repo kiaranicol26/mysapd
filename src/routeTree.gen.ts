@@ -132,6 +132,7 @@ export interface FileRoutesByTo {
   '/registro-policias': typeof RegistroPoliciasRoute
   '/rnap': typeof RnapRoute
   '/salario': typeof SalarioRoute
+  '/salarios-manuales': typeof SalariosManualesRoute
   '/api/public/forum/$': typeof ApiPublicForumSplatRoute
 }
 export interface FileRoutesById {
@@ -149,6 +150,7 @@ export interface FileRoutesById {
   '/registro-policias': typeof RegistroPoliciasRoute
   '/rnap': typeof RnapRoute
   '/salario': typeof SalarioRoute
+  '/salarios-manuales': typeof SalariosManualesRoute
   '/api/public/forum/$': typeof ApiPublicForumSplatRoute
 }
 export interface FileRouteTypes {
@@ -184,7 +186,27 @@ export interface FileRouteTypes {
     | '/registro-policias'
     | '/rnap'
     | '/salario'
+    | '/salarios-manuales'
+    | '/api/public/forum/
+  id:
+    | '__root__'
+    | '/'
+    | '/alto-mando'
+    | '/aspirantes'
+    | '/certificar'
+    | '/exsapd'
+    | '/forum'
+    | '/login'
+    | '/perfil'
+    | '/policias'
+    | '/registro-inhabilitados'
+    | '/registro-policias'
+    | '/rnap'
+    | '/salario'
     | '/api/public/forum/$'
+  fileRoutesById: FileRoutesById
+}
+
   id:
     | '__root__'
     | '/'
