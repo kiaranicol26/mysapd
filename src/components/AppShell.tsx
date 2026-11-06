@@ -61,6 +61,8 @@ export function AppShell({ session, children }: { session: Session | null; child
   }
 
   const tabs = TABS.filter(t => {
+    if (t.to === "/salario" && salaryVisibility.hideSalary) return false;
+    if (t.to === "/salarios-manuales" && salaryVisibility.hideManualSalary) return false;
     if (!session) return t.public;
     if (t.alto) return session.is_alto_mando;
     if (t.to === "/registro-inhabilitados" && session.can_edit_pd) return true;
