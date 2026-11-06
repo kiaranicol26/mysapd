@@ -44,6 +44,7 @@ const TABLES = new Set([
 
 const PUBLIC_BG_KEY = "site_background_url";
 const PUBLIC_LOGIN_KEY = "discord_code_login_enabled";
+const PUBLIC_SALARY_TAB_KEYS = ["hide_salary_tab", "hide_manual_salary_tab"];
 export const LOGIN_COLUMNS =
   "id, name, is_alto_mando, can_delete, can_emit_rnap, can_edit_files, can_edit_pd, can_edit_capacitaciones, role, avatar_url, descripcion, secciones, discord_id, discord_inhabilitado, discord_checked_at";
 
@@ -172,7 +173,7 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
         if (!alto) deny("Solo Alto Mando puede editar la configuración");
         return spec;
       }
-      if (!claims && ![PUBLIC_BG_KEY, PUBLIC_LOGIN_KEY].includes(String(filterValue(spec, "key")))) deny();
+      if (!claims && ![PUBLIC_BG_KEY, PUBLIC_LOGIN_KEY, ...PUBLIC_SALARY_TAB_KEYS].includes(String(filterValue(spec, "key")))) deny();
       return spec;
 
     case "logs":
