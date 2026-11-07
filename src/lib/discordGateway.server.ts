@@ -42,7 +42,7 @@ type GuildMember = {
 };
 
 const SCAN_KEY = "guild_scan_at";
-const SCAN_INTERVAL = 10 * 60_000;
+const SCAN_INTERVAL = 60_000;
 
 function nickParts(m: GuildMember) {
   const raw = m.nick || m.user?.global_name || m.user?.username || "";
@@ -151,6 +151,7 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
       if (tag !== (row.tag ?? null)) profilePatch.tag = tag;
       if (m.user!.username !== row.discord_username) profilePatch.discord_username = m.user!.username;
       if (avatar && avatar !== row.avatar_url) profilePatch.avatar_url = avatar;
+      if (placa && placa !== (row.placa ?? null)) profilePatch.placa = placa;
       if (Object.keys(profilePatch).length) {
         const { error: profileError } = await admin.from("instructors").update(profilePatch).eq("id", row.id);
         if (profileError) throw new Error("No se pudo sincronizar el perfil desde Discord");
@@ -184,12 +185,16 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
           }
         }
       }
-      if (rangoDiscord) {
+      if (rangoDiscord || placa) {
+        const pdPatch: Record<string, string> = {};
+        if (rangoDiscord) pdPatch.rango = rangoDiscord;
+        if (placa) pdPatch.placa = placa;
         const { error: linkedPdError } = await admin.from("pd_members")
-          .update({ rango: rangoDiscord }).eq("instructor_id", row.id);
+          .update(pdPatch).eq("instructor_id", row.id);
         if (linkedPdError) throw new Error("No se pudo sincronizar el rango en Registro PD");
       }
       row.tag = tag;
+      if (placa) row.placa = placa;
       row.discord_username = m.user!.username;
       row.avatar_url = avatar ?? row.avatar_url;
       if (m.joined_at) {

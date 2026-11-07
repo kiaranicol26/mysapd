@@ -1,4 +1,4 @@
-import { test, expect } from "vitest";
+import { test, expect } from "bun:test";
 import { activePdMembers, planMonthSync } from "./registroActivo";
 
 test("users not in Registro (unlinked or disabled) are excluded", () => {
