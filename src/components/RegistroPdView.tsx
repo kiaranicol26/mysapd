@@ -78,7 +78,7 @@ const ROLES = [
 const roleKey = (r: string | null) => (r && ROLES.some(x => x.value === r) ? r : "Usuario");
 
 const emptyDraft: Draft = {
-  nombre: "", rango: "Oficial", foto: "", placa: "",
+  nombre: "", rango: "", foto: "", placa: "",
   division: "Ninguna", division_rango: "Miembro",
   division2: "Ninguna", division2_rango: "Miembro",
   division3: "Ninguna", division3_rango: "Miembro", sueldo_defecto: 0, es_instructor: false,
