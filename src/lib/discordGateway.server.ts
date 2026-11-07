@@ -172,22 +172,19 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
       // Rank comes from the highest Discord rank role; the [TAG] is the fallback.
       // El estado de Instructor se administra manualmente desde Registro PD.
       // The current [TAG] is the source of truth: assign its rank role, remove other rank roles.
-      const rangoDiscord = rangoFromTag(tag);
+      // Rank = highest Discord rank role the member holds; no default rank.
+      const rangoDiscord = RANK_ORDER.find(r => { const id = rankRoleIds.get(r); return id && m.roles?.includes(id); }) ?? null;
       if (rangoDiscord) {
         const wantRole = rankRoleIds.get(rangoDiscord);
         const base = `guilds/${FACTION_GUILD_ID}/members/${m.user!.id}/roles/`;
-        if (wantRole && !m.roles?.includes(wantRole)) {
-          try { await discord(base + wantRole, { method: "PUT" }); } catch { /* bot lacks permission/hierarchy */ }
-        }
         for (const [r, id] of rankRoleIds) {
           if (r !== rangoDiscord && m.roles?.includes(id)) {
             try { await discord(base + id, { method: "DELETE" }); } catch { /* ignore */ }
           }
         }
       }
-      if (rangoDiscord || placa) {
-        const pdPatch: Record<string, string> = {};
-        if (rangoDiscord) pdPatch.rango = rangoDiscord;
+      {
+        const pdPatch: Record<string, string | null> = { rango: rangoDiscord };
         if (placa) pdPatch.placa = placa;
         const { error: linkedPdError } = await admin.from("pd_members")
           .update(pdPatch).eq("instructor_id", row.id);
