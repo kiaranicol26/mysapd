@@ -148,7 +148,7 @@ export function RegistroPdPublicView({ session }: { session: Session | null }) {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{unrankedRows.map(({ u }) => <Card key={u.id} className="p-4 rounded-none border-2 border-slate-200 bg-white"><p className="font-black text-slate-900">{u.name}</p><p className="font-mono text-sm text-blue-700">#{u.placa || "0000"}</p><p className="text-xs text-slate-500 mt-2">Sin rango asignado</p></Card>)}</div>
         </section>}
       {!loading && rows.length === 0 && <Card className="p-10 text-center text-slate-500">No hay policías para mostrar.</Card>}
-        </>
+        </>}
     </div>
   </AppShell>;
 }
