@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [perf/auditoria-inicial]
+    branches: [main, perf/auditoria-inicial]
 
 permissions:
   contents: read
