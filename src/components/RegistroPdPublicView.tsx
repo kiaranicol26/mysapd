@@ -107,9 +107,9 @@ export function RegistroPdPublicView({ session }: { session: Session | null }) {
                   {caps.length ? (
                     <div className="grid grid-cols-2 gap-1">
                       {caps.map(c => (
-                        <div key={c.key} className="flex items-center gap-1.5 border border-blue-200 bg-blue-50/70 px-1.5 py-1" title={`Capacitado en ${c.label}`}>
+                        <div key={c.key} className="flex items-center gap-1.5 border border-[#8e8dd8] bg-[#A9A8E6] px-1.5 py-1" title={`Capacitado en ${c.label}`}>
                           <img src={c.picto} alt="" className="w-4 h-4 shrink-0 object-contain" />
-                          <span className="text-[10px] font-black uppercase text-blue-800">{c.label}</span>
+                          <span className="text-[10px] font-black uppercase text-[#050145]">{c.label}</span>
                         </div>
                       ))}
                     </div>
