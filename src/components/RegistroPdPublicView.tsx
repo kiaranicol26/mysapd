@@ -5,87 +5,121 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { UserRound, ShieldCheck } from "lucide-react";
 import type { Session } from "@/lib/session";
+import pictoM4 from "@/assets/picto-m4.png.asset.json";
+import pictoEdc from "@/assets/picto-edc.png.asset.json";
+import pictoSniper from "@/assets/picto-sniper.png.asset.json";
+import pictoAk from "@/assets/picto-ak.png.asset.json";
+import pictoMary from "@/assets/picto-mary.png.asset.json";
+import pictoAir from "@/assets/picto-air.png.asset.json";
 
-type Member = { id:string; instructor_id:string|null; nombre:string; rango:string|null; foto:string|null; placa:string|null; es_instructor:boolean };
-type User = { id:string; name:string; avatar_url:string|null; role:string|null; placa:string|null; discord_joined_at:string|null; discord_inhabilitado:boolean };
+type Member = {
+  id: string; instructor_id: string | null; nombre: string; rango: string | null; foto: string | null;
+  placa: string | null; es_instructor: boolean;
+  cap_m4: boolean; cap_edc: boolean; cap_mary: boolean; cap_sniper: boolean; cap_air: boolean; cap_ak47: boolean;
+};
+type User = { id: string; name: string; avatar_url: string | null; role: string | null; placa: string | null; discord_joined_at: string | null; discord_inhabilitado: boolean };
 
-const CARGO: Record<string,string> = {
-  Comisario:"Encargado de SAPD", Cupula:"Cúpula", Usuario:"Agente"
+const CARGO: Record<string, string> = {
+  Comisario: "Encargado de SAPD", Cupula: "Cúpula", Usuario: "Agente"
 };
 
-function daysSince(value:string|null) {
+const CAPACITACIONES = [
+  { key: "cap_m4", label: "M4", picto: pictoM4.url },
+  { key: "cap_edc", label: "EDC", picto: pictoEdc.url },
+  { key: "cap_mary", label: "MARY", picto: pictoMary.url },
+  { key: "cap_sniper", label: "SNIPER", picto: pictoSniper.url },
+  { key: "cap_air", label: "AIR", picto: pictoAir.url },
+  { key: "cap_ak47", label: "AK47", picto: pictoAk.url },
+] as const;
+
+function daysSince(value: string | null) {
   if (!value) return null;
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return null;
-  return Math.max(0, Math.floor((Date.now()-date.getTime())/86400000));
+  return Math.max(0, Math.floor((Date.now() - date.getTime()) / 86400000));
 }
 
-export function RegistroPdPublicView({session}:{session:Session|null}) {
-  const [members,setMembers]=useState<Member[]>([]);
-  const [users,setUsers]=useState<User[]>([]);
-  const [query,setQuery]=useState("");
-  const [loading,setLoading]=useState(true);
+export function RegistroPdPublicView({ session }: { session: Session | null }) {
+  const [members, setMembers] = useState<Member[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  useEffect(()=>{
-    let active=true;
+  useEffect(() => {
+    let active = true;
     Promise.all([
-      db.from("pd_members").select("id, instructor_id, nombre, rango, foto, placa, es_instructor").order("nombre",{ascending:true}),
-      db.from("instructors").select("id, name, avatar_url, role, placa, discord_joined_at, discord_inhabilitado").order("name",{ascending:true})
-    ]).then(([a,b])=>{
-      if(!active)return;
-      if(a.data)setMembers(a.data as Member[]);
-      if(b.data)setUsers(b.data as User[]);
+      db.from("pd_members").select("id, instructor_id, nombre, rango, foto, placa, es_instructor, cap_m4, cap_edc, cap_mary, cap_sniper, cap_air, cap_ak47").order("nombre", { ascending: true }),
+      db.from("instructors").select("id, name, avatar_url, role, placa, discord_joined_at, discord_inhabilitado").order("name", { ascending: true })
+    ]).then(([a, b]) => {
+      if (!active) return;
+      if (a.data) setMembers(a.data as Member[]);
+      if (b.data) setUsers(b.data as User[]);
       setLoading(false);
-    }).catch(()=>setLoading(false));
-    return ()=>{active=false};
-  },[]);
+    }).catch(() => setLoading(false));
+    return () => { active = false };
+  }, []);
 
-  const rows=useMemo(()=>users.filter(u=>!u.discord_inhabilitado).map(u=>{
-    const m=members.find(x=>x.instructor_id===u.id) ??
-      members.find(x=>x.nombre.trim().toLowerCase()===u.name.trim().toLowerCase());
-    return {u,m};
-  }).filter(({u,m})=>(u.name+" "+(u.placa??m?.placa??"")+" "+(m?.rango??"")+" "+(CARGO[u.role??"Usuario"]??u.role??"Agente")).toLowerCase().includes(query.toLowerCase())),[users,members,query]);
+  const rows = useMemo(() => users.filter(u => !u.discord_inhabilitado).map(u => {
+    const m = members.find(x => x.instructor_id === u.id) ??
+      members.find(x => x.nombre.trim().toLowerCase() === u.name.trim().toLowerCase());
+    return { u, m };
+  }).filter(({ u, m }) => (u.name + " " + (u.placa ?? m?.placa ?? "") + " " + (m?.rango ?? "") + " " + (CARGO[u.role ?? "Usuario"] ?? u.role ?? "Agente") + " " +
+    CAPACITACIONES.filter(c => m?.[c.key]).map(c => c.label).join(" ")).toLowerCase().includes(query.toLowerCase())), [users, members, query]);
 
   return <AppShell session={session}>
     <div className="max-w-6xl mx-auto space-y-5">
       <Card className="overflow-hidden border-2 border-blue-300 bg-white rounded-none">
-        <div className="h-1.5 bg-blue-700"/>
+        <div className="h-1.5 bg-blue-700" />
         <div className="p-5 flex flex-wrap items-center gap-4">
-          <div className="w-12 h-12 flex items-center justify-center border-2 border-blue-300 text-blue-700"><ShieldCheck className="w-7 h-7"/></div>
+          <div className="w-12 h-12 flex items-center justify-center border-2 border-blue-300 text-blue-700"><ShieldCheck className="w-7 h-7" /></div>
           <div className="flex-1 min-w-[180px]">
             <p className="text-blue-700 text-xs uppercase tracking-[0.3em] font-extrabold">San Andreas Police Department</p>
             <h2 className="text-2xl font-black uppercase text-slate-900">Registro de Policías</h2>
             <p className="text-xs text-slate-500">Listado oficial del personal activo</p>
           </div>
           <div className="bg-blue-700 text-white px-3 py-2 text-xs font-bold uppercase">{rows.length} agentes</div>
-          <Input placeholder="Buscar por nombre, placa, rango o cargo…" value={query} onChange={e=>setQuery(e.target.value)} className="max-w-sm rounded-none border-blue-300"/>
+          <Input placeholder="Buscar por nombre, placa, rango, cargo o capacitación…" value={query} onChange={e => setQuery(e.target.value)} className="max-w-sm rounded-none border-blue-300" />
         </div>
       </Card>
       {loading ? <Card className="p-10 text-center">Cargando registro policial…</Card> :
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {rows.map(({u,m})=>{
-            const age=daysSince(u.discord_joined_at);
-            const photo=m?.foto||u.avatar_url||null;
+          {rows.map(({ u, m }) => {
+            const age = daysSince(u.discord_joined_at);
+            const photo = m?.foto || u.avatar_url || null;
+            const caps = CAPACITACIONES.filter(c => m?.[c.key]);
             return <Card key={u.id} className="overflow-hidden rounded-none border-2 border-slate-200 bg-white">
-              <div className="h-1.5 bg-blue-700"/>
+              <div className="h-1.5 bg-blue-700" />
               <div className="p-4 flex gap-3 items-center">
                 <div className="w-16 h-16 shrink-0 overflow-hidden border-2 border-blue-200 bg-slate-100 flex items-center justify-center">
-                  {photo?<img src={photo} alt={u.name} className="w-full h-full object-cover"/>:<UserRound className="w-8 h-8 text-slate-400"/>}
+                  {photo ? <img src={photo} alt={u.name} className="w-full h-full object-cover" /> : <UserRound className="w-8 h-8 text-slate-400" />}
                 </div>
                 <div className="min-w-0">
                   <p className="font-black text-slate-900 break-words">{u.name}</p>
-                  <p className="font-mono text-sm font-bold text-blue-700">#{u.placa||m?.placa||"0000"}</p>
+                  <p className="font-mono text-sm font-bold text-blue-700">#{u.placa || m?.placa || "0000"}</p>
                 </div>
               </div>
               <div className="px-4 pb-4 space-y-2 text-sm">
-                <div className="border-t pt-2"><p className="text-[10px] uppercase tracking-widest text-slate-500 font-extrabold">Rango</p><p className="font-bold text-slate-900">{m?.rango||"Sin rango asignado"}</p></div>
-                <div><p className="text-[10px] uppercase tracking-widest text-slate-500 font-extrabold">Cargo</p><p className="font-bold text-slate-900">{m?.es_instructor ? "Instructor" : CARGO[u.role??"Usuario"]??(u.role === "Instructor" ? "Agente" : u.role)??"Agente"}</p></div>
-                <div><p className="text-[10px] uppercase tracking-widest text-slate-500 font-extrabold">Antigüedad</p><p className="font-bold text-slate-900">{age===null?"Pendiente de sincronización":age+" días"}</p></div>
+                <div className="border-t pt-2"><p className="text-[10px] uppercase tracking-widest text-slate-500 font-extrabold">Rango</p><p className="font-bold text-slate-900">{m?.rango || "Sin rango asignado"}</p></div>
+                <div><p className="text-[10px] uppercase tracking-widest text-slate-500 font-extrabold">Cargo</p><p className="font-bold text-slate-900">{m?.es_instructor ? "Instructor" : CARGO[u.role ?? "Usuario"] ?? (u.role === "Instructor" ? "Agente" : u.role) ?? "Agente"}</p></div>
+                <div><p className="text-[10px] uppercase tracking-widest text-slate-500 font-extrabold">Antigüedad</p><p className="font-bold text-slate-900">{age === null ? "Pendiente de sincronización" : age + " días"}</p></div>
+                <div className="border-t pt-2">
+                  <p className="text-[10px] uppercase tracking-widest text-slate-500 font-extrabold mb-1">Capacitaciones</p>
+                  {caps.length ? (
+                    <div className="grid grid-cols-2 gap-1">
+                      {caps.map(c => (
+                        <div key={c.key} className="flex items-center gap-1.5 border border-blue-200 bg-blue-50/70 px-1.5 py-1" title={`Capacitado en ${c.label}`}>
+                          <img src={c.picto} alt="" className="w-4 h-4 shrink-0 object-contain" />
+                          <span className="text-[10px] font-black uppercase text-blue-800">{c.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <p className="text-xs font-bold text-slate-400">Sin capacitaciones</p>}
+                </div>
               </div>
             </Card>
           })}
         </div>}
-      {!loading&&rows.length===0&&<Card className="p-10 text-center text-slate-500">No hay policías para mostrar.</Card>}
+      {!loading && rows.length === 0 && <Card className="p-10 text-center text-slate-500">No hay policías para mostrar.</Card>}
     </div>
   </AppShell>;
 }
