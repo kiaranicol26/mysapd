@@ -187,28 +187,7 @@ export interface FileRouteTypes {
     | '/rnap'
     | '/salario'
     | '/salarios-manuales'
-    | '/salarios-manuales'
-    | '/api/public/forum/
-  id:
-    | '__root__'
-    | '/'
-    | '/alto-mando'
-    | '/aspirantes'
-    | '/certificar'
-    | '/exsapd'
-    | '/forum'
-    | '/login'
-    | '/perfil'
-    | '/policias'
-    | '/registro-inhabilitados'
-    | '/registro-policias'
-    | '/rnap'
-    | '/salario'
-    | '/salarios-manuales'
     | '/api/public/forum/$'
-  fileRoutesById: FileRoutesById
-}
-
   id:
     | '__root__'
     | '/'
@@ -224,6 +203,7 @@ export interface FileRouteTypes {
     | '/registro-policias'
     | '/rnap'
     | '/salario'
+    | '/salarios-manuales'
     | '/api/public/forum/$'
   fileRoutesById: FileRoutesById
 }
@@ -345,46 +325,7 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SalariosManualesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/forum/      id: '/api/public/forum/$'
-      path: '/api/public/forum/$'
-      fullPath: '/api/public/forum/$'
-      preLoaderRoute: typeof ApiPublicForumSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-  }
-}
-
-const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AltoMandoRoute: AltoMandoRoute,
-  AspirantesRoute: AspirantesRoute,
-  CertificarRoute: CertificarRoute,
-  ExsapdRoute: ExsapdRoute,
-  ForumRoute: ForumRoute,
-  LoginRoute: LoginRoute,
-  PerfilRoute: PerfilRoute,
-  PoliciasRoute: PoliciasRoute,
-  RegistroInhabilitadosRoute: RegistroInhabilitadosRoute,
-  RegistroPoliciasRoute: RegistroPoliciasRoute,
-  RnapRoute: RnapRoute,
-  SalarioRoute: SalarioRoute,
-  SalariosManualesRoute: SalariosManualesRoute,
-  ApiPublicForumSplatRoute: ApiPublicForumSplatRoute,
-}
-export const routeTree = rootRouteImport
-  ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
-: {
+    '/api/public/forum/$': {
       id: '/api/public/forum/$'
       path: '/api/public/forum/$'
       fullPath: '/api/public/forum/$'
@@ -408,6 +349,7 @@ const rootRouteChildren: RootRouteChildren = {
   RegistroPoliciasRoute: RegistroPoliciasRoute,
   RnapRoute: RnapRoute,
   SalarioRoute: SalarioRoute,
+  SalariosManualesRoute: SalariosManualesRoute,
   ApiPublicForumSplatRoute: ApiPublicForumSplatRoute,
 }
 export const routeTree = rootRouteImport
