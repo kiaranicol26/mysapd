@@ -1,5 +1,4 @@
 import { FACTION_GUILD_ID, membershipDisabled } from "./discordMembership";
-import { rangoFromTag } from "./rangos";
 
 /** Highest rank first: a member with several rank roles gets the highest. */
 const RANK_ORDER = ["Comisario", "Inspector", "Capitan", "Teniente", "Sargento", "Cabo", "Oficial", "Cadete", "Aspirante"];
@@ -169,13 +168,10 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
         renamed++;
       }
 
-      // Rank comes from the highest Discord rank role; the [TAG] is the fallback.
       // El estado de Instructor se administra manualmente desde Registro PD.
-      // The current [TAG] is the source of truth: assign its rank role, remove other rank roles.
       // Rank = highest Discord rank role the member holds; no default rank.
       const rangoDiscord = RANK_ORDER.find(r => { const id = rankRoleIds.get(r); return id && m.roles?.includes(id); }) ?? null;
       if (rangoDiscord) {
-        const wantRole = rankRoleIds.get(rangoDiscord);
         const base = `guilds/${FACTION_GUILD_ID}/members/${m.user!.id}/roles/`;
         for (const [r, id] of rankRoleIds) {
           if (r !== rangoDiscord && m.roles?.includes(id)) {
