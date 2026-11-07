@@ -93,7 +93,7 @@ export function RegistroPdPublicView({ session }: { session: Session | null }) {
           <Input placeholder="Buscar por nombre, placa, rango, cargo o capacitación…" value={query} onChange={e => setQuery(e.target.value)} className="max-w-sm rounded-none border-blue-300" />
         </div>
       </Card>
-      {loading ? <Card className="p-10 text-center">Cargando registro policial…</Card> :
+      {loading ? <Card className="p-10 text-center">Cargando registro policial…</Card> : <>
         {groupedRows.map(group => <section key={group.rank} className="space-y-3">
           <div className="flex items-center gap-3 bg-blue-700 text-white px-4 py-2">
             <h3 className="font-display font-black uppercase tracking-[0.25em] text-sm">[{group.label}]</h3>
@@ -148,6 +148,7 @@ export function RegistroPdPublicView({ session }: { session: Session | null }) {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{unrankedRows.map(({ u }) => <Card key={u.id} className="p-4 rounded-none border-2 border-slate-200 bg-white"><p className="font-black text-slate-900">{u.name}</p><p className="font-mono text-sm text-blue-700">#{u.placa || "0000"}</p><p className="text-xs text-slate-500 mt-2">Sin rango asignado</p></Card>)}</div>
         </section>}
       {!loading && rows.length === 0 && <Card className="p-10 text-center text-slate-500">No hay policías para mostrar.</Card>}
+        </>
     </div>
   </AppShell>;
 }
