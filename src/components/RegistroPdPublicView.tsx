@@ -101,7 +101,7 @@ export function RegistroPdPublicView({ session }: { session: Session | null }) {
               <div className="px-4 pb-4 space-y-2 text-sm">
                 <div className="border-t pt-2"><p className="text-[10px] uppercase tracking-widest text-slate-500 font-extrabold">Rango</p><p className="font-bold text-slate-900">{m?.rango || "Sin rango asignado"}</p></div>
                 <div><p className="text-[10px] uppercase tracking-widest text-slate-500 font-extrabold">Cargo</p><p className="font-bold text-slate-900">{m?.es_instructor ? "Instructor" : CARGO[u.role ?? "Usuario"] ?? (u.role === "Instructor" ? "Agente" : u.role) ?? "Agente"}</p></div>
-                <div><p className="text-[10px] uppercase tracking-widest text-slate-500 font-extrabold">Antigüedad</p><p className="font-bold text-slate-900">{age === null ? "Pendiente de sincronización" : age + " días"}</p></div>
+                <div><p className="text-[10px] uppercase tracking-widest text-slate-500 font-extrabold">Antigüedad Academica</p><p className="font-bold text-slate-900">{age === null ? "Pendiente de sincronización" : age + " días"}</p></div>
                 <div className="border-t pt-2">
                   <p className="text-[10px] uppercase tracking-widest text-slate-500 font-extrabold mb-1">Capacitaciones</p>
                   {caps.length ? (
