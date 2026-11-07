@@ -12,7 +12,7 @@ import pictoSniper from "@/assets/picto-sniper.png.asset.json";
 import pictoAk from "@/assets/picto-ak.png.asset.json";
 import pictoMary from "@/assets/picto-mary.png.asset.json";
 import pictoAir from "@/assets/picto-air.png.asset.json";
-
+ 
 type Member = {
   id: string; instructor_id: string | null; nombre: string; rango: string | null; foto: string | null;
   placa: string | null; es_instructor: boolean;
