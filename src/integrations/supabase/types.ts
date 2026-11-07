@@ -343,6 +343,93 @@ export type Database = {
         }
         Relationships: []
       }
+      manual_salary_batches: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string
+          raw_text: string
+          report_date: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label: string
+          raw_text?: string
+          report_date?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          raw_text?: string
+          report_date?: string | null
+        }
+        Relationships: []
+      }
+      manual_salary_entries: {
+        Row: {
+          actividad: string
+          activity_minutes: number | null
+          batch_id: string
+          created_at: string
+          id: string
+          nombre: string
+          nota: string | null
+          pagado: boolean
+          pd_member_id: string | null
+          rango_snapshot: string | null
+          sueldo: number
+          updated_at: string
+        }
+        Insert: {
+          actividad?: string
+          activity_minutes?: number | null
+          batch_id: string
+          created_at?: string
+          id?: string
+          nombre: string
+          nota?: string | null
+          pagado?: boolean
+          pd_member_id?: string | null
+          rango_snapshot?: string | null
+          sueldo?: number
+          updated_at?: string
+        }
+        Update: {
+          actividad?: string
+          activity_minutes?: number | null
+          batch_id?: string
+          created_at?: string
+          id?: string
+          nombre?: string
+          nota?: string | null
+          pagado?: boolean
+          pd_member_id?: string | null
+          rango_snapshot?: string | null
+          sueldo?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manual_salary_entries_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "manual_salary_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_salary_entries_pd_member_id_fkey"
+            columns: ["pd_member_id"]
+            isOneToOne: false
+            referencedRelation: "pd_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pd_members: {
         Row: {
           cap_air: boolean
