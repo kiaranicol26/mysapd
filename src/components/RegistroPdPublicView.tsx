@@ -105,11 +105,11 @@ export function RegistroPdPublicView({ session }: { session: Session | null }) {
                 <div className="border-t pt-2">
                   <p className="text-[10px] uppercase tracking-widest text-slate-500 font-extrabold mb-1">Capacitaciones</p>
                   {caps.length ? (
-                    <div className="grid grid-cols-3 gap-1">
+                    <div className="grid grid-cols-2 gap-1">
                       {caps.map(c => (
-                        <div key={c.key} className="flex items-center gap-1 border border-blue-200 bg-blue-50/70 px-1.5 py-1" title={`Capacitado en ${c.label}`}>
+                        <div key={c.key} className="flex items-center gap-1.5 border border-blue-200 bg-blue-50/70 px-1.5 py-1" title={`Capacitado en ${c.label}`}>
                           <img src={c.picto} alt="" className="w-4 h-4 shrink-0 object-contain" />
-                          <span className="text-[10px] font-black uppercase text-blue-800 truncate">{c.label}</span>
+                          <span className="text-[10px] font-black uppercase text-blue-800">{c.label}</span>
                         </div>
                       ))}
                     </div>
