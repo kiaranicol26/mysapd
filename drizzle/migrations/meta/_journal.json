@@ -50,6 +50,13 @@
       "when": 1793987794737,
       "tag": "0006_salary_entries_extras_pd_link",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794166462537,
+      "tag": "0007_admin_rango",
+      "breakpoints": true
     }
   ]
 }

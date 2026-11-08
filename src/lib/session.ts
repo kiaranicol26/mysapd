@@ -5,6 +5,7 @@ export type Session = {
   id: string;
   name: string;
   is_alto_mando: boolean;
+  admin_rango?: string;
   can_delete: boolean;
   can_emit_rnap: boolean;
   can_edit_files?: boolean;

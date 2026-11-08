@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { limpiarSecciones } from "@/lib/secciones";
+import { normalizeRango, permisosDeRango, puedeGestionar } from "@/lib/adminRango";
 
 export type Claims = {
   id: string;
@@ -12,6 +13,7 @@ export type Claims = {
   role?: string | null;
   sec?: string[];
   capacitaciones?: boolean;
+  rango?: string;
   exp: number;
 };
 
@@ -48,28 +50,31 @@ const PUBLIC_BG_KEY = "site_background_url";
 const PUBLIC_LOGIN_KEY = "discord_code_login_enabled";
 const PUBLIC_SALARY_TAB_KEYS = ["hide_salary_tab", "hide_manual_salary_tab"];
 export const LOGIN_COLUMNS =
-  "id, name, is_alto_mando, can_delete, can_emit_rnap, can_edit_files, can_edit_pd, can_edit_capacitaciones, role, avatar_url, descripcion, secciones, discord_id, discord_inhabilitado, discord_checked_at";
+  "id, name, is_alto_mando, can_delete, can_emit_rnap, can_edit_files, can_edit_pd, can_edit_capacitaciones, role, avatar_url, descripcion, secciones, discord_id, discord_inhabilitado, discord_checked_at, admin_rango";
 
 /** Builds the browser session and signed token from a fresh instructors row. */
 export function buildLogin(r: any) {
-  const alto = !!r.is_alto_mando;
+  const rango = normalizeRango(r.admin_rango);
+  const p = permisosDeRango(rango);
+  const alto = p.alto;
   const session = {
     id: r.id as string,
     name: r.name as string,
+    admin_rango: rango,
     is_alto_mando: alto,
-    can_delete: alto || !!r.can_delete,
-    can_emit_rnap: alto || !!r.can_emit_rnap,
-    can_edit_files: alto || !!r.can_edit_files,
-    can_edit_pd: alto || !!r.can_edit_pd,
-    can_edit_capacitaciones: alto || !!r.can_edit_capacitaciones,
+    can_delete: p.del,
+    can_emit_rnap: p.rnap,
+    can_edit_files: p.files,
+    can_edit_pd: p.pd,
+    can_edit_capacitaciones: p.capacitaciones,
     avatar_url: (r.avatar_url ?? null) as string | null,
     role: (r.role ?? null) as string | null,
     descripcion: (r.descripcion ?? null) as string | null,
-    secciones: limpiarSecciones(r.secciones) as string[],
+    secciones: [...new Set([...limpiarSecciones(r.secciones), ...p.extraSecciones])] as string[],
   };
   const token = issueToken({
     id: session.id, name: session.name, alto, del: session.can_delete, rnap: session.can_emit_rnap,
-    files: session.can_edit_files, pd: session.can_edit_pd, capacitaciones: session.can_edit_capacitaciones, role: session.role, sec: session.secciones,
+    files: session.can_edit_files, pd: session.can_edit_pd, capacitaciones: session.can_edit_capacitaciones, role: session.role, sec: session.secciones, rango,
   });
   return { session, token };
 }
@@ -80,10 +85,11 @@ export async function freshClaims(claims: Claims | null, admin: { from: (t: stri
   const { data: r } = await admin.from("instructors").select(LOGIN_COLUMNS).eq("id", claims.id).maybeSingle();
   if (!r) return null;
   // ID-only login: no Discord membership gate on requests.
-  const alto = !!r.is_alto_mando;
+  const rango = normalizeRango(r.admin_rango);
+  const p = permisosDeRango(rango);
   return {
-    ...claims, name: r.name, alto, del: alto || !!r.can_delete, rnap: alto || !!r.can_emit_rnap,
-    files: alto || !!r.can_edit_files, pd: alto || !!r.can_edit_pd, capacitaciones: alto || !!r.can_edit_capacitaciones, role: r.role ?? null, sec: limpiarSecciones(r.secciones),
+    ...claims, name: r.name, alto: p.alto, del: p.del, rnap: p.rnap, files: p.files, pd: p.pd, capacitaciones: p.capacitaciones,
+    role: r.role ?? null, sec: [...new Set([...limpiarSecciones(r.secciones), ...p.extraSecciones])], rango,
   };
 }
 
@@ -149,6 +155,10 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
     if (!alto && !claims.sec?.includes(sec)) deny("Sin acceso a este apartado");
   };
 
+  const editor = permisosDeRango(claims?.rango).puedeEditar || alto;
+  if (write && claims && !editor && !(spec.table === "logs" && spec.op === "insert") &&
+      !(spec.table === "instructors" && spec.op === "update")) deny("Tu rango (Usuario) solo permite ver");
+
   switch (spec.table) {
     case "manual_salary_batches":
     case "manual_salary_entries":
@@ -204,7 +214,7 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
         }
         if (alto) return spec;
         const publicCols = new Set(["id", "name", "avatar_url", "descripcion", "role", "banner_url", "color_perfil", "pronombres", "placa",
-          "discord_username", "tag", "is_alto_mando", "can_delete", "can_emit_rnap", "can_edit_files", "can_edit_pd", "secciones", "discord_inhabilitado", "discord_joined_at"]);
+          "discord_username", "tag", "admin_rango", "is_alto_mando", "can_delete", "can_emit_rnap", "can_edit_files", "can_edit_pd", "secciones", "discord_inhabilitado", "discord_joined_at"]);
         if (cols.length > 0 && cols.every(c => publicCols.has(c))) return spec;
         return { ...spec, filters: [{ type: "eq", column: "id", value: claims.id }] };
       }
@@ -234,6 +244,7 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
     case "rnap_certificates":
       if (!claims) deny();
       need(spec.table === "records" ? "exsapd" : spec.table === "aspirantes" ? "aspirantes" : "rnap");
+      if (write && spec.table !== "rnap_certificates" && !alto && !claims.pd) deny("Se requiere rango Moderador");
       if (spec.op === "delete" && !claims.del) deny("Sin permiso para borrar");
       return spec;
 
@@ -290,6 +301,21 @@ export async function runQuery(spec: QuerySpec, claims: Claims | null, admin: Ad
         value.discord_inhabilitado = false;
         value.discord_checked_at = new Date().toISOString();
       }
+    }
+  }
+  if (safe.table === "pd_members" && (safe.op === "update" || safe.op === "delete") && claims && !claims.alto) {
+    const capOnly = safe.op === "update" && patchKeys(safe.values).length > 0 &&
+      patchKeys(safe.values).every(k => k.startsWith("cap_"));
+    if (!capOnly) {
+      const id = filterValue(safe, "id");
+      if (!id) deny("Operación no permitida");
+      const { data: m } = await admin.from("pd_members").select("instructor_id").eq("id", id).maybeSingle();
+      let objetivo = "usuario";
+      if (m?.instructor_id) {
+        const { data: t } = await admin.from("instructors").select("admin_rango").eq("id", m.instructor_id).maybeSingle();
+        objetivo = t?.admin_rango ?? "usuario";
+      }
+      if (!puedeGestionar(claims.rango, objetivo)) deny("Solo podés gestionar policías con rango administrativo inferior al tuyo");
     }
   }
   let q = admin.from(safe.table) as any;

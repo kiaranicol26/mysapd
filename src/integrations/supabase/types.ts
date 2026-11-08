@@ -234,6 +234,7 @@ export type Database = {
       }
       instructors: {
         Row: {
+          admin_rango: string
           avatar_url: string | null
           banner_url: string | null
           can_delete: boolean
@@ -261,6 +262,7 @@ export type Database = {
           tag: string | null
         }
         Insert: {
+          admin_rango?: string
           avatar_url?: string | null
           banner_url?: string | null
           can_delete?: boolean
@@ -288,6 +290,7 @@ export type Database = {
           tag?: string | null
         }
         Update: {
+          admin_rango?: string
           avatar_url?: string | null
           banner_url?: string | null
           can_delete?: boolean
