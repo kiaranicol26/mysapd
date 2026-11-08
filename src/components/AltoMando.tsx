@@ -201,7 +201,7 @@ export function AltoMando({ session }: { session: Session }) {
     const id = newId.trim().toUpperCase();
     const name = newName.trim();
     if (!id || !name) return toast.error("ID y nombre requeridos");
-    const isAlto = newRole === "Comisario";
+    const isAlto = false;
     const { error } = await db.from("instructors").insert({
       id, name,
       discord_id: newDiscordId.trim(),
@@ -225,14 +225,6 @@ export function AltoMando({ session }: { session: Session }) {
     if (error) return toast.error(error.message);
     await logAction(db, session, "DELETE_ID", { id, name });
     loadAll();
-  }
-
-  async function togglePerm(i: Instructor, field: "can_delete" | "can_emit_rnap" | "can_edit_files" | "can_edit_pd" | "can_edit_capacitaciones", value: boolean) {
-    if (i.is_alto_mando) { toast.info("Los Comisarios tienen todos los permisos"); return; }
-    setInstructors(prev => prev.map(x => x.id === i.id ? { ...x, [field]: value } : x));
-    const { error } = await db.from("instructors").update({ [field]: value } as any).eq("id", i.id);
-    if (error) { toast.error(error.message); loadAll(); return; }
-    await logAction(db, session, "UPDATE_PERM", { id: i.id, name: i.name, field, value });
   }
 
   async function setRango(i: Instructor, rango: AdminRango) {
