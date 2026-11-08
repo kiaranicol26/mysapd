@@ -63,9 +63,10 @@
 
 :root {
   color-scheme: light;
-  --radius: 0rem;
-  --font-display: "Arial", "Helvetica", sans-serif;
-  --font-table: "Arial", "Helvetica", sans-serif;
+  --radius: 0.85rem;
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "Manrope", system-ui, sans-serif;
+  --font-table: "Manrope", system-ui, sans-serif;
   --background: oklch(0.96396 0.00288 264.54);
   --foreground: oklch(0.32107 0.00928 268.38);
   --card: oklch(1.00000 0.00000 89.88);
@@ -156,19 +157,21 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-    font-family: var(--font-display);
-    font-weight: 600;
+    font-family: var(--font-body);
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: 0.005em;
   }
 
   h1, h2, h3, h4, h5, h6, .font-display {
     font-family: var(--font-display);
-    font-weight: 800;
-    letter-spacing: 0;
+    font-weight: 500;
+    letter-spacing: -0.01em;
   }
 
   .font-table {
     font-family: var(--font-table);
-    font-weight: 600;
+    font-weight: 400;
   }
 
   /* Subtle non-white interior for all tables */
@@ -181,7 +184,7 @@
   }
 
   table.font-table thead th {
-    font-weight: 800;
+    font-weight: 600;
   }
 }
 
@@ -206,3 +209,16 @@
   .hover\:bg-blue-700:hover, .hover\:bg-blue-800:hover { background-color: var(--primary-hover) !important; }
   .hover\:text-blue-700:hover { color: var(--link) !important; }
 }
+
+/* Modern, soft refinement layer */
+.font-black { font-weight: 700 !important; }
+.font-extrabold { font-weight: 600 !important; }
+.font-bold { font-weight: 600 !important; }
+.font-semibold { font-weight: 500 !important; }
+svg.lucide { stroke-width: 1.6; }
+.border, .border-2, .border-b, .border-t { border-color: color-mix(in oklab, var(--border) 70%, transparent); }
+.bg-card, .bg-white, .bg-popover { border-radius: var(--radius); }
+button, input, select, textarea, a.rounded-md, .rounded-none { border-radius: calc(var(--radius) - 2px); }
+img.rounded-full, .rounded-full { border-radius: 9999px !important; }
+table { border-collapse: separate; border-spacing: 0; border-radius: var(--radius); overflow: hidden; }
+.shadow-sm, .shadow, .shadow-md { box-shadow: 0 1px 2px color-mix(in oklab, var(--overlay) 4%, transparent), 0 8px 24px -12px color-mix(in oklab, var(--overlay) 18%, transparent) !important; }
