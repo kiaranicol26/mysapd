@@ -222,3 +222,5 @@ button, input, select, textarea, a.rounded-md, .rounded-none { border-radius: ca
 img.rounded-full, .rounded-full { border-radius: 9999px !important; }
 table { border-collapse: separate; border-spacing: 0; border-radius: var(--radius); overflow: hidden; }
 .shadow-sm, .shadow, .shadow-md { box-shadow: 0 1px 2px color-mix(in oklab, var(--overlay) 4%, transparent), 0 8px 24px -12px color-mix(in oklab, var(--overlay) 18%, transparent) !important; }
+.bg-primary, .bg-blue-50\/70, .bg-blue-50, .bg-blue-600 { border-radius: calc(var(--radius) - 4px); }
+img.object-cover { border-radius: calc(var(--radius) - 2px); }
