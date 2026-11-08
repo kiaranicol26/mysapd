@@ -21,6 +21,7 @@ import {
 import { getBackground, setBackground, fileToCompressedDataUrl } from "@/lib/appearance";
 import { toast } from "sonner";
 import { SECCIONES } from "@/lib/secciones";
+import { ADMIN_RANGOS, ADMIN_RANGO_LABELS, ADMIN_RANGO_DESC, normalizeRango, type AdminRango } from "@/lib/adminRango";
 import { LazyDiscordRoles } from "@/components/DiscordRoles";
 import { Trash2, Shield, Webhook, FileText, Image as ImageIcon, RefreshCw, Settings, Users } from "lucide-react";
 
@@ -29,6 +30,7 @@ type Instructor = {
   id: string;
   name: string;
   is_alto_mando: boolean;
+  admin_rango: string | null;
   role: string;
   can_delete: boolean;
   can_emit_rnap: boolean;
@@ -231,6 +233,16 @@ export function AltoMando({ session }: { session: Session }) {
     const { error } = await db.from("instructors").update({ [field]: value } as any).eq("id", i.id);
     if (error) { toast.error(error.message); loadAll(); return; }
     await logAction(db, session, "UPDATE_PERM", { id: i.id, name: i.name, field, value });
+  }
+
+  async function setRango(i: Instructor, rango: AdminRango) {
+    if (i.id === session.id && rango !== "administrador") return toast.error("No podés quitarte el rango Administrador");
+    const patch = { admin_rango: rango, is_alto_mando: rango === "administrador" };
+    setInstructors(prev => prev.map(x => x.id === i.id ? { ...x, ...patch } : x));
+    const { error } = await db.from("instructors").update(patch as any).eq("id", i.id);
+    if (error) { toast.error(error.message); loadAll(); return; }
+    await logAction(db, session, "UPDATE_ADMIN_RANGO", { id: i.id, name: i.name, rango });
+    toast.success(`${i.name} ahora es ${ADMIN_RANGO_LABELS[rango]}`);
   }
 
   async function toggleSeccion(i: Instructor, key: string) {
@@ -475,8 +487,16 @@ export function AltoMando({ session }: { session: Session }) {
         <div className="h-1 bg-blue-600" />
         <div className="p-5 space-y-4">
           <h2 className="text-2xl font-black uppercase tracking-wide text-slate-900 font-display">
-            Personal Autorizado
+            Usuarios y rangos administrativos
           </h2>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {ADMIN_RANGOS.map(r => (
+              <div key={r} className="border border-blue-200 bg-blue-50 p-3">
+                <p className="font-bold text-slate-900">{ADMIN_RANGO_LABELS[r]} <span className="text-slate-500 font-normal">· {instructors.filter(x => normalizeRango(x.admin_rango) === r).length}</span></p>
+                <p className="text-xs text-slate-500">{ADMIN_RANGO_DESC[r]}</p>
+              </div>
+            ))}
+          </div>
           <div className="border border-blue-200">
             <table className="w-full text-sm font-table">
               <thead>
@@ -484,11 +504,7 @@ export function AltoMando({ session }: { session: Session }) {
                   <th className="p-3 text-left border border-blue-500 uppercase font-bold">ID</th>
                   <th className="p-3 text-left border border-blue-500 uppercase font-bold">Nombre</th>
                   <th className="p-3 text-left border border-blue-500 uppercase font-bold">Rol</th>
-                  <th className="p-3 text-center border border-blue-500 uppercase font-bold">Borrar agentes</th>
-                  <th className="p-3 text-center border border-blue-500 uppercase font-bold">Emitir RNAP</th>
-                  <th className="p-3 text-center border border-blue-500 uppercase font-bold">Editar Archivos</th>
-                  <th className="p-3 text-center border border-blue-500 uppercase font-bold">Registro PD</th>
-                  <th className="p-3 text-center border border-blue-500 uppercase font-bold">Editar capacitaciones</th>
+                  <th className="p-3 text-left border border-blue-500 uppercase font-bold">Rango administrativo</th>
                   <th className="p-3 text-left border border-blue-500 uppercase font-bold">Apartados visibles</th>
 
                   <th className="p-3 text-left border border-blue-500 uppercase font-bold">Creado por</th>
@@ -523,43 +539,17 @@ export function AltoMando({ session }: { session: Session }) {
                         <span className="text-slate-600">{i.role}</span>
                       )}
                     </td>
-                    <td className="p-3 text-center border border-slate-200">
-                      <Switch
-                        checked={i.is_alto_mando || !!i.can_delete}
-                        disabled={i.is_alto_mando}
-                        onCheckedChange={v => togglePerm(i, "can_delete", v)}
-                      />
-                    </td>
-                    <td className="p-3 text-center border border-slate-200">
-                      <Switch
-                        checked={i.is_alto_mando || !!i.can_emit_rnap}
-                        disabled={i.is_alto_mando}
-                        onCheckedChange={v => togglePerm(i, "can_emit_rnap", v)}
-                      />
-                    </td>
-                    <td className="p-3 text-center border border-slate-200">
-                      <Switch
-                        checked={i.is_alto_mando || !!i.can_edit_files}
-                        disabled={i.is_alto_mando}
-                        onCheckedChange={v => togglePerm(i, "can_edit_files", v)}
-                      />
-                    </td>
-                    <td className="p-3 text-center border border-slate-200">
-                      <Switch
-                        checked={i.is_alto_mando || !!i.can_edit_pd}
-                        disabled={i.is_alto_mando}
-                        onCheckedChange={v => togglePerm(i, "can_edit_pd", v)}
-                      />
-                    </td>
-                    <td className="p-3 text-center border border-slate-200">
-                      <Switch
-                        checked={i.is_alto_mando || !!i.can_edit_capacitaciones}
-                        disabled={i.is_alto_mando}
-                        onCheckedChange={v => togglePerm(i, "can_edit_capacitaciones", v)}
-                      />
+                    <td className="p-3 border border-slate-200 min-w-[200px]">
+                      <Select value={normalizeRango(i.admin_rango)} onValueChange={v => setRango(i, v as AdminRango)}>
+                        <SelectTrigger aria-label={`Rango administrativo de ${i.name}`}><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {ADMIN_RANGOS.map(r => <SelectItem key={r} value={r}>{ADMIN_RANGO_LABELS[r]}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <p className="mt-1 text-[11px] text-slate-500">{ADMIN_RANGO_DESC[normalizeRango(i.admin_rango)]}</p>
                     </td>
                     <td className="p-2 border border-slate-200 min-w-[260px]">
-                      {i.is_alto_mando ? (
+                      {normalizeRango(i.admin_rango) === "administrador" ? (
                         <span className="text-xs text-slate-500 font-bold">Todos</span>
                       ) : (
                         <div className="flex flex-wrap gap-1">
@@ -589,7 +579,7 @@ export function AltoMando({ session }: { session: Session }) {
                 ))}
                 {instructors.length === 0 && (
                   <tr>
-                    <td colSpan={10} className="p-10 text-center text-slate-400 uppercase tracking-widest">
+                    <td colSpan={6} className="p-10 text-center text-slate-400 uppercase tracking-widest">
                       Sin personal autorizado.
                     </td>
                   </tr>
