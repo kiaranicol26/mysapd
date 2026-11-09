@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AltoMandoRouteImport } from './routes/alto-mando'
 import { Route as AspirantesRouteImport } from './routes/aspirantes'
+import { Route as CapacitacionesRouteImport } from './routes/capacitaciones'
 import { Route as CertificarRouteImport } from './routes/certificar'
 import { Route as ExsapdRouteImport } from './routes/exsapd'
 import { Route as ForumRouteImport } from './routes/forum'
@@ -38,6 +39,11 @@ const AltoMandoRoute = AltoMandoRouteImport.update({
 const AspirantesRoute = AspirantesRouteImport.update({
   id: '/aspirantes',
   path: '/aspirantes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CapacitacionesRoute = CapacitacionesRouteImport.update({
+  id: '/capacitaciones',
+  path: '/capacitaciones',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CertificarRoute = CertificarRouteImport.update({
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/alto-mando': typeof AltoMandoRoute
   '/aspirantes': typeof AspirantesRoute
+  '/capacitaciones': typeof CapacitacionesRoute
   '/certificar': typeof CertificarRoute
   '/exsapd': typeof ExsapdRoute
   '/forum': typeof ForumRoute
@@ -159,6 +166,7 @@ export interface FileRouteTypes {
     | '/'
     | '/alto-mando'
     | '/aspirantes'
+    | '/capacitaciones'
     | '/certificar'
     | '/exsapd'
     | '/forum'
@@ -211,6 +219,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AltoMandoRoute: typeof AltoMandoRoute
   AspirantesRoute: typeof AspirantesRoute
+  CapacitacionesRoute: typeof CapacitacionesRoute
   CertificarRoute: typeof CertificarRoute
   ExsapdRoute: typeof ExsapdRoute
   ForumRoute: typeof ForumRoute
@@ -246,6 +255,13 @@ declare module '@tanstack/react-router' {
       path: '/aspirantes'
       fullPath: '/aspirantes'
       preLoaderRoute: typeof AspirantesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/capacitaciones': {
+      id: '/capacitaciones'
+      path: '/capacitaciones'
+      fullPath: '/capacitaciones'
+      preLoaderRoute: typeof CapacitacionesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/certificar': {
@@ -339,6 +355,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AltoMandoRoute: AltoMandoRoute,
   AspirantesRoute: AspirantesRoute,
+  CapacitacionesRoute: CapacitacionesRoute,
   CertificarRoute: CertificarRoute,
   ExsapdRoute: ExsapdRoute,
   ForumRoute: ForumRoute,
