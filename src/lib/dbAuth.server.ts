@@ -156,8 +156,7 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
   };
 
   const editor = permisosDeRango(claims?.rango).puedeEditar || alto;
-  if (write && claims && !editor && !(spec.table === "logs" && spec.op === "insert") &&
-      !(spec.table === "instructors" && spec.op === "update")) deny("Tu rango (Usuario) solo permite ver");
+  if (write && claims && !editor && !(spec.table === "logs" && spec.op === "insert")) deny("Tu rango Usuario solo permite ver, sin editar.");
 
   switch (spec.table) {
     case "manual_salary_batches":
@@ -234,8 +233,8 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
       if (!claims) deny();
       need("forum");
       if (spec.op === "select" || spec.op === "insert") return spec;
-      // Alto Mando y Cúpula editan cualquier fichero; el autor edita el suyo.
-      if (alto || claims.role === "Cupula") return spec;
+      // Administrador puede editar cualquier publicación; el autor conserva la edición de sus propias publicaciones.
+      if (alto) return spec;
       return { ...spec, filters: [...(spec.filters ?? []), { type: "eq", column: "created_by_id", value: claims.id }] };
     }
 
