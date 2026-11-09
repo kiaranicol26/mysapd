@@ -173,7 +173,7 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
       const restrictedSalaryFields = new Set(["sueldo_defecto", "division", "division_rango", "division2", "division2_rango", "es_instructor"]);
       const hasRestrictedFields = patchKeys(spec.values).some(k => restrictedSalaryFields.has(k)) ||
         (Array.isArray(spec.values) && spec.values.some(v => patchKeys(v).some(k => restrictedSalaryFields.has(k))));
-      if (!alto && hasRestrictedFields) deny("Solo Alto Mando puede modificar sueldos y segunda división");
+      if (!alto && claims?.rango !== "moderador" && hasRestrictedFields) deny("Solo Moderador o Administrador puede modificar sueldos y divisiones");
       // The dedicated permission grants access only to training checkboxes.
       const CAP_FIELDS = new Set(["cap_m4", "cap_edc", "cap_mary", "cap_sniper", "cap_air", "cap_ak47"]);
       if (spec.op === "update" && claims?.capacitaciones && patchKeys(spec.values).length > 0 &&
