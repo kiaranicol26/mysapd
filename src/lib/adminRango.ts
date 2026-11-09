@@ -30,8 +30,11 @@ export function permisosDeRango(v: unknown) {
   return {
     alto: n >= 3,
     del: n >= 3,
-    rnap: n >= 1,
-    files: n >= 2,
+    // Ayudante and above can issue training certificates and record training.
+    rnap: n >= 3,
+    // Only Administrador has unrestricted file/RNAP permissions.
+    files: n >= 3,
+    // Moderador manages Registro PD; Administrador has full control.
     pd: n >= 2,
     capacitaciones: n >= 1,
     puedeEditar: n >= 1,
