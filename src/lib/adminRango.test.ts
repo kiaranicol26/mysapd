@@ -14,8 +14,14 @@ describe("rangos administrativos", () => {
     expect(p.capacitaciones).toBe(true);
     expect(p.extraSecciones).toEqual(["certificar"]);
     expect(p.pd).toBe(false);
+    expect(p.rnap).toBe(false);
+    expect(p.files).toBe(false);
   });
   test("moderador solo gestiona rangos inferiores", () => {
+    const p = permisosDeRango("moderador");
+    expect(p.pd).toBe(true);
+    expect(p.files).toBe(false);
+    expect(p.rnap).toBe(false);
     expect(puedeGestionar("moderador", "ayudante")).toBe(true);
     expect(puedeGestionar("moderador", "moderador")).toBe(false);
     expect(puedeGestionar("moderador", "administrador")).toBe(false);
