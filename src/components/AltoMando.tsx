@@ -436,7 +436,7 @@ export function AltoMando({ session }: { session: Session }) {
               <Select value={editingRank} onValueChange={value => setEditingRank(value as AdminRango)}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar rango" /></SelectTrigger>
                 <SelectContent>
-                  {ADMIN_RANGOS.map(r => <SelectItem key={r} value={r}>{ADMIN_RANGO_LABELS[r]}</SelectItem>)}
+                  {[...ADMIN_RANGOS].reverse().map(r => <SelectItem key={r} value={r}>{ADMIN_RANGO_LABELS[r]}</SelectItem>)}
                 </SelectContent>
               </Select>
               <div className="rounded-xl bg-muted/50 p-3 text-sm text-muted-foreground">{ADMIN_RANGO_DESC[editingRank]}</div>
