@@ -168,6 +168,12 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
       if (write && !alto) deny("Solo Administrador puede editar");
       return spec;
 
+    case "pd_trainings":
+      if (spec.op === "select") return spec;
+      if (!alto && !claims?.capacitaciones) deny("No tenés permiso para registrar capacitaciones");
+      if (spec.op !== "insert") deny("Las capacitaciones registradas no se pueden modificar ni borrar desde esta sección");
+      return spec;
+
     case "pd_members": {
       if (!write) return spec;
       const restrictedSalaryFields = new Set(["sueldo_defecto", "division", "division_rango", "division2", "division2_rango", "es_instructor"]);
@@ -265,6 +271,14 @@ export async function runQuery(spec: QuerySpec, claims: Claims | null, admin: Ad
       ...(value && typeof value === "object" ? value : {}),
       instructor_id: claims.id,
       instructor_name: claims.name,
+    });
+    safe = { ...safe, values: Array.isArray(safe.values) ? safe.values.map(stamp) : stamp(safe.values) };
+  }
+  if (safe.table === "pd_trainings" && safe.op === "insert" && claims) {
+    const stamp = (value: unknown) => ({
+      ...(value && typeof value === "object" ? value : {}),
+      created_by_id: claims.id,
+      created_by_name: claims.name,
     });
     safe = { ...safe, values: Array.isArray(safe.values) ? safe.values.map(stamp) : stamp(safe.values) };
   }
