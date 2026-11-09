@@ -85,7 +85,7 @@ export function MiPerfilView({ session }: { session: Session }) {
               <p className="text-sm text-muted-foreground">{discordUser ? `@${discordUser}` : "Sin Discord"}{placa && ` · Placa #${placa}`}{pronombres && ` · ${pronombres}`}</p>
             </div>
             <div className="border-t pt-2">
-              <p className={label}>Rango</p>
+              <p className={label}>Rango administrativo</p>
               <p className="text-sm font-bold text-foreground">{ADMIN_RANGO_LABELS[normalizeRango(session.admin_rango)]}</p>
             </div>
             {descripcion && (
