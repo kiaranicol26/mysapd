@@ -291,25 +291,13 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
               <ProfileCard key={u.id} u={{ ...u, role: null } as ProfileUser} foto={m?.foto}
                 extra={m && (
                   <div className="border-t pt-2 text-sm text-foreground space-y-2">
-                    <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Registro PD</p>
-                    <p className="font-bold">{m.rango ?? "Sin rango"} · Placa {(u as any).placa || m.placa || "—"}</p>
-                    <p className="text-xs text-muted-foreground">{[m.division && m.division !== "Ninguna" ? m.division + " · " + (m.division_rango ?? "—") : null, m.division2 && m.division2 !== "Ninguna" ? m.division2 + " · " + (m.division2_rango ?? "—") : null, m.division3 && m.division3 !== "Ninguna" ? m.division3 + " · " + (m.division3_rango ?? "—") : null].filter(Boolean).join(" | ") || "Sin división"}</p>
-                    {m.es_instructor && <p className="text-xs font-bold text-blue-700">Cargo: Instructor</p> }
-                    <p className="font-extrabold text-emerald-600">Sueldo: ${sueldoTotal(m)} (Coin)</p>
-                    <div className="border-t pt-2">
-                      <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground mb-1">Capacitaciones</p>
-                      <div className="grid grid-cols-3 gap-1">
-                        {CAPACITACIONES.map(c => (
-                          <label key={c.key}
-                            className={`flex items-center gap-1.5 text-xs font-bold ${canEditCaps ? "cursor-pointer" : "cursor-default opacity-80"}`}>
-                            <input type="checkbox" checked={!!m[c.key]} disabled={!canEditCaps}
-                              onChange={() => canEditCaps && setCapConfirm({ m, cap: c.key, value: !m[c.key] })}
-                              className="accent-blue-700 w-3.5 h-3.5" />
-                            {c.label}
-                          </label>
-                        ))}
-                      </div>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                      <span className="font-extrabold">{m.rango ?? "Sin rango"}</span>
+                      <span className="text-muted-foreground">Placa {(u as any).placa || m.placa || "—"}</span>
+                      <span className="font-mono text-[10px] text-muted-foreground">SAPD-{m.id.slice(0, 8).toUpperCase()}</span>
                     </div>
+                    <p className="text-[11px] text-muted-foreground">{[m.division && m.division !== "Ninguna" ? m.division + " · " + (m.division_rango ?? "—") : null, m.division2 && m.division2 !== "Ninguna" ? m.division2 + " · " + (m.division2_rango ?? "—") : null, m.division3 && m.division3 !== "Ninguna" ? m.division3 + " · " + (m.division3_rango ?? "—") : null].filter(Boolean).join(" | ") || "Sin división"}{m.es_instructor ? " · Instructor" : ""}</p>
+                    <p className="text-xs font-bold text-emerald-700">${sueldoTotal(m)} Coin</p>
                   </div>
                 )}
                 footer={<>
@@ -331,6 +319,29 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
         </div>
       ))}
 
+      {!loading && <Card className="rounded-none border-2 border-blue-200 bg-white">
+        <div className="border-b border-blue-100 px-4 py-3 flex items-center justify-between">
+          <div><h3 className="font-display font-black uppercase tracking-wider text-blue-900">Capacitaciones</h3><p className="text-xs text-slate-500">Personal SAPD habilitado en cada capacitación</p></div>
+          <BadgeCheck className="w-5 h-5 text-blue-700" />
+        </div>
+        <div className="grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-3">
+          {CAPACITACIONES.map(c => {
+            const holders = members.filter(m => m[c.key]);
+            return <div key={c.key} className="border border-slate-200 p-3 space-y-2">
+              <div className="flex items-center justify-between"><p className="font-extrabold text-sm text-slate-900">{c.label}</p><span className="text-[10px] font-mono text-slate-500">{holders.length} SAPD</span></div>
+              <div className="flex flex-wrap gap-1">
+                {holders.length ? holders.map(m => <span key={m.id} className="inline-flex items-center gap-1 rounded-sm bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-900">{m.nombre}<span className="font-mono text-[9px] text-blue-600">SAPD-{m.id.slice(0, 8).toUpperCase()}</span>{canEditCaps && <button type="button" aria-label={`Quitar ${c.label} a ${m.nombre}`} onClick={() => setCapConfirm({ m, cap: c.key, value: false })} className="ml-1 text-red-600 hover:text-red-800">×</button>}</span>) : <span className="text-xs text-slate-400">Sin personal asignado</span>}
+              </div>
+              {canEditCaps && <Select value="" onValueChange={id => { const target = members.find(m => m.id === id); if (target && !target[c.key]) setCapConfirm({ m: target, cap: c.key, value: true }); }}>
+                <SelectTrigger className="h-8 rounded-none border-blue-200 text-xs"><SelectValue placeholder="Agregar SAPD…" /></SelectTrigger>
+                <SelectContent className="bg-white border border-blue-200 rounded-none">
+                  {members.filter(m => !m[c.key]).map(m => <SelectItem key={m.id} value={m.id}>{m.nombre} · SAPD-{m.id.slice(0, 8).toUpperCase()}</SelectItem>)}
+                </SelectContent>
+              </Select>}
+            </div>;
+          })}
+        </div>
+      </Card>}
       {!loading && groups.length === 0 && (
         <Card className="border-2 border-blue-300 bg-white rounded-none p-10 text-center text-slate-400 uppercase tracking-widest font-bold">
           {onlyDisabled ? "No hay policías inhabilitados." : "Sin policías registrados."}
