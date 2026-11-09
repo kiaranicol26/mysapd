@@ -6,7 +6,7 @@ export type ProfileUser = {
   id: string; name: string; avatar_url: string | null; role: string | null;
   descripcion?: string | null; banner_url?: string | null; color_perfil?: string | null; pronombres?: string | null;
   discord_username?: string | null; placa?: string | null; is_alto_mando?: boolean; can_delete?: boolean; can_emit_rnap?: boolean;
-  can_edit_files?: boolean; can_edit_pd?: boolean; secciones?: string[] | null;
+  can_edit_files?: boolean; can_edit_pd?: boolean; can_edit_capacitaciones?: boolean; secciones?: string[] | null;
   discord_inhabilitado?: boolean;
 };
 
@@ -22,6 +22,7 @@ export function ProfileCard({ u, foto, extra, footer }: { u: ProfileUser; foto?:
     { label: "Emitir RNAP", on: !!u.can_emit_rnap },
     { label: "Editar archivos", on: !!u.can_edit_files },
     { label: "Editar Registro PD", on: !!u.can_edit_pd },
+    { label: "Dar capacitaciones", on: !!u.can_edit_capacitaciones },
   ].filter(p => p.on);
   const apartados = SECCIONES.filter(s => u.is_alto_mando || u.secciones?.includes(s.key));
   const sub = [u.discord_username ? `@${u.discord_username}` : null, u.placa ? `Placa #${u.placa}` : null, u.pronombres].filter(Boolean).join(" · ");
