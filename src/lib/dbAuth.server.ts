@@ -1,5 +1,4 @@
 import { createHmac, timingSafeEqual } from "crypto";
-import { limpiarSecciones } from "@/lib/secciones";
 import { normalizeRango, permisosDeRango, puedeGestionar } from "@/lib/adminRango";
 
 export type Claims = {
@@ -70,7 +69,7 @@ export function buildLogin(r: any) {
     avatar_url: (r.avatar_url ?? null) as string | null,
     role: (r.role ?? null) as string | null,
     descripcion: (r.descripcion ?? null) as string | null,
-    secciones: [...new Set([...limpiarSecciones(r.secciones), ...p.extraSecciones])] as string[],
+    secciones: [...p.extraSecciones] as string[],
   };
   const token = issueToken({
     id: session.id, name: session.name, alto, del: session.can_delete, rnap: session.can_emit_rnap,
@@ -89,7 +88,7 @@ export async function freshClaims(claims: Claims | null, admin: { from: (t: stri
   const p = permisosDeRango(rango);
   return {
     ...claims, name: r.name, alto: p.alto, del: p.del, rnap: p.rnap, files: p.files, pd: p.pd, capacitaciones: p.capacitaciones,
-    role: r.role ?? null, sec: [...new Set([...limpiarSecciones(r.secciones), ...p.extraSecciones])], rango,
+    role: r.role ?? null, sec: [...p.extraSecciones], rango,
   };
 }
 
