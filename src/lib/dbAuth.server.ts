@@ -330,7 +330,8 @@ export async function runQuery(spec: QuerySpec, claims: Claims | null, admin: Ad
       for (const targetId of targets) {
         if (!targetId) deny("El registro debe estar vinculado a un usuario para comprobar su rango administrativo");
         const { data: target } = await admin.from("instructors").select("admin_rango").eq("id", targetId).maybeSingle();
-        const objetivo = target?.admin_rango ?? "usuario";
+        if (!target) deny("No se encontró el usuario vinculado al registro policial");
+        const objetivo = target.admin_rango ?? "usuario";
         if (!puedeGestionar(claims.rango, objetivo)) {
           deny("Solo podés gestionar policías cuyo rango administrativo sea inferior al tuyo");
         }
