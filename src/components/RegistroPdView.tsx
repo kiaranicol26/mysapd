@@ -155,7 +155,7 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
       rango: draft.rango || null,
       foto: draft.foto.trim() || null,
       placa: draft.placa.trim() || null,
-      ...(session.is_alto_mando ? {
+      ...(canEdit ? {
         division: draft.division || null,
         division_rango: draft.division === "Ninguna" ? null : draft.division_rango || null,
         division2: draft.division2 || "Ninguna",
@@ -378,7 +378,7 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
                 <p className="text-[10px] text-slate-500">Se actualiza automáticamente según la etiqueta de rango de Discord.</p>
               </div>
 
-              {session.is_alto_mando && (
+              {canEdit && (
                 <div className="space-y-3">
                   <div className="space-y-1">
                     <label className="text-xs font-extrabold uppercase tracking-widest text-blue-700">División 1</label>
