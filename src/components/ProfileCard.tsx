@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { SECCIONES } from "@/lib/secciones";
-import { Check, X, UserRound } from "lucide-react";
+import { UserRound } from "lucide-react";
 
 export type ProfileUser = {
   id: string; name: string; avatar_url: string | null; role: string | null;
@@ -17,51 +17,44 @@ export function ProfileCard({ u, foto, extra, footer }: { u: ProfileUser; foto?:
   const color = u.color_perfil || "#5865f2";
   const avatar = u.avatar_url || foto;
   const permisos = [
-    { label: "Alto Mando", on: !!u.is_alto_mando },
+    { label: "Administrador", on: !!u.is_alto_mando },
     { label: "Borrar registros", on: !!u.can_delete },
     { label: "Emitir RNAP", on: !!u.can_emit_rnap },
     { label: "Editar archivos", on: !!u.can_edit_files },
     { label: "Editar Registro PD", on: !!u.can_edit_pd },
-  ];
+  ].filter(p => p.on);
+  const apartados = SECCIONES.filter(s => u.is_alto_mando || u.secciones?.includes(s.key));
   const sub = [u.discord_username ? `@${u.discord_username}` : null, u.placa ? `Placa #${u.placa}` : null, u.pronombres].filter(Boolean).join(" · ");
   return (
-    <div className="overflow-hidden rounded-lg border bg-card shadow-lg flex flex-col">
-      <div className="h-20 bg-cover bg-center" style={{ backgroundColor: color, backgroundImage: u.banner_url ? `url(${u.banner_url})` : undefined }} />
-      <div className="px-3 pb-3 flex-1">
-        <div className="-mt-10 w-20 h-20 rounded-full border-[5px] border-card bg-muted overflow-hidden flex items-center justify-center">
+    <div className="overflow-hidden rounded-md border bg-card shadow-sm flex flex-col">
+      <div className="h-14 bg-cover bg-center" style={{ backgroundColor: color, backgroundImage: u.banner_url ? `url(${u.banner_url})` : undefined }} />
+      <div className="px-3 pb-2 flex-1">
+        <div className="-mt-8 w-16 h-16 rounded-full border-4 border-card bg-muted overflow-hidden flex items-center justify-center">
           {avatar ? <img src={avatar} alt={u.name} loading="lazy" decoding="async" className="w-full h-full object-cover" /> : <UserRound className="w-8 h-8 text-muted-foreground" />}
         </div>
-        <div className="mt-2 rounded-md bg-muted/60 p-3 space-y-2">
+        <div className="mt-2 rounded-md bg-muted/50 p-2.5 space-y-1.5">
           <div>
             <p className="text-lg font-extrabold text-foreground leading-tight">{u.name}</p>
             {u.discord_inhabilitado && <span className="inline-flex border border-destructive/30 bg-destructive/10 px-2 py-1 text-xs font-bold text-destructive">Inhabilitado</span>}
             {sub && <p className="text-sm text-muted-foreground">{sub}</p>}
           </div>
           {extra}
-          {u.descripcion && (
-            <div className="border-t pt-2">
-              <p className={label}>Sobre mí</p>
-              <p className="text-sm text-foreground whitespace-pre-wrap">{u.descripcion}</p>
-            </div>
-          )}
           <div className="border-t pt-2">
+            <p className={label}>Sobre mí</p>
+            <p className="text-xs text-foreground/90 whitespace-pre-wrap">{u.descripcion?.trim() || "Este usuario aún no añadió una descripción"}</p>
+          </div>
+          {apartados.length > 0 && <div className="border-t pt-2">
             <p className={label}>Apartados</p>
             <div className="mt-1 flex flex-wrap gap-1">
-              {SECCIONES.filter(s => u.is_alto_mando || u.secciones?.includes(s.key)).map(s => (
-                <span key={s.key} className="rounded px-2 py-0.5 text-[11px] font-bold bg-card border text-foreground" style={{ borderColor: color }}>{s.label}</span>
-              ))}
-              <span className="rounded px-2 py-0.5 text-[11px] font-bold bg-card border text-foreground">myPerfil</span>
+              {apartados.map(s => <span key={s.key} className="rounded px-2 py-0.5 text-[10px] font-bold bg-card border text-foreground" style={{ borderColor: color }}>{s.label}</span>)}
             </div>
-          </div>
-          <div className="border-t pt-2">
+          </div>}
+          {permisos.length > 0 && <div className="border-t pt-2">
             <p className={label}>Permisos</p>
-            <ul className="mt-1 space-y-0.5">
-              {permisos.map(p => (
-                <li key={p.label} className="flex items-center gap-2 text-sm text-foreground">
-                  {p.on ? <Check className="w-4 h-4 text-emerald-500" /> : <X className="w-4 h-4 text-red-500" />} {p.label}
-                </li>
-              ))}
+            <ul className="mt-1 flex flex-wrap gap-1">
+              {permisos.map(p => <li key={p.label} className="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-800">{p.label}</li>)}
             </ul>
+          </div>}
           </div>
         </div>
       </div>
