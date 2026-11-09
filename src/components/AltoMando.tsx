@@ -27,21 +27,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 type Instructor = {
   id: string;
   name: string;
-  is_alto_mando: boolean;
   admin_rango: string | null;
-  role: string;
-  can_delete: boolean;
-  can_emit_rnap: boolean;
-  can_edit_files: boolean;
-  can_edit_pd: boolean;
-  can_edit_capacitaciones: boolean;
-  secciones: string[] | null;
   discord_username: string | null;
   discord_id: string | null;
-  discord_inhabilitado: boolean;
-
-  created_at: string;
-  created_by: string | null;
 };
 
 export function AltoMando({ session }: { session: Session }) {
@@ -72,7 +60,7 @@ export function AltoMando({ session }: { session: Session }) {
 
   async function loadAll() {
     const { data, error } = await db.from("instructors")
-      .select("id, name, is_alto_mando, admin_rango, role, can_delete, can_emit_rnap, can_edit_files, can_edit_pd, can_edit_capacitaciones, secciones, discord_username, discord_id, discord_inhabilitado, created_at, created_by")
+      .select("id, name, admin_rango, discord_username, discord_id")
       .order("created_at", { ascending: true });
     if (error) { toast.error(error.message); return; }
     if (data) setInstructors(data as Instructor[]);
@@ -399,17 +387,7 @@ export function AltoMando({ session }: { session: Session }) {
                 <h2 className="text-xl font-bold tracking-tight">Usuarios del sistema</h2>
                 <p className="mt-1 text-sm text-muted-foreground">Administrá el rango de moderación de cada cuenta desde su perfil.</p>
               </div>
-              <span className="rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">{instructors.length} cuentas</span>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-              {ADMIN_RANGOS.map(r => (
-                <div key={r} className="rounded-xl bg-muted/60 p-3">
-                  <p className="text-sm font-semibold">{ADMIN_RANGO_LABELS[r]}</p>
-                  <p className="mt-1 text-2xl font-bold tabular-nums">{instructors.filter(x => normalizeRango(x.admin_rango) === r).length}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{ADMIN_RANGO_DESC[r]}</p>
-                </div>
-              ))}
-            </div>
+              </div>
             <div className="space-y-2">
               {instructors.map(user => {
                 const rank = normalizeRango(user.admin_rango);
@@ -418,15 +396,11 @@ export function AltoMando({ session }: { session: Session }) {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-semibold">{user.name}</p>
-                        <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${rank === "administrador" ? "bg-primary/15 text-primary" : rank === "moderador" ? "bg-violet-500/15 text-violet-600" : rank === "ayudante" ? "bg-emerald-500/15 text-emerald-600" : "bg-muted text-muted-foreground"}`}>
-                          {ADMIN_RANGO_LABELS[rank]}
-                        </span>
-                        {user.discord_inhabilitado && <span className="rounded-full bg-destructive/10 px-2.5 py-1 text-[11px] font-bold text-destructive">Discord inhabilitado</span>}
                       </div>
                       <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
                         <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
                           <KeyRound className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate font-mono" title={user.id}>Cuenta: {user.id}</span>
+                          <span className="truncate font-mono" title={user.id}>Clave de acceso: {user.id}</span>
                         </div>
                         <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
                           <MessageCircle className="h-3.5 w-3.5 shrink-0" />
@@ -435,15 +409,15 @@ export function AltoMando({ session }: { session: Session }) {
                         </div>
                       </div>
                     </div>
-                    <Button type="button" variant="outline" size="sm" className="shrink-0 gap-2 rounded-xl" onClick={() => openRankEditor(user)}>
-                      <Pencil className="h-4 w-4" /> Editar rango
+                    <Button type="button" variant="ghost" size="icon" title="Editar rango administrativo" aria-label={`Editar rango de ${user.name}`} className="shrink-0 rounded-xl" onClick={() => openRankEditor(user)}>
+                      <Pencil className="h-4 w-4" />
                     </Button>
                   </div>
                 );
               })}
               {instructors.length === 0 && <p className="rounded-xl bg-muted/40 p-8 text-center text-sm text-muted-foreground">Todavía no hay usuarios registrados.</p>}
             </div>
-            <p className="text-xs text-muted-foreground">El acceso se realiza mediante códigos temporales de Discord. Por seguridad, mySAPD no almacena ni muestra contraseñas permanentes; el identificador de cuenta se muestra como referencia.</p>
+            <p className="text-xs text-muted-foreground">La clave de acceso actual es el ID de cuenta que se utiliza en el inicio de sesión; no existe una contraseña independiente.</p>
           </div>
         </Card>
 
