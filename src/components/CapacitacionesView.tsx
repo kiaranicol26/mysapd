@@ -13,7 +13,7 @@ type Training = {
   created_at: string; is_legacy?: boolean; pd_members?: { nombre: string; legajo: number } | null;
   instructor?: { nombre: string } | null;
 };
-const TRAINING_OPTIONS = ["M4", "EDC", "AK-47", "SNIPER", "OTRA"];
+const TRAINING_OPTIONS = ["M4", "EDC", "AK-47", "SNIPER", "MARY", "AIR", "OTRA"];
 const today = () => new Date().toISOString().slice(0, 10);
 const legajoLabel = (n: number) => String(n).padStart(4, "0");
 
