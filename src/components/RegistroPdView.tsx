@@ -207,7 +207,7 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
         m: personnelIndex.byInstructor.get(u.id) ?? personnelIndex.byLegacyName.get(u.name.trim().toLowerCase()),
       }))
       .filter(({ u, m }) =>
-        (u.name + " " + (u.role ?? "") + " " + (m?.rango ?? "") + " " + (m?.placa ?? "") + " " + (m?.division ?? ""))
+        (u.name + " " + (m?.rango ?? "") + " " + (m?.placa ?? "") + " " + (m?.division ?? ""))
           .toLowerCase().includes(q.toLowerCase()));
     return [{
       rango: "personal",
