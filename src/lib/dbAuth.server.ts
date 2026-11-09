@@ -78,7 +78,7 @@ export function buildLogin(r: any) {
   return { session, token };
 }
 
-/** Re-reads permissions so changes made by Alto Mando apply immediately. */
+/** Re-reads permissions so changes made by Administrador apply immediately. */
 export async function freshClaims(claims: Claims | null, admin: { from: (t: string) => any }): Promise<Claims | null> {
   if (!claims) return null;
   const { data: r } = await admin.from("instructors").select(LOGIN_COLUMNS).eq("id", claims.id).maybeSingle();
@@ -160,12 +160,12 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
   switch (spec.table) {
     case "manual_salary_batches":
     case "manual_salary_entries":
-      if (!alto) deny("Solo Alto Mando puede acceder a los salarios manuales");
+      if (!alto) deny("Solo Administrador puede acceder a los salarios manuales");
       return spec;
 
     case "salary_months":
     case "salary_entries":
-      if (write && !alto) deny("Solo Alto Mando puede editar");
+      if (write && !alto) deny("Solo Administrador puede editar");
       return spec;
 
     case "pd_members": {
@@ -185,7 +185,7 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
 
     case "app_settings":
       if (write) {
-        if (!alto) deny("Solo Alto Mando puede editar la configuración");
+        if (!alto) deny("Solo Administrador puede editar la configuración");
         return spec;
       }
       if (!claims && ![PUBLIC_BG_KEY, PUBLIC_LOGIN_KEY, ...PUBLIC_SALARY_TAB_KEYS].includes(String(filterValue(spec, "key")))) deny();
@@ -224,7 +224,7 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
         if (patchKeys(spec.values).some(k => !PROFILE_FIELDS.has(k))) deny("Campo no permitido");
         return spec;
       }
-      if (!alto) deny("Solo Alto Mando");
+      if (!alto) deny("Solo Administrador");
       return spec;
     }
 
