@@ -131,23 +131,6 @@ export function RegistroPdPublicView({ session }: { session: Session | null }) {
           <div className="flex items-center gap-3 bg-slate-600 text-white px-4 py-2"><h3 className="font-display font-black uppercase tracking-[0.25em] text-sm">[SIN RANGO ASIGNADO]</h3><span className="ml-auto font-mono font-bold text-xs">{unrankedRows.length}</span></div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{unrankedRows.map(({ u }) => <Card key={u.id} className="p-4 rounded-none border-2 border-slate-200 bg-white"><p className="font-black text-slate-900">{u.name}</p><p className="font-mono text-sm text-blue-700">#{u.placa || "0000"}</p><p className="text-xs text-slate-500 mt-2">Sin rango asignado</p></Card>)}</div>
         </section>}
-      {!loading && <Card className="rounded-none border-2 border-blue-200 bg-white">
-        <div className="border-b border-blue-100 px-4 py-3"><h3 className="font-black uppercase tracking-wider text-blue-900">Capacitaciones</h3><p className="text-xs text-slate-500">SAPD habilitados por especialidad</p></div>
-        <div className="space-y-4 p-3">
-          {(["Armas", "Vehículos"] as const).map(category => <section key={category} className="space-y-2">
-            <h4 className="border-b border-slate-200 pb-1 text-xs font-black uppercase tracking-widest text-blue-800">{category}</h4>
-            <div className="grid gap-3 sm:grid-cols-2">
-          {CAPACITACIONES.filter(c => c.category === category).map(c => {
-            const holders = members.filter(m => m[c.key]).map(m => ({m, u: users.find(u => u.id === m.instructor_id) ?? users.find(u => u.name.trim().toLowerCase() === m.nombre.trim().toLowerCase())})).filter(x => x.u && !x.u.discord_inhabilitado);
-            return <div key={c.key} className="border border-slate-200 p-3">
-              <div className="flex items-center gap-2 mb-2"><img src={c.picto} alt="" className="h-5 w-5 object-contain" /><span className="font-extrabold text-sm text-slate-900">{c.label}</span><span className="ml-auto text-[10px] font-mono text-slate-500">{holders.length}</span></div>
-              {holders.length ? <div className="flex flex-wrap gap-1">{holders.map(({m,u}) => <span key={m.id} className="bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-900">{u?.name} <span className="font-mono text-[9px] text-blue-600">SAPD-{m.id.slice(0,8).toUpperCase()}</span></span>)}</div> : <p className="text-xs text-slate-400">Sin personal asignado</p>}
-            </div>;
-          })}
-            </div>
-          </section>)}
-        </div>
-      </Card>}
       {!loading && rows.length === 0 && <Card className="p-10 text-center text-slate-500">No hay policías para mostrar.</Card>}
         </>}
     </div>
