@@ -23,6 +23,7 @@ const TABS: Tab[] = [
   { to: "/certificar", label: "Crear Certificado", icon: Award, public: false, alto: false, sec: "certificar", group: "Gestión" },
   { to: "/registro-policias", label: "Registro de Policías", icon: IdCard, public: true, alto: false, group: "Personal" },
   { to: "/registro-inhabilitados", label: "Pol. Inhabilitados", icon: IdCard, public: false, alto: false, sec: "registro", group: "Personal" },
+  { to: "/capacitaciones", label: "Capacitaciones", icon: GraduationCap, public: true, alto: false, group: "Personal" },
   { to: "/policias", label: "Lista de Policías", icon: ListOrdered, public: false, alto: false, sec: "lista", group: "Personal" },
   { to: "/salario", label: "Salario", icon: Wallet, public: true, alto: false, group: "Personal" },
   { to: "/salarios-manuales", label: "[M] Salarios", icon: Wallet, public: false, alto: true, group: "Personal" },
