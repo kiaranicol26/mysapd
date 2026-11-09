@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { db, getToken } from "@/lib/db";
 import { setSession, logAction, type Session } from "@/lib/session";
+import { ADMIN_RANGO_LABELS, normalizeRango } from "@/lib/adminRango";
 import { SECCIONES } from "@/lib/secciones";
 import { syncDiscordNick } from "@/lib/discordAuth.functions";
 import { DiscordRoles } from "@/components/DiscordRoles";
