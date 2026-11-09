@@ -21,7 +21,7 @@ export const Route = createFileRoute("/registro-policias")({
 function RegistroRoute() {
   const { session, ready } = useSessionState();
   if (!ready) return <div className="min-h-screen bg-slate-100" />;
-  if (session && (session.is_alto_mando || session.can_edit_pd)) {
+  if (session && (session.is_alto_mando || session.can_edit_pd || session.can_edit_capacitaciones)) {
     return <Protected>{s => <RegistroPdView session={s} />}</Protected>;
   }
   return <RegistroPdPublicView session={session} />;
