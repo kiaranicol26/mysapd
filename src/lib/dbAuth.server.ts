@@ -319,14 +319,15 @@ export async function runQuery(spec: QuerySpec, claims: Claims | null, admin: Ad
         const { data: current } = await admin.from("pd_members").select("instructor_id").eq("id", id).maybeSingle();
         const changed = safe.op === "update" && safe.values && typeof safe.values === "object"
           ? (safe.values as any).instructor_id : undefined;
-        targets.push(typeof changed === "string" ? changed : current?.instructor_id ?? null);
+        // Check both the current owner and the destination owner so a moderator
+        // cannot reassign a higher-ranked user's record to bypass the hierarchy.
+        targets.push(current?.instructor_id ?? null);
+        if (typeof changed === "string" && changed !== current?.instructor_id) targets.push(changed);
       }
       for (const targetId of targets) {
-        let objetivo = "usuario";
-        if (targetId) {
-          const { data: target } = await admin.from("instructors").select("admin_rango").eq("id", targetId).maybeSingle();
-          objetivo = target?.admin_rango ?? "usuario";
-        }
+        if (!targetId) deny("El registro debe estar vinculado a un usuario para comprobar su rango administrativo");
+        const { data: target } = await admin.from("instructors").select("admin_rango").eq("id", targetId).maybeSingle();
+        const objetivo = target?.admin_rango ?? "usuario";
         if (!puedeGestionar(claims.rango, objetivo)) {
           deny("Solo podés gestionar policías cuyo rango administrativo sea inferior al tuyo");
         }
