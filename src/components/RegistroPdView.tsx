@@ -17,6 +17,7 @@ import {
 import { RANGO_PLURAL, DIVISIONES, DIVISION_RANGOS, sortByRango } from "@/lib/rangos";
 import { fileToCompressedDataUrl } from "@/lib/appearance";
 import { toast } from "sonner";
+import { puedeGestionar } from "@/lib/adminRango";
 import { Trash2, Plus, Pencil, BadgeCheck, UserRound, Upload, Loader2 } from "lucide-react";
 
 type PdMember = {
@@ -83,7 +84,7 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [saving, setSaving] = useState(false);
-  const [users, setUsers] = useState<{ id: string; name: string; avatar_url: string | null; role: string | null; discord_inhabilitado: boolean }[]>([]);
+  const [users, setUsers] = useState<{ id: string; name: string; avatar_url: string | null; role: string | null; admin_rango: string | null; discord_inhabilitado: boolean }[]>([]);
   const [capConfirm, setCapConfirm] = useState<{ m: PdMember; cap: CapKey; value: boolean } | null>(null);
   const [capSaving, setCapSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -97,7 +98,7 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
   }
 
   async function loadAvatars() {
-    const { data } = await db.from("instructors").select("id, name, avatar_url, role, discord_inhabilitado, descripcion, banner_url, color_perfil, pronombres, placa, discord_username, tag, is_alto_mando, can_delete, can_emit_rnap, can_edit_files, can_edit_pd, secciones");
+    const { data } = await db.from("instructors").select("id, name, avatar_url, role, admin_rango, discord_inhabilitado, descripcion, banner_url, color_perfil, pronombres, placa, discord_username, tag, is_alto_mando, can_delete, can_emit_rnap, can_edit_files, can_edit_pd, secciones");
     if (!data) return;
     setUsers(data as any);
   }
@@ -312,7 +313,7 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
                   </div>
                 )}
                 footer={<>
-                {canEdit && (
+                {canEdit && (session.is_alto_mando || puedeGestionar(session.admin_rango, u.admin_rango)) && (
                   <div className="flex border-t border-blue-200">
                     <Button variant="ghost" onClick={() => openEdit(u, m)}
                       className="flex-1 rounded-none h-9 text-blue-700 hover:bg-blue-50 font-bold text-xs uppercase">
