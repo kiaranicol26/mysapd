@@ -14,7 +14,7 @@ describe("acceso por secciones", () => {
     expect(puedeVer(u, "rnap")).toBe(true);
     expect(puedeVer(u, "aspirantes")).toBe(false);
   });
-  test("Alto Mando ve todo", () => {
+  test("Administrador ve todo", () => {
     expect(puedeVer({ is_alto_mando: true, secciones: [] }, "forum")).toBe(true);
   });
   test("descarta secciones desconocidas", () => {
