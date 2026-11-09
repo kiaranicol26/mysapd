@@ -23,10 +23,6 @@ type Member = {
 };
 type User = { id: string; name: string; avatar_url: string | null; role: string | null; placa: string | null; discord_joined_at: string | null; discord_inhabilitado: boolean };
 
-const CARGO: Record<string, string> = {
-  Comisario: "Encargado de SAPD", Cupula: "Cúpula", Usuario: "Agente"
-};
-
 const CAPACITACIONES = [
   { key: "cap_m4", label: "M4", picto: pictoM4.url },
   { key: "cap_edc", label: "EDC", picto: pictoEdc.url },
@@ -67,7 +63,7 @@ export function RegistroPdPublicView({ session }: { session: Session | null }) {
     const m = members.find(x => x.instructor_id === u.id) ??
       members.find(x => x.nombre.trim().toLowerCase() === u.name.trim().toLowerCase());
     return { u, m };
-  }).filter(({ u, m }) => (u.name + " " + (u.placa ?? m?.placa ?? "") + " " + (m?.rango ?? "") + " " + (CARGO[u.role ?? "Usuario"] ?? u.role ?? "Agente") + " " +
+  }).filter(({ u, m }) => (u.name + " " + (u.placa ?? m?.placa ?? "") + " " + (m?.rango ?? "") + " " +
     CAPACITACIONES.filter(c => m?.[c.key]).map(c => c.label).join(" ")).toLowerCase().includes(query.toLowerCase())), [users, members, query]);
 
   const rankOrder = ["Comisario", "Inspector", "Capitan", "Capitán", "Teniente", "Sargento", "Cabo", "Oficial", "Cadete", "Aspirante"];
