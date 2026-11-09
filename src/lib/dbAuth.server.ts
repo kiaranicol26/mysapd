@@ -39,6 +39,7 @@ const TABLES = new Set([
   "manual_salary_batches",
   "manual_salary_entries",
   "pd_members",
+  "pd_trainings",
   "records",
   "rnap_certificates",
   "salary_entries",
