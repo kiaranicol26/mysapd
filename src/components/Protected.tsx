@@ -25,7 +25,7 @@ export function Protected({
         <Card className="border-2 border-blue-300 bg-white rounded-none max-w-xl mx-auto">
           <div className="p-8 text-center space-y-4">
             <p className="text-slate-600 font-bold uppercase tracking-widest text-sm">
-              {!session ? "Necesitas iniciar sesión" : altoMando ? "Acceso solo para Alto Mando" : "Todavía no tenés acceso a este apartado. Pedíselo al Alto Mando."}
+              {!session ? "Necesitas iniciar sesión" : altoMando ? "Acceso exclusivo para Administradores" : "Todavía no tenés acceso a este apartado. Pedíselo al Alto Mando."}
             </p>
             {!session && (
               <Button asChild className="rounded-none bg-blue-700 hover:bg-blue-800 text-white font-bold">
