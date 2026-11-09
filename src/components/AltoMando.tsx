@@ -23,7 +23,8 @@ import { toast } from "sonner";
 import { SECCIONES } from "@/lib/secciones";
 import { ADMIN_RANGOS, ADMIN_RANGO_LABELS, ADMIN_RANGO_DESC, normalizeRango, type AdminRango } from "@/lib/adminRango";
 import { LazyDiscordRoles } from "@/components/DiscordRoles";
-import { Trash2, Shield, Webhook, FileText, Image as ImageIcon, RefreshCw, Settings, Users } from "lucide-react";
+import { Shield, Webhook, FileText, Image as ImageIcon, RefreshCw, Settings, Users, Pencil, KeyRound, MessageCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 
 type Instructor = {
@@ -58,10 +59,9 @@ type Log = {
 export function AltoMando({ session }: { session: Session }) {
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [logs, setLogs] = useState<Log[]>([]);
-  const [newId, setNewId] = useState("");
-  const [newName, setNewName] = useState("");
-  const [newRole, setNewRole] = useState("Usuario");
-  const [newDiscordId, setNewDiscordId] = useState("");
+  const [editingUser, setEditingUser] = useState<Instructor | null>(null);
+  const [editingRank, setEditingRank] = useState<AdminRango>("usuario");
+  const [savingRank, setSavingRank] = useState(false);
 
   const [webhook, setWebhook] = useState("");
   const [savingHook, setSavingHook] = useState(false);
@@ -84,12 +84,11 @@ export function AltoMando({ session }: { session: Session }) {
 
 
   async function loadAll() {
-    const [i, l] = await Promise.all([
-      db.from("instructors").select("*").order("created_at", { ascending: true }),
-      db.from("logs").select("*").order("created_at", { ascending: false }).limit(200),
-    ]);
-    if (i.data) setInstructors(i.data as Instructor[]);
-    if (l.data) setLogs(l.data as Log[]);
+    const { data, error } = await db.from("instructors")
+      .select("id, name, is_alto_mando, admin_rango, role, can_delete, can_emit_rnap, can_edit_files, can_edit_pd, can_edit_capacitaciones, secciones, discord_username, discord_id, discord_inhabilitado, created_at, created_by")
+      .order("created_at", { ascending: true });
+    if (error) { toast.error(error.message); return; }
+    if (data) setInstructors(data as Instructor[]);
   }
 
   useEffect(() => {
@@ -196,54 +195,30 @@ export function AltoMando({ session }: { session: Session }) {
     }
   }
 
-  async function createInstructor(e: React.FormEvent) {
-    e.preventDefault();
-    const id = newId.trim().toUpperCase();
-    const name = newName.trim();
-    if (!id || !name) return toast.error("ID y nombre requeridos");
-    const isAlto = false;
-    const { error } = await db.from("instructors").insert({
-      id, name,
-      discord_id: newDiscordId.trim(),
-      is_alto_mando: isAlto,
-      role: newRole,
-      can_delete: isAlto,
-      can_emit_rnap: isAlto,
-      created_by: session.id,
-    } as any);
-    if (error) return toast.error(error.message);
-    await logAction(db, session, "CREATE_ID", { id, name, role: newRole });
-    toast.success(`ID ${id} (${name}) creado como ${newRole}`);
-    setNewId(""); setNewName(""); setNewRole("Usuario"); setNewDiscordId("");
-    loadAll();
+  function openRankEditor(user: Instructor) {
+    setEditingUser(user);
+    setEditingRank(normalizeRango(user.admin_rango));
   }
 
-  async function removeInstructor(id: string, name: string) {
-    if (id === session.id) return toast.error("No puedes eliminarte a ti mismo");
-    if (!confirm(`¿Eliminar ID ${id} (${name})?`)) return;
-    const { error } = await db.from("instructors").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    await logAction(db, session, "DELETE_ID", { id, name });
-    loadAll();
-  }
-
-  async function setRango(i: Instructor, rango: AdminRango) {
-    if (i.id === session.id && rango !== "administrador") return toast.error("No podés quitarte el rango Administrador");
-    const patch = { admin_rango: rango, is_alto_mando: rango === "administrador" };
-    setInstructors(prev => prev.map(x => x.id === i.id ? { ...x, ...patch } : x));
-    const { error } = await db.from("instructors").update(patch as any).eq("id", i.id);
-    if (error) { toast.error(error.message); loadAll(); return; }
-    await logAction(db, session, "UPDATE_ADMIN_RANGO", { id: i.id, name: i.name, rango });
-    toast.success(`${i.name} ahora es ${ADMIN_RANGO_LABELS[rango]}`);
-  }
-
-  async function toggleSeccion(i: Instructor, key: string) {
-    const cur = i.secciones ?? [];
-    const next = cur.includes(key) ? cur.filter(k => k !== key) : [...cur, key];
-    setInstructors(prev => prev.map(x => x.id === i.id ? { ...x, secciones: next } : x));
-    const { error } = await db.from("instructors").update({ secciones: next } as any).eq("id", i.id);
-    if (error) { toast.error(error.message); loadAll(); return; }
-    await logAction(db, session, "UPDATE_SECCIONES", { id: i.id, name: i.name, secciones: next });
+  async function saveRank() {
+    if (!editingUser) return;
+    if (editingUser.id === session.id && editingRank !== "administrador") {
+      toast.error("No podés quitarte el rango Administrador.");
+      return;
+    }
+    setSavingRank(true);
+    const { error } = await db.from("instructors").update({
+      admin_rango: editingRank,
+      is_alto_mando: editingRank === "administrador",
+    } as any).eq("id", editingUser.id);
+    setSavingRank(false);
+    if (error) { toast.error(error.message); return; }
+    await logAction(db, session, "UPDATE_ADMIN_RANGO", {
+      id: editingUser.id, name: editingUser.name, rango: editingRank,
+    });
+    toast.success(`Rango de ${editingUser.name} actualizado a ${ADMIN_RANGO_LABELS[editingRank]}.`);
+    setEditingUser(null);
+    await loadAll();
   }
 
   return (
@@ -263,50 +238,6 @@ export function AltoMando({ session }: { session: Session }) {
           </Button>
         </div>
       </div>
-      {activeSection === "gestion" && <>
-      {/* CREAR ID */}
-      <Card className="overflow-hidden border border-blue-200 bg-white shadow-sm rounded-none">
-        <div className="h-1 bg-blue-600" />
-        <div className="p-5 space-y-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 flex items-center justify-center bg-white border border-blue-200 p-1">
-              <img src={sapdLogo.url} alt="SAPD" className="w-full h-full object-contain" />
-            </div>
-            <div>
-              <p className="text-blue-600 text-xs uppercase tracking-[0.3em] font-bold">
-                San Andreas Police Department
-              </p>
-              <h2 className="text-2xl font-black uppercase tracking-wide text-slate-900 font-display">
-                Crear Nuevo ID
-              </h2>
-            </div>
-          </div>
-          <form onSubmit={createInstructor} className="grid gap-3 md:grid-cols-5">
-            <Input placeholder="ID de acceso" value={newId}
-              onChange={e => setNewId(e.target.value)}
-              className="h-11 rounded-none border-blue-300 bg-white text-slate-800 font-mono uppercase focus:border-blue-600" />
-            <Input placeholder="Nombre" value={newName}
-              onChange={e => setNewName(e.target.value)}
-              className="h-11 rounded-none border-blue-300 bg-white text-slate-800 focus:border-blue-600" />
-            <Input placeholder="ID de Discord" aria-label="ID de Discord del nuevo usuario" required inputMode="numeric" value={newDiscordId} onChange={e => setNewDiscordId(e.target.value.replace(/\D/g, ""))} />
-            <Select value={newRole} onValueChange={setNewRole}>
-              <SelectTrigger className="h-11 rounded-none border-blue-300 bg-white text-slate-800">
-                <SelectValue placeholder="Rol" />
-              </SelectTrigger>
-              <SelectContent className="bg-white border border-blue-200 text-slate-800 rounded-none">
-                <SelectItem value="Comisario">Comisario (Alto Mando)</SelectItem>
-                <SelectItem value="Cupula">Cúpula</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button type="submit"
-              className="h-11 rounded-none bg-blue-600 hover:bg-blue-700 text-white font-semibold tracking-wider">
-              Crear ID
-            </Button>
-          </form>
-        </div>
-      </Card>
-
-      </>}
       {activeSection === "config" && <>
       {/* WEBHOOKS */}
       <div className="grid gap-4 lg:grid-cols-2">
@@ -474,158 +405,90 @@ export function AltoMando({ session }: { session: Session }) {
 
       </>}
       {activeSection === "gestion" && <>
-      {/* INSTRUCTORES + PERMISOS */}
-      <Card className="overflow-hidden border border-blue-200 bg-white shadow-sm rounded-none">
-        <div className="h-1 bg-blue-600" />
-        <div className="p-5 space-y-4">
-          <h2 className="text-2xl font-black uppercase tracking-wide text-slate-900 font-display">
-            Usuarios y rangos administrativos
-          </h2>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            {ADMIN_RANGOS.map(r => (
-              <div key={r} className="border border-blue-200 bg-blue-50 p-3">
-                <p className="font-bold text-slate-900">{ADMIN_RANGO_LABELS[r]} <span className="text-slate-500 font-normal">· {instructors.filter(x => normalizeRango(x.admin_rango) === r).length}</span></p>
-                <p className="text-xs text-slate-500">{ADMIN_RANGO_DESC[r]}</p>
+        <Card className="overflow-hidden border-0 bg-card shadow-sm">
+          <div className="p-5 sm:p-6 space-y-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-bold tracking-tight">Usuarios del sistema</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Administrá el rango de moderación de cada cuenta desde su perfil.</p>
               </div>
-            ))}
-          </div>
-          <div className="border border-blue-200">
-            <table className="w-full text-sm font-table">
-              <thead>
-                <tr className="bg-blue-600 text-white">
-                  <th className="p-3 text-left border border-blue-500 uppercase font-bold">ID</th>
-                  <th className="p-3 text-left border border-blue-500 uppercase font-bold">Nombre</th>
-                  <th className="p-3 text-left border border-blue-500 uppercase font-bold">Rol</th>
-                  <th className="p-3 text-left border border-blue-500 uppercase font-bold">Rango administrativo</th>
-                  <th className="p-3 text-left border border-blue-500 uppercase font-bold">Apartados visibles</th>
-
-                  <th className="p-3 text-left border border-blue-500 uppercase font-bold">Creado por</th>
-                  <th className="p-3 border border-blue-500 w-10" />
-                </tr>
-              </thead>
-              <tbody>
-                {instructors.map(i => (
-                  <tr key={i.id} className="border-t border-slate-200 hover:bg-blue-50 transition-colors">
-                    <td className="p-3 font-mono text-slate-700 border border-slate-200">{i.id}</td>
-                    <td className="p-3 text-slate-700 border border-slate-200">{i.name}
-                      {i.discord_inhabilitado && <span className="mt-1 block w-fit border border-destructive/30 bg-destructive/10 px-2 py-1 text-xs font-bold text-destructive">Inhabilitado</span>}
-                      <Input aria-label={`ID de Discord de ${i.name}`} placeholder="Vincular ID de Discord" defaultValue={i.discord_id ?? ""} key={`${i.id}-${i.discord_id ?? ""}`} inputMode="numeric" className="mt-2 min-w-40 text-xs" onBlur={async e => {
-                        const discordId = e.target.value.trim();
-                        if (discordId === (i.discord_id ?? "")) return;
-                        if (!/^\d{17,20}$/.test(discordId)) { toast.error("ID de Discord inválido"); return; }
-                        const { error } = await db.from("instructors").update({ discord_id: discordId }).eq("id", i.id);
-                        if (error) toast.error(error.message); else { toast.success("Discord vinculado"); loadAll(); }
-                      }} />
-                      {i.discord_username && (
-                      <>
-                        <span className="block text-[11px] text-slate-400">@{i.discord_username}</span>
-                        <LazyDiscordRoles targetId={i.id} />
-                      </>
-                    )}</td>
-                    <td className="p-3 border border-slate-200">
-                      {i.role === "Comisario" ? (
-                        <span className="inline-flex items-center gap-2 text-blue-700 font-semibold">
-                          <Shield className="w-4 h-4" /> Comisario
+              <span className="rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">{instructors.length} cuentas</span>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+              {ADMIN_RANGOS.map(r => (
+                <div key={r} className="rounded-xl bg-muted/60 p-3">
+                  <p className="text-sm font-semibold">{ADMIN_RANGO_LABELS[r]}</p>
+                  <p className="mt-1 text-2xl font-bold tabular-nums">{instructors.filter(x => normalizeRango(x.admin_rango) === r).length}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{ADMIN_RANGO_DESC[r]}</p>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-2">
+              {instructors.map(user => {
+                const rank = normalizeRango(user.admin_rango);
+                return (
+                  <div key={user.id} className="flex flex-col gap-3 rounded-2xl bg-muted/35 p-4 sm:flex-row sm:items-center">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-semibold">{user.name}</p>
+                        <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${rank === "administrador" ? "bg-primary/15 text-primary" : rank === "moderador" ? "bg-violet-500/15 text-violet-600" : rank === "ayudante" ? "bg-emerald-500/15 text-emerald-600" : "bg-muted text-muted-foreground"}`}>
+                          {ADMIN_RANGO_LABELS[rank]}
                         </span>
-                      ) : (
-                        <span className="text-slate-600">{i.role}</span>
-                      )}
-                    </td>
-                    <td className="p-3 border border-slate-200 min-w-[200px]">
-                      <Select value={normalizeRango(i.admin_rango)} onValueChange={v => setRango(i, v as AdminRango)}>
-                        <SelectTrigger aria-label={`Rango administrativo de ${i.name}`}><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {ADMIN_RANGOS.map(r => <SelectItem key={r} value={r}>{ADMIN_RANGO_LABELS[r]}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                      <p className="mt-1 text-[11px] text-slate-500">{ADMIN_RANGO_DESC[normalizeRango(i.admin_rango)]}</p>
-                    </td>
-                    <td className="p-2 border border-slate-200 min-w-[260px]">
-                      {normalizeRango(i.admin_rango) === "administrador" ? (
-                        <span className="text-xs text-slate-500 font-bold">Todos</span>
-                      ) : (
-                        <div className="flex flex-wrap gap-1">
-                          {SECCIONES.map(sec => {
-                            const on = (i.secciones ?? []).includes(sec.key);
-                            return (
-                              <button key={sec.key} type="button" onClick={() => toggleSeccion(i, sec.key)}
-                                aria-pressed={on}
-                                className={`px-2 py-0.5 text-[11px] font-bold border ${on ? "bg-blue-600 text-white border-blue-700" : "bg-white text-slate-500 border-slate-300"}`}>
-                                {sec.label}
-                              </button>
-                            );
-                          })}
+                        {user.discord_inhabilitado && <span className="rounded-full bg-destructive/10 px-2.5 py-1 text-[11px] font-bold text-destructive">Discord inhabilitado</span>}
+                      </div>
+                      <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
+                        <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
+                          <KeyRound className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate font-mono" title={user.id}>Cuenta: {user.id}</span>
                         </div>
-                      )}
-                    </td>
-
-                    <td className="p-3 text-slate-500 border border-slate-200">{i.created_by ?? "—"}</td>
-                    <td className="p-3 text-center border border-slate-200">
-                      <Button size="icon" variant="ghost"
-                        onClick={() => removeInstructor(i.id, i.name)}
-                        className="h-8 w-8 rounded-none hover:bg-red-100">
-                        <Trash2 className="w-4 h-4 text-red-600" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-                {instructors.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="p-10 text-center text-slate-400 uppercase tracking-widest">
-                      Sin personal autorizado.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                        <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
+                          <MessageCircle className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">{user.discord_username ? `@${user.discord_username}` : "Discord sin vincular"}</span>
+                          {user.discord_id && <span className="truncate font-mono opacity-70">· {user.discord_id}</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <Button type="button" variant="outline" size="sm" className="shrink-0 gap-2 rounded-xl" onClick={() => openRankEditor(user)}>
+                      <Pencil className="h-4 w-4" /> Editar rango
+                    </Button>
+                  </div>
+                );
+              })}
+              {instructors.length === 0 && <p className="rounded-xl bg-muted/40 p-8 text-center text-sm text-muted-foreground">Todavía no hay usuarios registrados.</p>}
+            </div>
+            <p className="text-xs text-muted-foreground">El acceso se realiza mediante códigos temporales de Discord. Por seguridad, mySAPD no almacena ni muestra contraseñas permanentes; el identificador de cuenta se muestra como referencia.</p>
           </div>
-        </div>
-      </Card>
+        </Card>
 
-      {/* LOGS */}
-      <Card className="border border-blue-200 bg-white shadow-sm rounded-none">
-        <div className="p-5 space-y-4">
-          <h2 className="text-2xl font-black uppercase tracking-wide text-slate-900 font-display">
-            Registro de Movimientos
-          </h2>
-          <div className="border border-blue-200 max-h-[500px] overflow-auto">
-            <table className="w-full text-sm font-table">
-              <thead className="sticky top-0">
-                <tr className="bg-blue-600 text-white">
-                  <th className="p-3 text-left border border-blue-500 uppercase font-bold">Fecha</th>
-                  <th className="p-3 text-left border border-blue-500 uppercase font-bold">ID</th>
-                  <th className="p-3 text-left border border-blue-500 uppercase font-bold">Nombre</th>
-                  <th className="p-3 text-left border border-blue-500 uppercase font-bold">Acción</th>
-                  <th className="p-3 text-left border border-blue-500 uppercase font-bold">Detalles</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map(l => (
-                  <tr key={l.id} className="border-t border-slate-200 hover:bg-blue-50 transition-colors">
-                    <td className="p-3 text-xs text-slate-500 whitespace-nowrap border border-slate-200">
-                      {new Date(l.created_at).toLocaleString()}
-                    </td>
-                    <td className="p-3 font-mono text-slate-700 border border-slate-200">{l.instructor_id ?? "—"}</td>
-                    <td className="p-3 text-slate-700 border border-slate-200">{l.instructor_name ?? "—"}</td>
-                    <td className="p-3 font-semibold text-blue-700 border border-slate-200">{l.action}</td>
-                    <td className="p-3 text-xs text-slate-500 max-w-[300px] border border-slate-200">
-                      {l.details ? JSON.stringify(l.details) : "—"}
-                    </td>
-                  </tr>
-                ))}
-                {logs.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="p-10 text-center text-slate-400 uppercase tracking-widest">
-                      Sin movimientos aún.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </Card>
+        <Dialog open={!!editingUser} onOpenChange={open => { if (!open && !savingRank) setEditingUser(null); }}>
+          <DialogContent className="sm:max-w-md rounded-2xl">
+            <DialogHeader>
+              <DialogTitle>Editar rango administrativo</DialogTitle>
+              <DialogDescription>
+                {editingUser ? `Seleccioná el rango de moderación para ${editingUser.name}. Esto no modifica su rango policial.` : ""}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="rounded-xl bg-muted/50 p-3">
+                <p className="text-sm font-semibold">{editingUser?.name}</p>
+                <p className="mt-1 text-xs font-mono text-muted-foreground">{editingUser?.id}</p>
+              </div>
+              <Select value={editingRank} onValueChange={value => setEditingRank(value as AdminRango)}>
+                <SelectTrigger><SelectValue placeholder="Seleccionar rango" /></SelectTrigger>
+                <SelectContent>
+                  {ADMIN_RANGOS.map(r => <SelectItem key={r} value={r}>{ADMIN_RANGO_LABELS[r]}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <div className="rounded-xl bg-muted/50 p-3 text-sm text-muted-foreground">{ADMIN_RANGO_DESC[editingRank]}</div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setEditingUser(null)} disabled={savingRank}>Cancelar</Button>
+              <Button type="button" onClick={saveRank} disabled={savingRank || !editingUser}>{savingRank ? "Guardando…" : "Guardar rango"}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </>}
+>}
     </div>
   );
 }
