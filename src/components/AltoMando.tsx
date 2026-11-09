@@ -387,10 +387,8 @@ export function AltoMando({ session }: { session: Session }) {
                 <h2 className="text-xl font-bold tracking-tight">Usuarios del sistema</h2>
                 <p className="mt-1 text-sm text-muted-foreground">Administrá el rango de moderación de cada cuenta desde su perfil.</p>
               </div>
-              </div>
             <div className="space-y-2">
               {instructors.map(user => {
-                const rank = normalizeRango(user.admin_rango);
                 return (
                   <div key={user.id} className="flex flex-col gap-3 rounded-2xl bg-muted/35 p-4 sm:flex-row sm:items-center">
                     <div className="min-w-0 flex-1">
