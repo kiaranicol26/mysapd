@@ -11,6 +11,7 @@ import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { puedeVer } from "@/lib/secciones";
 import { getSalaryTabVisibility } from "@/lib/discord";
+import { ADMIN_RANGO_LABELS, normalizeRango } from "@/lib/adminRango";
 
 type Tab = { to: string; label: string; icon: LucideIcon; public: boolean; alto: boolean; sec?: string; group: string; search?: { section: "config" | "gestion" } };
 
@@ -111,7 +112,7 @@ export function AppShell({ session, children }: { session: Session | null; child
             <div className="min-w-0 flex-1">
               <p className="text-sm font-extrabold truncate">{session ? session.name : "Invitado"}</p>
               <p className="text-[11px] text-muted-foreground truncate flex items-center gap-1">
-                {session?.is_alto_mando ? <><Shield className="w-3 h-3" /> Alto Mando</> : session ? session.role || "Usuario" : "Solo lectura"}
+                {session?.is_alto_mando ? <><Shield className="w-3 h-3" /> Administrador</> : session ? ADMIN_RANGO_LABELS[normalizeRango(session.admin_rango)] : "Solo lectura"}
               </p>
             </div>
           )}
