@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { db, getToken } from "@/lib/db";
 import { forceDiscordSync } from "@/lib/data.functions";
 import { Session, logAction } from "@/lib/session";
@@ -20,10 +19,8 @@ import {
 } from "@/components/ui/select";
 import { getBackground, setBackground, fileToCompressedDataUrl } from "@/lib/appearance";
 import { toast } from "sonner";
-import { SECCIONES } from "@/lib/secciones";
 import { ADMIN_RANGOS, ADMIN_RANGO_LABELS, ADMIN_RANGO_DESC, normalizeRango, type AdminRango } from "@/lib/adminRango";
-import { LazyDiscordRoles } from "@/components/DiscordRoles";
-import { Shield, Webhook, FileText, Image as ImageIcon, RefreshCw, Settings, Users, Pencil, KeyRound, MessageCircle } from "lucide-react";
+import { Webhook, FileText, Image as ImageIcon, RefreshCw, Settings, Users, Pencil, KeyRound, MessageCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 
@@ -47,18 +44,8 @@ type Instructor = {
   created_by: string | null;
 };
 
-type Log = {
-  id: string;
-  instructor_id: string | null;
-  instructor_name: string | null;
-  action: string;
-  details: any;
-  created_at: string;
-};
-
 export function AltoMando({ session }: { session: Session }) {
   const [instructors, setInstructors] = useState<Instructor[]>([]);
-  const [logs, setLogs] = useState<Log[]>([]);
   const [editingUser, setEditingUser] = useState<Instructor | null>(null);
   const [editingRank, setEditingRank] = useState<AdminRango>("usuario");
   const [savingRank, setSavingRank] = useState(false);
