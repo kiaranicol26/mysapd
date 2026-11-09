@@ -302,19 +302,35 @@ export async function runQuery(spec: QuerySpec, claims: Claims | null, admin: Ad
       }
     }
   }
-  if (safe.table === "pd_members" && (safe.op === "update" || safe.op === "delete") && claims && !claims.alto) {
+  if (safe.table === "pd_members" && claims && !claims.alto) {
     const capOnly = safe.op === "update" && patchKeys(safe.values).length > 0 &&
       patchKeys(safe.values).every(k => k.startsWith("cap_"));
     if (!capOnly) {
-      const id = filterValue(safe, "id");
-      if (!id) deny("Operación no permitida");
-      const { data: m } = await admin.from("pd_members").select("instructor_id").eq("id", id).maybeSingle();
-      let objetivo = "usuario";
-      if (m?.instructor_id) {
-        const { data: t } = await admin.from("instructors").select("admin_rango").eq("id", m.instructor_id).maybeSingle();
-        objetivo = t?.admin_rango ?? "usuario";
+      const targets: Array<string | null> = [];
+      if (safe.op === "insert" || safe.op === "upsert") {
+        const values = Array.isArray(safe.values) ? safe.values : [safe.values];
+        for (const value of values) {
+          targets.push(value && typeof value === "object" && typeof (value as any).instructor_id === "string"
+            ? (value as any).instructor_id : null);
+        }
+      } else if (safe.op === "update" || safe.op === "delete") {
+        const id = filterValue(safe, "id");
+        if (!id) deny("Operación no permitida");
+        const { data: current } = await admin.from("pd_members").select("instructor_id").eq("id", id).maybeSingle();
+        const changed = safe.op === "update" && safe.values && typeof safe.values === "object"
+          ? (safe.values as any).instructor_id : undefined;
+        targets.push(typeof changed === "string" ? changed : current?.instructor_id ?? null);
       }
-      if (!puedeGestionar(claims.rango, objetivo)) deny("Solo podés gestionar policías con rango administrativo inferior al tuyo");
+      for (const targetId of targets) {
+        let objetivo = "usuario";
+        if (targetId) {
+          const { data: target } = await admin.from("instructors").select("admin_rango").eq("id", targetId).maybeSingle();
+          objetivo = target?.admin_rango ?? "usuario";
+        }
+        if (!puedeGestionar(claims.rango, objetivo)) {
+          deny("Solo podés gestionar policías cuyo rango administrativo sea inferior al tuyo");
+        }
+      }
     }
   }
   let q = admin.from(safe.table) as any;
