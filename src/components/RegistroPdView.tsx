@@ -70,13 +70,6 @@ type Draft = {
   es_instructor: boolean;
 };
 
-const ROLES = [
-  { value: "Comisario", label: "Encargado de SAPD", plural: "Comisarios" },
-  { value: "Cupula", label: "Cúpula", plural: "Cúpula Administrativa" },
-  { value: "Usuario", label: "Agente", plural: "Agentes" },
-];
-const roleKey = (r: string | null) => (r && ROLES.some(x => x.value === r) ? r : "Usuario");
-
 const emptyDraft: Draft = {
   nombre: "", rango: "", foto: "", placa: "",
   division: "Ninguna", division_rango: "Miembro",
@@ -216,20 +209,12 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
       .filter(({ u, m }) =>
         (u.name + " " + (u.role ?? "") + " " + (m?.rango ?? "") + " " + (m?.placa ?? "") + " " + (m?.division ?? ""))
           .toLowerCase().includes(q.toLowerCase()));
-    return ROLES.map(r => ({
-      rango: r.value, label: r.plural,
-      items: sortByRango(rows.filter(x => roleKey(x.u.role) === r.value), x => x.m?.rango ?? null, x => x.u.name),
-    })).filter(g => g.items.length > 0);
+    return [{
+      rango: "personal",
+      label: "Personal policial",
+      items: sortByRango(rows, x => x.m?.rango ?? null, x => x.u.name),
+    }].filter(g => g.items.length > 0);
   }, [onlyDisabled, personnelIndex, q, users]);
-
-  async function changeRole(u: { id: string; name: string }, role: string) {
-    const alto = role === "Comisario";
-    const { error } = await db.from("instructors").update({ role, is_alto_mando: alto, ...(alto ? { can_delete: true, can_emit_rnap: true } : {}) } as any).eq("id", u.id);
-    if (error) return toast.error(error.message);
-    await logAction(db, session, "UPDATE_ROLE", { id: u.id, role });
-    toast.success(`${u.name} ahora es ${role}`);
-    loadAvatars();
-  }
 
   async function toggleCap() {
     if (!capConfirm) return;
@@ -302,7 +287,7 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {g.items.map(({ u, m }) => (
-              <ProfileCard key={u.id} u={{ ...u, role: m?.es_instructor ? "Instructor" : roleKey(u.role) } as ProfileUser} foto={m?.foto}
+              <ProfileCard key={u.id} u={{ ...u, role: null } as ProfileUser} foto={m?.foto}
                 extra={m && (
                   <div className="border-t pt-2 text-sm text-foreground space-y-2">
                     <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">Registro PD</p>
@@ -327,16 +312,6 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
                   </div>
                 )}
                 footer={<>
-                {session.is_alto_mando && (
-                  <div className="border-t border-blue-200 p-2">
-                    <Select value={roleKey(u.role)} onValueChange={v => changeRole(u, v)}>
-                      <SelectTrigger className="h-8 rounded-none text-xs font-bold"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {ROLES.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
                 {canEdit && (
                   <div className="flex border-t border-blue-200">
                     <Button variant="ghost" onClick={() => openEdit(u, m)}
