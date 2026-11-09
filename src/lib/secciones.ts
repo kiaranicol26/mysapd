@@ -12,7 +12,7 @@ export type SeccionKey = (typeof SECCIONES)[number]["key"];
 
 const KEYS = new Set<string>(SECCIONES.map(s => s.key));
 
-/** Alto Mando ve todo; el resto solo las secciones habilitadas. myPerfil y Salario siempre son visibles. */
+/** Administrador ve todo; el resto solo las secciones derivadas de su rango. myPerfil y Salario siempre son visibles. */
 export function puedeVer(
   user: { is_alto_mando?: boolean; secciones?: readonly string[] | null } | null,
   seccion: string | undefined,
