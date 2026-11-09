@@ -2,13 +2,12 @@ import { useEffect, useState } from "react";
 import { db, getToken } from "@/lib/db";
 import { setSession, logAction, type Session } from "@/lib/session";
 import { ADMIN_RANGO_LABELS, normalizeRango } from "@/lib/adminRango";
-import { SECCIONES } from "@/lib/secciones";
 import { syncDiscordNick } from "@/lib/discordAuth.functions";
 import { DiscordRoles } from "@/components/DiscordRoles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Save, UserRound, Check, X } from "lucide-react";
+import { Save, UserRound } from "lucide-react";
 
 export function MiPerfilView({ session }: { session: Session }) {
   const [name, setName] = useState(session.name);
@@ -24,6 +23,8 @@ export function MiPerfilView({ session }: { session: Session }) {
   const [placaOrig, setPlacaOrig] = useState("");
   
   const [saving, setSaving] = useState(false);
+  const rangoAdministrativo = normalizeRango(session.admin_rango);
+  const canEditProfile = rangoAdministrativo !== "usuario";
 
   useEffect(() => {
     db.from("instructors")
@@ -47,6 +48,7 @@ export function MiPerfilView({ session }: { session: Session }) {
   }, [session.id]);
 
   async function save() {
+    if (!canEditProfile) return toast.error("Tu rango Usuario solo permite consultar, no editar.");
     const nuevaPlaca = placa.trim();
     setSaving(true);
     if (discordUser && nuevaPlaca !== placaOrig) {
@@ -61,13 +63,6 @@ export function MiPerfilView({ session }: { session: Session }) {
     setSaving(false);
   }
 
-  const permisos = [
-    { label: "Alto Mando", on: session.is_alto_mando },
-    { label: "Borrar registros", on: session.can_delete },
-    { label: "Emitir RNAP", on: session.can_emit_rnap },
-    { label: "Editar archivos", on: !!session.can_edit_files },
-    { label: "Editar Registro PD", on: !!session.can_edit_pd },
-  ];
   const label = "text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground";
   const inp = "mt-1 h-10 rounded-none font-semibold";
 
@@ -87,7 +82,7 @@ export function MiPerfilView({ session }: { session: Session }) {
             </div>
             <div className="border-t pt-2">
               <p className={label}>Rango administrativo</p>
-              <p className="text-sm font-bold text-foreground">{ADMIN_RANGO_LABELS[normalizeRango(session.admin_rango)]}</p>
+              <p className="text-sm font-bold text-foreground">{ADMIN_RANGO_LABELS[rangoAdministrativo]}</p>
             </div>
             {descripcion && (
               <div className="border-t pt-2">
@@ -110,32 +105,13 @@ export function MiPerfilView({ session }: { session: Session }) {
                 </div>
               </div>
             )}
-            <div className="border-t pt-2">
-              <p className={label}>Apartados</p>
-              <div className="mt-1 flex flex-wrap gap-1">
-                {SECCIONES.filter(s => session.is_alto_mando || session.secciones?.includes(s.key)).map(s => (
-                  <span key={s.key} className="rounded px-2 py-0.5 text-[11px] font-bold bg-card border" style={{ borderColor: color }}>{s.label}</span>
-                ))}
-                <span className="rounded px-2 py-0.5 text-[11px] font-bold bg-card border">myPerfil</span>
-              </div>
-            </div>
-            <div className="border-t pt-2">
-              <p className={label}>Permisos</p>
-              <ul className="mt-1 space-y-0.5">
-                {permisos.map(p => (
-                  <li key={p.label} className="flex items-center gap-2 text-sm text-foreground">
-                    {p.on ? <Check className="w-4 h-4 text-emerald-500" /> : <X className="w-4 h-4 text-red-500" />} {p.label}
-                  </li>
-                ))}
-              </ul>
-            </div>
           </div>
         </div>
       </div>
 
       {/* Editor */}
       <div className="rounded-lg border bg-card p-6 space-y-5">
-        <h2 className="font-display font-extrabold uppercase tracking-widest text-sm text-foreground">Editar perfil</h2>
+        <h2 className="font-display font-extrabold uppercase tracking-widest text-sm text-foreground">{canEditProfile ? "Editar perfil" : "Perfil de consulta"}</h2>
         <div className="border-b pb-4">
           <p className={label}>Mi ID de acceso</p>
           <p className="mt-1 break-all font-mono font-bold text-foreground">{session.id}</p>
@@ -145,16 +121,18 @@ export function MiPerfilView({ session }: { session: Session }) {
           <div className="mt-1 h-10 flex items-center border bg-muted/40 px-3 font-semibold text-sm">
             {tag ? tag + " " : ""}{name || "Sin nombre"}
           </div>
-          <p className="mt-1 text-[11px] text-muted-foreground">El Tag, el nombre y el avatar se sincronizan automáticamente desde Discord y no se pueden editar aquí.</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">El Tag, el nombre y el avatar se sincronizan automáticamente desde Discord.</p>
         </div>
-        <div>
-          <label className={label}>Número de placa</label>
-          <Input value={placa} maxLength={6} inputMode="numeric" placeholder="0000" onChange={e => setPlaca(e.target.value.replace(/[^0-9]/g, ""))} className={inp} />
-          <p className="mt-1 text-[11px] text-muted-foreground">Es el número que aparece al final de tu apodo de Discord (#0000).</p>
-        </div>
-        <Button onClick={save} disabled={saving} className="h-11 rounded-none font-extrabold uppercase tracking-widest">
-          <Save className="w-4 h-4 mr-2" /> {saving ? "Guardando..." : "Guardar cambios"}
-        </Button>
+        {canEditProfile ? <>
+          <div>
+            <label className={label}>Número de placa</label>
+            <Input value={placa} maxLength={6} inputMode="numeric" placeholder="0000" onChange={e => setPlaca(e.target.value.replace(/[^0-9]/g, ""))} className={inp} />
+            <p className="mt-1 text-[11px] text-muted-foreground">Es el número que aparece al final de tu apodo de Discord (#0000).</p>
+          </div>
+          <Button onClick={save} disabled={saving} className="h-11 rounded-none font-extrabold uppercase tracking-widest">
+            <Save className="w-4 h-4 mr-2" /> {saving ? "Guardando..." : "Guardar cambios"}
+          </Button>
+        </> : <p className="rounded-xl bg-muted/50 p-4 text-sm text-muted-foreground">Tu rango Usuario permite consultar el perfil, pero no realizar modificaciones.</p>}
       </div>
     </div>
   );
