@@ -316,8 +316,12 @@ export async function runQuery(spec: QuerySpec, claims: Claims | null, admin: Ad
         const id = filterValue(safe, "id");
         if (!id) deny("Operación no permitida");
         const { data: current } = await admin.from("pd_members").select("instructor_id").eq("id", id).maybeSingle();
-        const changed = safe.op === "update" && safe.values && typeof safe.values === "object"
-          ? (safe.values as any).instructor_id : undefined;
+        const hasChangedOwner = safe.op === "update" && safe.values && typeof safe.values === "object" &&
+          Object.hasOwn(safe.values as object, "instructor_id");
+        const changed = hasChangedOwner ? (safe.values as any).instructor_id : undefined;
+        if (hasChangedOwner && typeof changed !== "string") {
+          deny("No se puede desvincular el registro de su usuario");
+        }
         // Check both the current owner and the destination owner so a moderator
         // cannot reassign a higher-ranked user's record to bypass the hierarchy.
         targets.push(current?.instructor_id ?? null);
