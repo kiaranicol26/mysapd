@@ -86,7 +86,7 @@ export function MiPerfilView({ session }: { session: Session }) {
             </div>
             <div className="border-t pt-2">
               <p className={label}>Rango</p>
-              <p className="text-sm font-bold text-foreground">{session.is_alto_mando ? "Alto Mando" : session.role || "Usuario"}</p>
+              <p className="text-sm font-bold text-foreground">{ADMIN_RANGO_LABELS[normalizeRango(session.admin_rango)]}</p>
             </div>
             {descripcion && (
               <div className="border-t pt-2">
