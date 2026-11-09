@@ -55,7 +55,6 @@ export function ProfileCard({ u, foto, extra, footer }: { u: ProfileUser; foto?:
               {permisos.map(p => <li key={p.label} className="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-800">{p.label}</li>)}
             </ul>
           </div>}
-          </div>
         </div>
       </div>
       {footer}
