@@ -9,8 +9,8 @@ import { toast } from "sonner";
 type Member = { id: string; legajo: number; nombre: string; rango: string | null; es_instructor: boolean };
 type Training = {
   id: string; pd_member_id: string; section: string; training: string; training_other: string | null;
-  awarded_at: string; instructor_pd_member_id: string | null; created_by_id: string; created_by_name: string;
-  created_at: string; pd_members?: { nombre: string; legajo: number } | null;
+  awarded_at: string | null; instructor_pd_member_id: string | null; created_by_id: string | null; created_by_name: string | null;
+  created_at: string; is_legacy?: boolean; pd_members?: { nombre: string; legajo: number } | null;
   instructor?: { nombre: string } | null;
 };
 const TRAINING_OPTIONS = ["M4", "EDC", "AK-47", "SNIPER", "OTRA"];
@@ -36,7 +36,7 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
     setLoading(true);
     const [m, t] = await Promise.all([
       db.from("pd_members").select("id, legajo, nombre, rango, es_instructor").order("nombre", { ascending: true }),
-      db.from("pd_trainings").select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, created_by_id, created_by_name, created_at").order("awarded_at", { ascending: false }),
+      db.from("pd_trainings").select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, created_by_id, created_by_name, created_at, is_legacy").order("awarded_at", { ascending: false }),
     ]);
     if (m.error) toast.error(m.error.message);
     else setMembers((m.data ?? []) as Member[]);
@@ -131,8 +131,8 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
       {loading ? <Card className="rounded-none p-10 text-center text-slate-500">Cargando capacitaciones…</Card> :
         <Card className="overflow-hidden rounded-none border border-slate-200 bg-white">
           <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm">
-            <thead className="bg-slate-900 text-[10px] uppercase tracking-wider text-white"><tr><th className="p-3">Legajo</th><th className="p-3">Agente SAPD</th><th className="p-3">Sección</th><th className="p-3">Capacitación</th><th className="p-3">Otorgamiento</th><th className="p-3">Instructor</th><th className="p-3">Añadida por</th></tr></thead>
-            <tbody>{trainings.map(t => { const target = memberById(t.pd_member_id); const instructor = memberById(t.instructor_pd_member_id ?? ""); return <tr key={t.id} className="border-t border-slate-100"><td className="p-3 font-mono font-bold">{target ? legajoLabel(target.legajo) : "—"}</td><td className="p-3 font-semibold">{target?.nombre ?? "Agente no disponible"}</td><td className="p-3">{t.section}</td><td className="p-3 font-bold">{t.training === "OTRA" ? t.training_other : t.training}</td><td className="p-3">{t.awarded_at}</td><td className="p-3">{instructor?.nombre ?? "—"}</td><td className="p-3">{t.created_by_name}</td></tr>; })}</tbody>
+            <thead className="bg-slate-900 text-[10px] uppercase tracking-wider text-white"><tr><th className="p-3">Legajo</th><th className="p-3">Agente SAPD</th><th className="p-3">Sección</th><th className="p-3">Capacitación</th><th className="p-3">Otorgamiento</th><th className="p-3">Instructor</th><th className="p-3">Añadida por</th><th className="p-3">Origen</th></tr></thead>
+            <tbody>{trainings.map(t => { const target = memberById(t.pd_member_id); const instructor = memberById(t.instructor_pd_member_id ?? ""); return <tr key={t.id} className="border-t border-slate-100"><td className="p-3 font-mono font-bold">{target ? legajoLabel(target.legajo) : "—"}</td><td className="p-3 font-semibold">{target?.nombre ?? "Agente no disponible"}</td><td className="p-3">{t.section}</td><td className="p-3 font-bold">{t.training === "OTRA" ? t.training_other : t.training}</td><td className="p-3">{t.awarded_at ?? "Nada"}</td><td className="p-3">{instructor?.nombre ?? "Nada"}</td><td className="p-3">{t.created_by_name ?? "Nada"}</td><td className="p-3">{t.is_legacy ? "Histórico" : "Nuevo registro"}</td></tr>; })}</tbody>
           </table></div>
           {!trainings.length && <p className="p-8 text-center text-sm text-slate-400">Todavía no hay capacitaciones registradas.</p>}
         </Card>
