@@ -475,7 +475,6 @@ export function AltoMando({ session }: { session: Session }) {
           </DialogContent>
         </Dialog>
       </>}
->}
     </div>
   );
 }
