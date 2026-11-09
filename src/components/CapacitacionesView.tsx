@@ -29,6 +29,10 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
   const [trainingOther, setTrainingOther] = useState("");
   const [awardedAt, setAwardedAt] = useState(today());
   const [instructorId, setInstructorId] = useState("");
+  const [filterMemberId, setFilterMemberId] = useState("");
+  const [filterSection, setFilterSection] = useState("");
+  const [filterTraining, setFilterTraining] = useState("");
+  const [filterInstructorId, setFilterInstructorId] = useState("");
   const canEdit = !!session?.is_alto_mando || !!session?.can_edit_capacitaciones;
   const instructors = useMemo(() => members.filter(m => m.es_instructor), [members]);
 
@@ -66,6 +70,14 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
   }
 
   const memberById = (id: string) => members.find(m => m.id === id);
+  const filteredTrainings = useMemo(() => trainings.filter(t =>
+    (!filterMemberId || t.pd_member_id === filterMemberId) &&
+    (!filterSection || t.section === filterSection) &&
+    (!filterTraining || t.training === filterTraining) &&
+    (!filterInstructorId || t.instructor_pd_member_id === filterInstructorId)
+  ), [trainings, filterMemberId, filterSection, filterTraining, filterInstructorId]);
+  const hasFilters = !!(filterMemberId || filterSection || filterTraining || filterInstructorId);
+  const clearFilters = () => { setFilterMemberId(""); setFilterSection(""); setFilterTraining(""); setFilterInstructorId(""); };
   return <AppShell session={session}>
     <div className="mx-auto max-w-6xl space-y-5">
       <Card className="overflow-hidden rounded-none border-2 border-blue-300 bg-white">
@@ -130,11 +142,44 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
 
       {loading ? <Card className="rounded-none p-10 text-center text-slate-500">Cargando capacitaciones…</Card> :
         <Card className="overflow-hidden rounded-none border border-slate-200 bg-white">
+          <div className="border-b border-slate-200 bg-slate-50 p-4">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div><h3 className="text-xs font-black uppercase tracking-wider text-slate-800">Filtros de búsqueda</h3><p className="mt-1 text-xs text-slate-500">Podés combinar varios filtros para encontrar registros específicos.</p></div>
+              <div className="flex items-center gap-3"><span className="text-xs font-bold text-slate-600">{filteredTrainings.length} de {trainings.length} registros</span>
+                {hasFilters && <button onClick={clearFilters} className="h-8 border border-slate-300 bg-white px-3 text-xs font-bold text-slate-600 hover:bg-slate-100">Limpiar filtros</button>}
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <label className="space-y-1 text-xs font-bold text-slate-700">Policía SAPD
+                <select value={filterMemberId} onChange={e => setFilterMemberId(e.target.value)} className="h-10 w-full border border-slate-300 bg-white px-3 text-sm font-normal">
+                  <option value="">Todos los policías</option>
+                  {members.map(m => <option key={m.id} value={m.id}>{m.nombre} · {legajoLabel(m.legajo)}</option>)}
+                </select>
+              </label>
+              <label className="space-y-1 text-xs font-bold text-slate-700">Tipo de capacitación
+                <select value={filterSection} onChange={e => setFilterSection(e.target.value)} className="h-10 w-full border border-slate-300 bg-white px-3 text-sm font-normal">
+                  <option value="">Armas y vehículos</option><option value="Armas">Armas</option><option value="Vehículos">Vehículos</option>
+                </select>
+              </label>
+              <label className="space-y-1 text-xs font-bold text-slate-700">Capacitación
+                <select value={filterTraining} onChange={e => setFilterTraining(e.target.value)} className="h-10 w-full border border-slate-300 bg-white px-3 text-sm font-normal">
+                  <option value="">Todas las capacitaciones</option>
+                  {TRAINING_OPTIONS.map(v => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </label>
+              <label className="space-y-1 text-xs font-bold text-slate-700">Instructor
+                <select value={filterInstructorId} onChange={e => setFilterInstructorId(e.target.value)} className="h-10 w-full border border-slate-300 bg-white px-3 text-sm font-normal">
+                  <option value="">Todos los instructores</option>
+                  {instructors.map(m => <option key={m.id} value={m.id}>{m.nombre} · {legajoLabel(m.legajo)}</option>)}
+                </select>
+              </label>
+            </div>
+          </div>
           <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm">
             <thead className="bg-slate-900 text-[10px] uppercase tracking-wider text-white"><tr><th className="p-3">Legajo</th><th className="p-3">Agente SAPD</th><th className="p-3">Sección</th><th className="p-3">Capacitación</th><th className="p-3">Otorgamiento</th><th className="p-3">Instructor</th><th className="p-3">Añadida por</th><th className="p-3">Origen</th></tr></thead>
-            <tbody>{trainings.map(t => { const target = memberById(t.pd_member_id); const instructor = memberById(t.instructor_pd_member_id ?? ""); return <tr key={t.id} className="border-t border-slate-100"><td className="p-3 font-mono font-bold">{target ? legajoLabel(target.legajo) : "—"}</td><td className="p-3 font-semibold">{target?.nombre ?? "Agente no disponible"}</td><td className="p-3">{t.section}</td><td className="p-3 font-bold">{t.training === "OTRA" ? t.training_other : t.training}</td><td className="p-3">{t.awarded_at ?? "Nada"}</td><td className="p-3">{instructor?.nombre ?? "Nada"}</td><td className="p-3">{t.created_by_name ?? "Nada"}</td><td className="p-3">{t.is_legacy ? "Histórico" : "Nuevo registro"}</td></tr>; })}</tbody>
+            <tbody>{filteredTrainings.map(t => { const target = memberById(t.pd_member_id); const instructor = memberById(t.instructor_pd_member_id ?? ""); return <tr key={t.id} className="border-t border-slate-100"><td className="p-3 font-mono font-bold">{target ? legajoLabel(target.legajo) : "—"}</td><td className="p-3 font-semibold">{target?.nombre ?? "Agente no disponible"}</td><td className="p-3">{t.section}</td><td className="p-3 font-bold">{t.training === "OTRA" ? t.training_other : t.training}</td><td className="p-3">{t.awarded_at ?? "Nada"}</td><td className="p-3">{instructor?.nombre ?? "Nada"}</td><td className="p-3">{t.created_by_name ?? "Nada"}</td><td className="p-3">{t.is_legacy ? "Histórico" : "Nuevo registro"}</td></tr>; })}</tbody>
           </table></div>
-          {!trainings.length && <p className="p-8 text-center text-sm text-slate-400">Todavía no hay capacitaciones registradas.</p>}
+          {!filteredTrainings.length && <p className="p-8 text-center text-sm text-slate-400">{hasFilters ? "No hay capacitaciones que coincidan con los filtros seleccionados." : "Todavía no hay capacitaciones registradas."}</p>}
         </Card>
       }
     </div>
