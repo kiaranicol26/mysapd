@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, BadgeCheck, Building2, CalendarDays, Coins, GraduationCap, IdCard, MapPin, Shield, Users, Wallet } from "lucide-react";
+import { ArrowRight, BadgeCheck, ChevronDown, CalendarDays, Coins, GraduationCap, IdCard, MapPin, Shield, Users, Wallet } from "lucide-react";
 import { getDiscordCodeLoginEnabled } from "@/lib/discord";
 import { Button } from "@/components/ui/button";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
@@ -17,6 +17,7 @@ const areas = [
 export function LoginView() {
   const [discordRegistrationEnabled, setDiscordRegistrationEnabled] = useState(true);
   const [joinMessage, setJoinMessage] = useState("");
+  const [loginOpen, setLoginOpen] = useState(false);
 
   useEffect(() => {
     getDiscordCodeLoginEnabled(true).then(setDiscordRegistrationEnabled).catch(() => {});
@@ -39,31 +40,40 @@ export function LoginView() {
         </header>
 
         <main className="mx-auto max-w-7xl px-4 pb-12 pt-8 sm:px-6 lg:px-8">
-          <section className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_410px]">
-            <div className="text-center lg:py-8">
-              <div className="mx-auto flex h-52 w-52 items-center justify-center p-1 sm:h-64 sm:w-64">
-                <img src={sapdLogo.url} alt="Logo oficial mySAPD" className="h-full w-full object-contain" />
-              </div>
-              <p className="mt-7 text-[11px] font-extrabold uppercase tracking-[0.34em] text-[#a17b32]">San Andreas · WestZone Roleplay</p>
-              <h1 className="mt-3 text-4xl font-black uppercase leading-[1.04] tracking-tight text-[#17345c] sm:text-6xl">Servicio.<br /><span className="text-[#9b7838]">Integridad. Compromiso.</span></h1>
-              <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-slate-700 sm:text-base">Portal institucional del San Andreas Police Department. Una plataforma oficial para la gestión del personal, la formación, las certificaciones y los recursos del Departamento.</p>
-              <div className="mt-7 flex flex-wrap justify-center gap-2 text-[10px] font-extrabold uppercase tracking-wider text-slate-700">
-                <span className="border border-slate-300 bg-white px-4 py-2">Est. 1869</span><span className="border border-slate-300 bg-white px-4 py-2">San Andreas</span><span className="border border-slate-300 bg-white px-4 py-2">Public Safety</span>
-              </div>
+          <section className="mx-auto flex max-w-3xl flex-col items-center px-2 pb-8 pt-4 text-center sm:pt-8">
+            <div className="mx-auto flex h-56 w-56 items-center justify-center sm:h-72 sm:w-72">
+              <img src={sapdLogo.url} alt="Logo oficial mySAPD" className="h-full w-full object-contain" />
+            </div>
+            <p className="mt-3 text-[11px] font-extrabold uppercase tracking-[0.34em] text-[#a17b32]">San Andreas · WestZone Roleplay</p>
+            <h1 className="mt-3 text-3xl font-black uppercase leading-[1.08] tracking-tight text-[#17345c] sm:text-5xl">Servicio. <span className="text-[#9b7838]">Integridad. Compromiso.</span></h1>
+            <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-700 sm:text-base">Portal institucional del San Andreas Police Department. Una plataforma oficial para la gestión del personal, la formación, las certificaciones y los recursos del Departamento.</p>
+            <div className="mt-6 flex flex-wrap justify-center gap-2 text-[10px] font-extrabold uppercase tracking-wider text-slate-700">
+              <span className="border border-slate-300 bg-white px-4 py-2">Est. 1869</span><span className="border border-slate-300 bg-white px-4 py-2">San Andreas</span><span className="border border-slate-300 bg-white px-4 py-2">Public Safety</span>
             </div>
 
-            <div className="overflow-hidden border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,35,65,0.12)]">
+            <div className="mt-8 w-full max-w-xl overflow-hidden border border-slate-200 bg-white text-left shadow-[0_20px_60px_rgba(15,35,65,0.12)]">
               <div className="h-1.5 bg-[#17345c]" />
-              <div className="border-b border-slate-200 px-7 py-6">
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#9b7838]">Personal autorizado</p>
-                <h2 className="mt-2 text-2xl font-black uppercase text-[#17345c]">Acceso al sistema</h2>
-                <p className="mt-2 text-xs leading-5 text-slate-700">Ingresá con tus credenciales institucionales para continuar.</p>
-              </div>
-              <div className="space-y-4 p-7">
-                <IdLogin />
-                {discordRegistrationEnabled && <div className="border-t border-slate-200 pt-4"><DiscordLogin /></div>}
-                <div className="flex items-start gap-2 border-t border-slate-100 pt-4 text-[11px] leading-5 text-slate-700"><BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#9b7838]" /> Acceso exclusivo para integrantes autorizados del SAPD.</div>
-              </div>
+              <button
+                type="button"
+                onClick={() => setLoginOpen((open) => !open)}
+                aria-expanded={loginOpen}
+                aria-controls="login-panel"
+                className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left transition-colors hover:bg-slate-50 sm:px-7"
+              >
+                <span>
+                  <span className="block text-[10px] font-black uppercase tracking-[0.24em] text-[#9b7838]">Personal autorizado</span>
+                  <span className="mt-1 block text-xl font-black uppercase text-[#17345c]">Acceso al sistema</span>
+                  <span className="mt-1 block text-xs leading-5 text-slate-700">Ingresá con tus credenciales institucionales para continuar.</span>
+                </span>
+                <ChevronDown className={`h-6 w-6 shrink-0 text-[#17345c] transition-transform duration-200 ${loginOpen ? "rotate-180" : ""}`} />
+              </button>
+              {loginOpen && (
+                <div id="login-panel" className="space-y-4 border-t border-slate-200 p-6 sm:p-7">
+                  <IdLogin />
+                  {discordRegistrationEnabled && <div className="border-t border-slate-200 pt-4"><DiscordLogin /></div>}
+                  <div className="flex items-start gap-2 border-t border-slate-100 pt-4 text-[11px] leading-5 text-slate-700"><BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#9b7838]" /> Acceso exclusivo para integrantes autorizados del SAPD.</div>
+                </div>
+              )}
             </div>
           </section>
 
