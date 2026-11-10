@@ -4,8 +4,8 @@ import { db } from "@/lib/db";
 import { logAction, setSession, type Session } from "@/lib/session";
 import { getBackground } from "@/lib/appearance";
 import {
-  LogOut, LogIn, UserRound, Archive, GraduationCap, FileSearch, Award, IdCard, ListOrdered,
-  MessagesSquare, Wallet, Settings, Users, UserCheck, TrendingUp, PanelLeftClose, PanelLeftOpen, Menu, type LucideIcon,
+  LogOut, LogIn, UserRound, Archive, BookOpenCheck, FileSearch, Award, ContactRound, ListOrdered,
+  MessagesSquare, BadgeDollarSign, Settings, Users, UserRoundCheck, TrendingUp, PanelLeftClose, PanelLeftOpen, Menu, type LucideIcon,
 } from "lucide-react";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -21,13 +21,13 @@ const TABS: Tab[] = [
   { to: "/aspirantes", label: "Aspirantes", icon: GraduationCap, public: false, alto: false, sec: "aspirantes", group: "Gestión" },
   { to: "/rnap", label: "Antecedentes Penales", icon: FileSearch, public: false, alto: false, sec: "rnap", group: "Gestión" },
   { to: "/certificar", label: "Certificados", icon: Award, public: false, alto: false, sec: "certificar", group: "Gestión" },
-  { to: "/registro-policias", label: "Registro de Policías", icon: IdCard, public: true, alto: false, group: "Personal" },
+  { to: "/registro-policias", label: "Registro de Policías", icon: ContactRound, public: true, alto: false, group: "Personal" },
   { to: "/registro-inhabilitados", label: "Pol. Inhabilitados", icon: IdCard, public: false, alto: false, sec: "registro", group: "Personal" },
-  { to: "/capacitaciones", label: "Capacitaciones", icon: GraduationCap, public: true, alto: false, group: "Personal" },
-  { to: "/instructores", label: "Instructores", icon: UserCheck, public: false, alto: false, moderator: true, group: "Personal" },
+  { to: "/capacitaciones", label: "Capacitaciones", icon: BookOpenCheck, public: true, alto: false, group: "Personal" },
+  { to: "/instructores", label: "Instructores", icon: UserRoundCheck, public: false, alto: false, moderator: true, group: "Personal" },
   { to: "/policias", label: "Lista de Policías", icon: ListOrdered, public: false, alto: false, sec: "lista", group: "Personal" },
-  { to: "/salario", label: "Salario", icon: Wallet, public: true, alto: false, group: "Personal" },
-  { to: "/salarios-manuales", label: "[M] Salarios", icon: Wallet, public: false, alto: true, group: "Personal" },
+  { to: "/salario", label: "Salario", icon: BadgeDollarSign, public: true, alto: false, group: "Personal" },
+  { to: "/salarios-manuales", label: "[M] Salarios", icon: BadgeDollarSign, public: false, alto: true, group: "Personal" },
   { to: "/ascensos-masivos", label: "Cargas Masivas", icon: TrendingUp, public: false, alto: true, group: "Administración" },
   { to: "/forum", label: "Foro Privado", icon: MessagesSquare, public: false, alto: false, sec: "forum", group: "Comunidad" },
   { to: "/alto-mando", label: "Configuración Web", icon: Settings, public: false, alto: true, group: "Administración", search: { section: "config" } },
@@ -97,8 +97,8 @@ export function AppShell({ session, children }: { session: Session | null; child
                 <Link key={`${t.to}-${t.label}`} to={t.to as any} search={t.search as any} onClick={() => setMobileOpen(false)} title={t.label}
                   activeProps={{ className: "bg-primary text-primary-foreground shadow-sm" }}
                   inactiveProps={{ className: "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" }}
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-bold transition-colors ${narrow ? "justify-center" : ""}`}>
-                  <t.icon className="w-[18px] h-[18px] shrink-0" />
+                  className={`group flex items-center gap-3 rounded-lg px-2 py-2 text-sm font-bold transition-colors ${narrow ? "justify-center" : ""}`}>
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-sidebar-border/70 bg-sidebar-accent/70 text-primary shadow-sm transition-colors group-hover:bg-primary/10"><t.icon className="h-[17px] w-[17px]" /></span>
                   {!narrow && <span className="truncate">{t.label}</span>}
                 </Link>
               ))}
