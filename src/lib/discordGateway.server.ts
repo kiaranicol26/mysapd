@@ -13,7 +13,7 @@ export async function discord(path: string, init?: RequestInit) {
   });
   // Only an actual missing-member response establishes that the member left.
   if (res.status === 404 && /^guilds\/\d+\/members\/\d+$/.test(path)) return null;
-  // Discord returns 404 Unknown Channel for threads deleted manually; treat that as a confirmed missing thread.
+  // Discord returns 404 Unknown Channel for deleted forum posts; treat that as a missing publication.
   if (res.status === 404 && /^channels\/\d+$/.test(path) && (!init?.method || init.method === "GET")) return null;
   if (!res.ok) throw new Error("No se pudo verificar Discord. Intentá nuevamente en unos momentos.");
   return res.status === 204 ? null : res.json();
@@ -362,6 +362,7 @@ async function publishTrainingCertificateToForumUnlocked(
         auto_archive_duration: 10080,
         message: {
           content: certificateMessage,
+          allowed_mentions: { parse: ["users"] },
         },
       }),
     }) as { id?: string };
@@ -398,9 +399,9 @@ async function publishTrainingCertificateToForumUnlocked(
           break;
         }
       } catch {
-        // The saved thread was deleted or is inaccessible.
+        // The saved forum post was deleted or is inaccessible.
       }
-      // A valid thread in another forum is not reusable: start a fresh
+      // A valid post in another forum is not reusable: start a fresh
       // publication in the configured destination and link it to this SAPD.
       await admin.from("pd_members").update({ discord_forum_thread_id: null })
         .eq("id", member.id).eq("discord_forum_thread_id", currentThread);
@@ -450,7 +451,7 @@ async function publishTrainingCertificateToForumUnlocked(
   if (!createdThreadForThisCall) {
     await discord("channels/" + threadId + "/messages", {
       method: "POST",
-      body: JSON.stringify({ content: certificateMessage }),
+      body: JSON.stringify({ content: certificateMessage, allowed_mentions: { parse: ["users"] } }),
     });
   }
 
