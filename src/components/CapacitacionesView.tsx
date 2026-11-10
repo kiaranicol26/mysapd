@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import type { Session } from "@/lib/session";
 import { BadgeCheck, GraduationCap, Plus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { CertCard, type CertificateForm } from "@/components/CertificarView";
 
 type Member = { id: string; legajo: number; nombre: string; rango: string | null; es_instructor: boolean };
 type Training = {
@@ -23,6 +24,8 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [certificateDraft, setCertificateDraft] = useState<{ form: CertificateForm; payload: Record<string, unknown> } | null>(null);
+  const captureStarted = useRef(false);
   const [showForm, setShowForm] = useState(false);
   const [memberId, setMemberId] = useState("");
   const [section, setSection] = useState("Armas");
@@ -51,23 +54,36 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
   }
   useEffect(() => { void load(); }, []);
 
-  async function register() {
-    if (!memberId || !instructorId || !awardedAt || (training === "OTRA" && !trainingOther.trim())) {
-      toast.error("Completá todos los campos obligatorios.");
-      return;
-    }
-    setSaving(true);
-    const { error } = await db.from("pd_trainings").insert({
-      pd_member_id: memberId, section, training,
-      training_other: training === "OTRA" ? trainingOther.trim() : null,
-      awarded_at: awardedAt, instructor_pd_member_id: instructorId,
-    });
-    setSaving(false);
+  const finishRegistration = useCallback(async (certificateImage: string) => {
+    if (!certificateDraft) return;
+    const { error } = await db.from("pd_trainings").insert({ ...certificateDraft.payload, certificate_image_url: certificateImage });
+    setSaving(false); setCertificateDraft(null); captureStarted.current = false;
     if (error) return toast.error(error.message);
-    toast.success("Capacitación registrada correctamente.");
-    setShowForm(false); setMemberId(""); setTraining("M4"); setTrainingOther("");
-    setSection("Armas"); setAwardedAt(today()); setInstructorId("");
+    toast.success("Capacitación registrada y certificado guardado correctamente.");
+    setShowForm(false); setMemberId(""); setTraining("M4"); setTrainingOther(""); setSection("Armas"); setAwardedAt(today()); setInstructorId("");
     await load();
+  }, [certificateDraft]);
+
+  const onCertificateGenerated = useCallback((image: string) => {
+    if (!captureStarted.current) { captureStarted.current = true; void finishRegistration(image); }
+  }, [finishRegistration]);
+
+  const onCertificateError = useCallback(() => {
+    captureStarted.current = false;
+    setSaving(false);
+    setCertificateDraft(null);
+  }, []);
+
+  async function register() {
+    if (!memberId || !instructorId || !awardedAt || (training === "OTRA" && !trainingOther.trim())) { toast.error("Completá todos los campos obligatorios."); return; }
+    const target = members.find(m => m.id === memberId);
+    const instructor = members.find(m => m.id === instructorId);
+    if (!target || !instructor) return toast.error("No se pudo recuperar el agente o instructor seleccionado.");
+    const tipoMap: Record<string, string> = { M4: "Fusil M4", EDC: "Escopeta Spas12", "AK-47": "Fusil de Asalto AK-47", SNIPER: "Fusil de Precisión", MARY: "Unidad Motorizada Mary", AIR: "Unidad Aerea", OTRA: "Capacitación Especial" };
+    const [year, month, day] = awardedAt.split("-");
+    const form: CertificateForm = { tipo: tipoMap[training] ?? "Fusil M4", nombre: target.nombre, instructor: instructor.nombre, comisario: session?.name ?? "San Andreas Police Department", fecha: day + "/" + month + "/" + year, numero: String(Math.floor(100000 + Math.random() * 900000)) };
+    setSaving(true);
+    setCertificateDraft({ form, payload: { pd_member_id: memberId, section, training, training_other: training === "OTRA" ? trainingOther.trim() : null, awarded_at: awardedAt, instructor_pd_member_id: instructorId } });
   }
 
   const memberById = (id: string) => members.find(m => m.id === id);
@@ -102,6 +118,8 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
         </div>
       </div>
 
+      {certificateDraft && <div aria-hidden="true" className="pointer-events-none fixed left-[-10000px] top-0 w-[900px]"><CertCard data={certificateDraft.form} autoGenerate onGenerated={onCertificateGenerated} onError={onCertificateError} /></div>}
+
       {showForm && canEdit && <Card className="rounded-none border-2 border-blue-200 bg-white p-5">
         <div className="mb-4 flex items-center justify-between border-b border-slate-200 pb-3"><h3 className="font-black uppercase text-slate-900">Nueva capacitación</h3><span className="text-xs font-mono text-blue-700">FORMULARIO SAPD</span></div>
         <div className="grid gap-4 md:grid-cols-2">
@@ -134,8 +152,8 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
           <label className="space-y-1 text-xs font-bold text-slate-700">Capacitación añadida por
             <input readOnly value={session?.name ?? "Usuario actual"} className="h-10 w-full border border-slate-200 bg-slate-100 px-3 text-sm text-slate-600" />
           </label>
-          <div className="space-y-1 text-xs font-bold text-slate-700 md:col-span-2">Certificado (imagen)
-            <div className="flex min-h-16 items-center justify-center border border-dashed border-slate-300 bg-slate-50 px-3 text-xs font-medium text-slate-400">Espacio reservado · carga próximamente</div>
+          <div className="space-y-1 text-xs font-bold text-slate-700 md:col-span-2">Certificado automático
+            <div className="flex min-h-16 items-center justify-center border border-dashed border-blue-300 bg-blue-50 px-3 text-center text-xs font-medium text-blue-700">Al registrar la capacitación se generará y guardará el PNG con la plantilla institucional.</div>
           </div>
         </div>
         <div className="mt-5 flex justify-end gap-2"><button onClick={() => setShowForm(false)} disabled={saving} className="h-10 border border-slate-300 px-4 text-xs font-bold text-slate-600">Cancelar</button><button onClick={() => void register()} disabled={saving || !members.length || !instructors.length} className="h-10 bg-blue-700 px-5 text-xs font-black uppercase text-white disabled:opacity-50">{saving ? "Registrando…" : "Registrar capacitación"}</button></div>

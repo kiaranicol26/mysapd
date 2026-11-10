@@ -17,7 +17,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { getBackground, setBackground, fileToCompressedDataUrl } from "@/lib/appearance";
+import { getBackground, setBackground, getLoginBackground, setLoginBackground, fileToCompressedDataUrl } from "@/lib/appearance";
 import { toast } from "sonner";
 import { ADMIN_RANGOS, ADMIN_RANGO_LABELS, ADMIN_RANGO_DESC, normalizeRango, type AdminRango } from "@/lib/adminRango";
 import { Webhook, FileText, Image as ImageIcon, RefreshCw, Settings, Users, Pencil, KeyRound, MessageCircle } from "lucide-react";
@@ -46,6 +46,8 @@ export function AltoMando({ session }: { session: Session }) {
   const [savingArchivo, setSavingArchivo] = useState(false);
   const [bg, setBg] = useState("");
   const [savingBg, setSavingBg] = useState(false);
+  const [loginBg, setLoginBg] = useState("");
+  const [savingLoginBg, setSavingLoginBg] = useState(false);
   const [discordCodeLoginEnabled, setDiscordCodeLoginEnabledState] = useState(true);
   const [savingDiscordLoginSetting, setSavingDiscordLoginSetting] = useState(false);
   const [hideSalaryTab, setHideSalaryTabState] = useState(false);
@@ -72,6 +74,7 @@ export function AltoMando({ session }: { session: Session }) {
     getRnapWebhookUrl(true).then(setRnapHook);
     getArchivoWebhookUrl(true).then(setArchivoHook);
     getBackground().then(setBg);
+    getLoginBackground().then(setLoginBg);
     getDiscordCodeLoginEnabled(true).then(setDiscordCodeLoginEnabledState);
     getSalaryTabVisibility(true).then(v => { setHideSalaryTabState(v.hideSalary); setHideManualSalaryTabState(v.hideManualSalary); });
   }, []);
@@ -85,6 +88,17 @@ export function AltoMando({ session }: { session: Session }) {
       toast.success(value ? "Fondo actualizado" : "Fondo restaurado");
     } catch (e: any) { toast.error(e.message ?? "Error"); }
     finally { setSavingBg(false); }
+  }
+
+  async function saveLoginBg(value: string) {
+    setSavingLoginBg(true);
+    try { await setLoginBackground(value); setLoginBg(value); await logAction(db, session, "UPDATE_LOGIN_BACKGROUND", { value: value ? "(set)" : "(cleared)" }); toast.success(value ? "Fondo del login actualizado" : "Fondo del login restaurado"); }
+    catch (e: any) { toast.error(e.message ?? "Error"); } finally { setSavingLoginBg(false); }
+  }
+
+  async function onLoginBgFile(file?: File | null) {
+    if (!file) return;
+    try { await saveLoginBg(await fileToCompressedDataUrl(file, 1920)); } catch (e: any) { toast.error(e.message ?? "Error al subir la imagen"); }
   }
 
   async function onBgFile(file?: File | null) {
@@ -331,6 +345,21 @@ export function AltoMando({ session }: { session: Session }) {
 
 
       
+
+      <Card className="overflow-hidden border-2 border-blue-300 bg-white shadow-md rounded-none">
+        <div className="h-1.5 bg-indigo-700" />
+        <div className="p-5 space-y-4">
+          <div className="flex items-center gap-3"><ImageIcon className="h-5 w-5 text-indigo-700" /><h2 className="text-xl font-black uppercase tracking-wide text-slate-900 font-display">Fondo de Login</h2></div>
+          <p className="text-sm font-semibold text-slate-500">Configurá una imagen exclusiva para el portal de ingreso. Si la quitás, se utilizará el fondo general como alternativa.</p>
+          <div className="flex flex-col gap-3 lg:flex-row">
+            <Input value={loginBg.startsWith("data:") ? "" : loginBg} onChange={e => setLoginBg(e.target.value)} placeholder={loginBg.startsWith("data:") ? "(imagen subida)" : "https://…/fondo-login.jpg"} className="h-11 rounded-none border-blue-300 bg-white text-slate-800 font-mono text-sm" />
+            <Button onClick={() => saveLoginBg(loginBg)} disabled={savingLoginBg} className="h-11 rounded-none bg-indigo-700 text-white hover:bg-indigo-800">{savingLoginBg ? "..." : "Guardar enlace"}</Button>
+            <label className="inline-flex h-11 cursor-pointer items-center justify-center border-2 border-indigo-300 bg-white px-4 font-bold text-indigo-800 hover:bg-indigo-50">Subir imagen<input type="file" accept="image/*" className="hidden" onChange={e => onLoginBgFile(e.target.files?.[0])} /></label>
+            <Button variant="outline" onClick={() => saveLoginBg("")} disabled={savingLoginBg} className="h-11 rounded-none border-indigo-300 bg-white font-bold text-slate-700">Quitar fondo</Button>
+          </div>
+          {loginBg && <div className="h-36 border-2 border-indigo-200 bg-slate-100 bg-cover bg-center" style={{ backgroundImage: "url(" + loginBg + ")" }} />}
+        </div>
+      </Card>
 
       <Card className="overflow-hidden border border-blue-200 bg-white shadow-sm rounded-none">
         <div className="h-1 bg-blue-600" />
