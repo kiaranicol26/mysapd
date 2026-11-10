@@ -60,15 +60,37 @@ function emptyForm(session: Session): CertificateForm {
 }
 
 type CertificateRecord = { id: string; pd_member_id: string; section: string; training: string; training_other: string | null; awarded_at: string | null; instructor_pd_member_id: string | null; certificate_image_url: string | null; is_legacy?: boolean };
+const TRAINING_CERTIFICATE_TYPES: Record<string, string> = {
+  M4: "Fusil M4",
+  EDC: "Escopeta Spas12",
+  "AK-47": "Fusil de Asalto AK-47",
+  SNIPER: "Fusil de Precisión",
+  MARY: "Unidad Motorizada Mary",
+  AIR: "Unidad Aerea",
+  OTRA: "Capacitación Especial",
+};
+
+function certificateTipo(training: string) {
+  return TRAINING_CERTIFICATE_TYPES[training] ?? "Fusil M4";
+}
+
+function certificateDate(value: string | null) {
+  if (!value) return "Nada";
+  const datePart = value.trim().split("T")[0];
+  if (/^\\d{4}-\\d{2}-\\d{2}$/.test(datePart)) return datePart.split("-").reverse().join("/");
+  if (/^\\d{2}\\/\\d{2}\\/\\d{4}$/.test(datePart)) return datePart;
+  return value;
+}
+
 
 function LegacyCertificatePublisher({ row, memberName, instructorName, onDone }: { row: CertificateRecord; memberName: string; instructorName: string; onDone: (success: boolean) => void }) {
   const [finished, setFinished] = useState(false);
   const data: CertificateForm = {
-    tipo: ({ M4: "Fusil M4", EDC: "Escopeta Spas12", "AK-47": "Fusil de Asalto AK-47", SNIPER: "Fusil de Precisión", MARY: "Unidad Motorizada Mary", AIR: "Unidad Aerea", OTRA: "Capacitación Especial" } as Record<string, string>)[row.training] ?? "Fusil M4",
+    tipo: certificateTipo(row.training),
     nombre: memberName,
     instructor: instructorName,
     comisario: "San Andreas Police Department",
-    fecha: row.awarded_at ? row.awarded_at.split("-").reverse().join("/") : "Nada",
+    fecha: certificateDate(row.awarded_at),
     numero: row.id.replace(/\\D/g, "").slice(-6).padStart(6, "0"),
   };
   const publish = useCallback(async (image: string) => {
@@ -219,12 +241,12 @@ export function CertificarView({ session }: { session: Session }) {
           const target = members.find(m => m.id === row.pd_member_id);
           const instructor = members.find(m => m.id === row.instructor_pd_member_id);
           return <article key={row.id} className="overflow-hidden border border-slate-200 bg-slate-50">
-            {row.certificate_image_url ? <a href={row.certificate_image_url} target="_blank" rel="noreferrer"><img src={row.certificate_image_url} alt={"Certificado de " + (target?.nombre ?? "agente SAPD")} className="aspect-[1357/1920] w-full bg-white object-contain" /></a> : <div className="bg-white p-2"><CertCard data={{
-              tipo: ({ M4: "Fusil M4", EDC: "Escopeta Spas12", "AK-47": "Fusil de Asalto AK-47", SNIPER: "Fusil de Precisión", MARY: "Unidad Motorizada Mary", AIR: "Unidad Aerea", OTRA: "Capacitación Especial" } as Record<string, string>)[row.training] ?? "Fusil M4",
+            {row.certificate_image_url ? <a href={row.certificate_image_url} target="_blank" rel="noreferrer"><img src={row.certificate_image_url} alt={"Certificado de " + (target?.nombre ?? "agente SAPD")} className="aspect-[1357/1920] w-full bg-white object-contain" /></a> : <div className="bg-white"><CertCard data={{
+              tipo: certificateTipo(row.training),
               nombre: target?.nombre ?? "NOMBRE APELLIDO",
               instructor: instructor?.nombre ?? "Nada",
               comisario: "San Andreas Police Department",
-              fecha: row.awarded_at ? row.awarded_at.split("-").reverse().join("/") : "Nada",
+              fecha: certificateDate(row.awarded_at),
               numero: row.id.replace(/\D/g, "").slice(-6).padStart(6, "0"),
             }} downloadable /></div>}
             <div className="space-y-1 p-3 text-sm"><p className="font-black text-slate-900">{target?.nombre ?? "Agente no disponible"} <span className="font-mono text-xs text-slate-500">#{target?.legajo ?? "—"}</span></p><p className="text-xs text-slate-600">{row.section} · {row.training === "OTRA" ? row.training_other : row.training}</p><p className="text-xs text-slate-500">Instructor: {instructor?.nombre ?? "Nada"} · {row.awarded_at ?? "Fecha histórica no disponible"}</p>{row.certificate_image_url && <a href={row.certificate_image_url} download className="mt-2 inline-flex text-xs font-bold text-blue-700 underline">Abrir / descargar PNG</a>}</div>
