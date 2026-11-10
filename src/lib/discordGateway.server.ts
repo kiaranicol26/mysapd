@@ -304,15 +304,14 @@ async function publishTrainingCertificateToForumUnlocked(
     return { ok: true as const, alreadyPublished: true, threadId: null, imageUrl: training.certificate_image_url };
   }
 
-  const [{ data: member }, { data: setting }] = await Promise.all([
-    admin.from("pd_members").select("id, nombre, legajo, discord_forum_thread_id").eq("id", training.pd_member_id).maybeSingle(),
-    admin.from("app_settings").select("value").eq("key", "certificate_forum_channel_id").maybeSingle(),
-  ]);
-  // Move the previous configured test channel to the newly requested test forum.
-  const configuredForumId = String(setting?.value ?? "").trim();
-  const forumId = !configuredForumId || configuredForumId === "1569565004712116326"
-    ? "1569567016543584276"
-    : configuredForumId;
+  const { data: member } = await admin.from("pd_members")
+    .select("id, nombre, legajo, instructor_id, discord_forum_thread_id")
+    .eq("id", training.pd_member_id).maybeSingle();
+  const { data: linkedInstructor } = member?.instructor_id
+    ? await admin.from("instructors").select("discord_id").eq("id", member.instructor_id).maybeSingle()
+    : { data: null };
+  const forumId = "1569585390355218482";
+  const discordMention = linkedInstructor?.discord_id ? "<@" + linkedInstructor.discord_id + ">" : "";
   if (!/^\d{17,20}$/.test(forumId)) throw new Error("Configurá un ID válido de canal Foro en Administración → Configuración Web");
   if (!member) throw new Error("No se encontró el SAPD asociado a la capacitación");
 
@@ -350,7 +349,7 @@ async function publishTrainingCertificateToForumUnlocked(
 
   // Discord receives the public PNG URL as plain message content. Discord may
   // show its native link preview, but mySAPD does not construct or send embeds.
-  const certificateMessage = imageUrl;
+  const certificateMessage = [discordMention, imageUrl].filter(Boolean).join("\\n");
 
   let createdThreadForThisCall = false;
   const makeThread = async (reservation: string) => {
