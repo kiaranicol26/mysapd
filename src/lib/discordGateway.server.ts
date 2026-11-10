@@ -257,3 +257,83 @@ export async function mergeDuplicatePdMembers(admin: { from: (table: string) => 
   }
   return merged;
 }
+
+
+export async function publishTrainingCertificateToForum(admin: { from: (table: string) => any; storage: any }, trainingId: string) {
+  const { data: training, error: trainingError } = await admin.from("pd_trainings")
+    .select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, certificate_image_url")
+    .eq("id", trainingId).maybeSingle();
+  if (trainingError || !training) throw new Error("No se encontró la capacitación para publicar");
+  const [{ data: member }, { data: instructor }, { data: setting }] = await Promise.all([
+    admin.from("pd_members").select("id, nombre, legajo, discord_forum_thread_id").eq("id", training.pd_member_id).maybeSingle(),
+    admin.from("pd_members").select("nombre").eq("id", training.instructor_pd_member_id).maybeSingle(),
+    admin.from("app_settings").select("value").eq("key", "certificate_forum_channel_id").maybeSingle(),
+  ]);
+  const forumId = String(setting?.value ?? "").trim();
+  if (!/^\\d{17,20}$/.test(forumId)) throw new Error("Configurá un ID válido de canal Foro en Administración → Configuración Web");
+  if (!member) throw new Error("No se encontró el SAPD asociado a la capacitación");
+
+  let imageUrl = String(training.certificate_image_url ?? "");
+  if (imageUrl.startsWith("data:image/")) {
+    const match = imageUrl.match(/^data:image\\/png;base64,([A-Za-z0-9+/=]+)$/);
+    if (!match) throw new Error("El certificado no contiene un PNG válido");
+    const bucket = "mysapd-certificados";
+    const { data: buckets } = await admin.storage.listBuckets();
+    if (!(buckets ?? []).some((b: any) => b.name === bucket)) {
+      const { error } = await admin.storage.createBucket(bucket, { public: true, fileSizeLimit: 8 * 1024 * 1024, allowedMimeTypes: ["image/png"] });
+      if (error && !String(error.message).toLowerCase().includes("already exists")) throw new Error("No se pudo crear el almacenamiento de certificados");
+    }
+    const path = member.id + "/" + training.id + ".png";
+    const bytes = Buffer.from(match[1], "base64");
+    const { error: uploadError } = await admin.storage.from(bucket).upload(path, bytes, { contentType: "image/png", upsert: true });
+    if (uploadError) throw new Error("No se pudo subir el certificado al almacenamiento");
+    imageUrl = admin.storage.from(bucket).getPublicUrl(path).data.publicUrl;
+    const { error: updateError } = await admin.from("pd_trainings").update({ certificate_image_url: imageUrl }).eq("id", training.id);
+    if (updateError) throw new Error("No se pudo guardar el enlace permanente del certificado");
+  }
+  if (!/^https:\\/\\//i.test(imageUrl)) throw new Error("El certificado todavía no tiene una imagen pública para Discord");
+
+  const trainingName = training.training === "OTRA" ? training.training_other : training.training;
+  const date = training.awarded_at ?? "Fecha no disponible";
+  const instructorName = instructor?.nombre ?? "Instructor SAPD";
+  const title = "Certificado · " + member.nombre;
+  const embed = {
+    title,
+    description: "Certificación oficial emitida por mySAPD.",
+    color: 0x17345c,
+    fields: [
+      { name: "SAPD", value: member.nombre, inline: true },
+      { name: "Legajo", value: String(member.legajo), inline: true },
+      { name: "Capacitación", value: String(trainingName), inline: true },
+      { name: "Área", value: training.section, inline: true },
+      { name: "Instructor", value: instructorName, inline: true },
+      { name: "Fecha", value: date, inline: true },
+    ],
+    image: { url: imageUrl },
+    footer: { text: "San Andreas Police Department · mySAPD" },
+  };
+  let threadId = member.discord_forum_thread_id as string | null;
+  if (threadId) {
+    try { await discord("channels/" + threadId); } catch { threadId = null; }
+  }
+  if (!threadId) {
+    const created = await discord("channels/" + forumId + "/threads", {
+      method: "POST",
+      body: JSON.stringify({
+        name: (member.nombre + " · Legajo " + member.legajo).slice(0, 100),
+        auto_archive_duration: 10080,
+        message: { content: "Historial de certificados de **" + member.nombre + "** · Legajo **" + member.legajo + "**", embeds: [embed] },
+      }),
+    }) as { id?: string; message?: { id?: string } };
+    if (!created?.id) throw new Error("Discord no devolvió el ID de la publicación del foro");
+    threadId = created.id;
+    const { error } = await admin.from("pd_members").update({ discord_forum_thread_id: threadId }).eq("id", member.id);
+    if (error) throw new Error("La publicación se creó, pero no se pudo vincular al SAPD en mySAPD");
+  } else {
+    await discord("channels/" + threadId + "/messages", {
+      method: "POST",
+      body: JSON.stringify({ embeds: [embed] }),
+    });
+  }
+  return { ok: true as const, threadId, imageUrl };
+}
