@@ -33,7 +33,7 @@ function discordUserError(error: unknown): string {
   }
   if (e?.discordCode === 10013) return "Discord no reconoce ese usuario. Revisá que el nombre esté escrito exactamente como aparece en Discord.";
   if (e?.status === 429) return "Discord está limitando temporalmente los envíos. Esperá un momento y volvé a intentarlo.";
-  if (e?.status >= 500) return "Discord está experimentando un problema temporal. Intentá nuevamente en unos minutos.";
+  if (typeof e?.status === "number" && e.status >= 500) return "Discord está experimentando un problema temporal. Intentá nuevamente en unos minutos.";
   if (e?.message === "El bot de Discord no está configurado") {
     return "El servicio de Discord de mySAPD no está configurado correctamente. Avisale a un administrador.";
   }
