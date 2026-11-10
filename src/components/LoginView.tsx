@@ -5,11 +5,13 @@ import {
   IdCard, MapPin, Shield, Users, Wallet,
 } from "lucide-react";
 
-import { getBackground } from "@/lib/appearance";
+import { getBackground, getLoginBackground } from "@/lib/appearance";
+import { getDiscordCodeLoginEnabled } from "@/lib/discord";
 import { Button } from "@/components/ui/button";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { IdLogin } from "@/components/IdLogin";
+import { DiscordLogin } from "@/components/DiscordLogin";
 
 const areas = [
   { icon: Users, title: "Personal policial", description: "Registro, legajos y seguimiento de cada integrante." },
@@ -20,19 +22,24 @@ const areas = [
 
 export function LoginView() {
   const [bg, setBg] = useState("");
+  const [loginBg, setLoginBg] = useState("");
+  const [discordRegistrationEnabled, setDiscordRegistrationEnabled] = useState(true);
   const [joinMessage, setJoinMessage] = useState("");
 
   useEffect(() => {
-    const load = () => getBackground().then(setBg).catch(() => {});
-    load();
-    window.addEventListener("background-change", load);
-    return () => window.removeEventListener("background-change", load);
+    const load = () => getLoginBackground().then(setLoginBg).catch(() => {});
+    const loadGeneral = () => getBackground().then(setBg).catch(() => {});
+    const loadDiscord = () => getDiscordCodeLoginEnabled(true).then(setDiscordRegistrationEnabled).catch(() => {});
+    load(); loadGeneral(); loadDiscord();
+    window.addEventListener("login-background-change", load);
+    window.addEventListener("background-change", loadGeneral);
+    return () => { window.removeEventListener("login-background-change", load); window.removeEventListener("background-change", loadGeneral); };
   }, []);
 
   return (
     <div className="relative min-h-screen bg-slate-950 bg-center bg-cover bg-fixed text-slate-900"
-      style={bg ? { backgroundImage: `url(${bg})` } : undefined}>
-      <div className="absolute inset-0 bg-slate-950/85" />
+      style={(loginBg || bg) ? { backgroundImage: `url(${loginBg || bg})` } : undefined}>
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-950/90 via-slate-950/75 to-blue-950/85" />
       <div className="relative">
         <header className="border-b border-white/10 bg-slate-950/85 backdrop-blur-md">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 lg:px-8">
@@ -54,7 +61,7 @@ export function LoginView() {
 
         <main className="mx-auto max-w-7xl space-y-8 px-4 py-7 sm:px-6 lg:px-8 lg:py-10">
           <section className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_390px]">
-            <div className="relative min-h-[300px] overflow-hidden border border-white/10 bg-slate-900/80 p-7 shadow-2xl sm:p-10">
+            <div className="relative min-h-[300px] overflow-hidden rounded-2xl border border-white/15 bg-slate-900/65 p-7 shadow-2xl backdrop-blur-md sm:p-10">
               <div className="absolute right-0 top-0 h-64 w-64 translate-x-1/3 -translate-y-1/3 rounded-full border-[36px] border-blue-500/10" />
               <div className="relative flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.28em] text-blue-300">
                 <span className="h-px w-8 bg-blue-400" /> San Andreas · Departamento de Policía
@@ -76,9 +83,9 @@ export function LoginView() {
               </div>
             </div>
 
-            <div className="border border-blue-200 bg-white shadow-2xl">
+            <div className="overflow-hidden rounded-2xl border border-white/30 bg-white/95 shadow-2xl shadow-black/40 backdrop-blur-xl">
               <div className="h-1.5 bg-blue-700" />
-              <div className="border-b border-slate-200 px-6 py-5">
+              <div className="border-b border-slate-200 bg-white/80 px-6 py-5">
                 <p className="text-[10px] font-extrabold uppercase tracking-[0.25em] text-blue-700">Área restringida</p>
                 <h2 className="mt-1 font-display text-2xl font-black uppercase text-slate-900">Iniciar sesión</h2>
                 <p className="mt-1 text-xs leading-5 text-slate-500">Accedé al sistema privado de gestión del Departamento.</p>
@@ -95,7 +102,7 @@ export function LoginView() {
             </div>
           </section>
 
-          <section className="grid gap-5 border border-white/10 bg-slate-900/75 p-6 sm:grid-cols-3 sm:p-7">
+          <section className="grid gap-5 rounded-2xl border border-white/10 bg-slate-900/75 p-6 backdrop-blur-md sm:grid-cols-3 sm:p-7">
             <div className="sm:col-span-3">
               <p className="text-[10px] font-extrabold uppercase tracking-[0.25em] text-blue-300">Nuestra institución</p>
               <h2 className="mt-2 font-display text-2xl font-black uppercase text-white sm:text-3xl">Una historia de servicio</h2>
