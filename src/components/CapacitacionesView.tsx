@@ -68,6 +68,12 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
     if (!captureStarted.current) { captureStarted.current = true; void finishRegistration(image); }
   }, [finishRegistration]);
 
+  const onCertificateError = useCallback(() => {
+    captureStarted.current = false;
+    setSaving(false);
+    setCertificateDraft(null);
+  }, []);
+
   async function register() {
     if (!memberId || !instructorId || !awardedAt || (training === "OTRA" && !trainingOther.trim())) { toast.error("Completá todos los campos obligatorios."); return; }
     const target = members.find(m => m.id === memberId);
@@ -112,7 +118,7 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
         </div>
       </div>
 
-      {certificateDraft && <div aria-hidden="true" className="pointer-events-none fixed left-[-10000px] top-0 w-[900px]"><CertCard data={certificateDraft.form} autoGenerate onGenerated={onCertificateGenerated} /></div>}
+      {certificateDraft && <div aria-hidden="true" className="pointer-events-none fixed left-[-10000px] top-0 w-[900px]"><CertCard data={certificateDraft.form} autoGenerate onGenerated={onCertificateGenerated} onError={onCertificateError} /></div>}
 
       {showForm && canEdit && <Card className="rounded-none border-2 border-blue-200 bg-white p-5">
         <div className="mb-4 flex items-center justify-between border-b border-slate-200 pb-3"><h3 className="font-black uppercase text-slate-900">Nueva capacitación</h3><span className="text-xs font-mono text-blue-700">FORMULARIO SAPD</span></div>
