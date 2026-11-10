@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import tpl from "@/assets/certificado-new-capacitacion.png";
 import pictoM4 from "@/assets/picto-m4.png.asset.json";
@@ -149,6 +149,7 @@ function ShareCertificateButton({ row, memberName, instructorName, onPublished }
 }
 
 export function CertificarView({ session: _session }: { session: Session }) {
+  void _session;
   const [records, setRecords] = useState<CertificateRecord[]>([]);
   const [members, setMembers] = useState<{ id: string; nombre: string; legajo: number }[]>([]);
   const [filterMember, setFilterMember] = useState("");
