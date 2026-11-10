@@ -127,6 +127,24 @@ export function CertificarView({ session }: { session: Session }) {
         </div>
       </div>
 
+      <div className="w-full border border-blue-200 bg-white p-5 shadow-sm space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-lg font-black uppercase text-slate-900">Biblioteca de certificados</h3><p className="text-sm text-slate-500">Certificados generados automáticamente desde Capacitaciones.</p></div><span className="text-xs font-bold text-blue-700">{visibleRecords.length} / {records.length} registros</span></div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <Input value={searchText} onChange={e => setSearchText(e.target.value)} placeholder="Buscar agente o legajo…" className="rounded-none" />
+          <select value={filterMember} onChange={e => setFilterMember(e.target.value)} className="h-10 border border-slate-300 bg-white px-2 text-sm"><option value="">Todos los SAPD</option>{members.map(m => <option key={m.id} value={m.id}>{m.nombre} · {m.legajo}</option>)}</select>
+          <select value={filterSection} onChange={e => setFilterSection(e.target.value)} className="h-10 border border-slate-300 bg-white px-2 text-sm"><option value="">Armas y vehículos</option><option>Armas</option><option>Vehículos</option></select>
+          <select value={filterTraining} onChange={e => setFilterTraining(e.target.value)} className="h-10 border border-slate-300 bg-white px-2 text-sm"><option value="">Todas las capacitaciones</option>{["M4","EDC","AK-47","SNIPER","MARY","AIR","OTRA"].map(v => <option key={v}>{v}</option>)}</select>
+          <select value={filterInstructor} onChange={e => setFilterInstructor(e.target.value)} className="h-10 border border-slate-300 bg-white px-2 text-sm"><option value="">Todos los instructores</option>{members.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select>
+        </div>
+        {visibleRecords.length ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{visibleRecords.map(row => {
+          const target = members.find(m => m.id === row.pd_member_id);
+          const instructor = members.find(m => m.id === row.instructor_pd_member_id);
+          return <article key={row.id} className="overflow-hidden border border-slate-200 bg-slate-50">
+            {row.certificate_image_url ? <a href={row.certificate_image_url} target="_blank" rel="noreferrer"><img src={row.certificate_image_url} alt={"Certificado de " + (target?.nombre ?? "agente SAPD")} className="aspect-[1357/900] w-full bg-white object-contain" /></a> : <div className="flex aspect-[1357/900] items-center justify-center bg-white text-xs font-semibold text-slate-400">Certificado histórico sin imagen</div>}
+            <div className="space-y-1 p-3 text-sm"><p className="font-black text-slate-900">{target?.nombre ?? "Agente no disponible"} <span className="font-mono text-xs text-slate-500">#{target?.legajo ?? "—"}</span></p><p className="text-xs text-slate-600">{row.section} · {row.training === "OTRA" ? row.training_other : row.training}</p><p className="text-xs text-slate-500">Instructor: {instructor?.nombre ?? "Nada"} · {row.awarded_at ?? "Fecha histórica no disponible"}</p>{row.certificate_image_url && <a href={row.certificate_image_url} download className="mt-2 inline-flex text-xs font-bold text-blue-700 underline">Abrir / descargar PNG</a>}</div>
+          </article>;
+        })}</div> : <p className="py-8 text-center text-sm text-slate-400">No hay certificados que coincidan con los filtros.</p>}
+      </div>
       {preview ? (
         <div className="w-full bg-white border border-blue-200 shadow-sm p-5">
           <CertCard data={preview} downloadable />
