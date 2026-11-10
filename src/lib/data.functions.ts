@@ -241,7 +241,7 @@ export const loginWithId = createServerFn({ method: "POST" })
 const publishCertificateSchema = z.object({
   token: z.string().min(1).max(4096),
   trainingId: z.string().uuid(),
-  certificateImage: z.string().startsWith("data:image/png;base64,").max(12_000_000),
+  certificateImage: z.string().startsWith("data:image/png;base64,").max(12_000_000).optional(),
 });
 
 export const publishTrainingCertificate = createServerFn({ method: "POST" })
@@ -258,92 +258,4 @@ export const publishTrainingCertificate = createServerFn({ method: "POST" })
     } catch (error) {
       return { ok: false as const, error: error instanceof Error ? error.message : "No se pudo publicar el certificado en Discord." };
     }
-  });
-
-const syncCertificateForumSchema = z.object({ token: z.string().min(1).max(4096) });
-
-export const syncExistingCertificatesToForum = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => syncCertificateForumSchema.parse(input))
-  .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { verifyToken, freshClaims } = await import("@/lib/dbAuth.server");
-    const claims = await freshClaims(verifyToken(data.token), supabaseAdmin as any);
-    if (!claims?.alto) return { ok: false as const, error: "Solo Administrador puede iniciar la sincronización masiva." };
-
-    const rows: { id: string; pd_member_id: string; certificate_image_url: string | null }[] = [];
-    for (let from = 0; ; from += 1000) {
-      const { data: page, error } = await (supabaseAdmin as any).from("pd_trainings")
-        .select("id, pd_member_id, certificate_image_url")
-        .order("awarded_at", { ascending: true })
-        .range(from, from + 999);
-      if (error) return { ok: false as const, error: "No se pudieron leer todos los certificados." };
-      rows.push(...(page ?? []));
-      if (!page || page.length < 1000) break;
-    }
-
-    const { discord } = await import("@/lib/discordGateway.server");
-    const { data: setting, error: settingError } = await (supabaseAdmin as any)
-      .from("app_settings").select("value").eq("key", "certificate_forum_channel_id").maybeSingle();
-    if (settingError) return { ok: false as const, error: "No se pudo leer el foro configurado para certificados." };
-    const configuredForumId = String(setting?.value ?? "").trim();
-    const forumId = !configuredForumId || configuredForumId === "1569565004712116326"
-      ? "1569567016543584276"
-      : configuredForumId;
-    if (!/^\d{17,20}$/.test(forumId)) {
-      return { ok: false as const, error: "Configurá un ID válido de canal Foro en Administración → Configuración Web." };
-    }
-
-    // Remove the previous per-SAPD forum threads before rebuilding them. Training
-    // rows and PNGs remain untouched; only Discord publication references reset.
-    const memberIds = [...new Set(rows.map(row => row.pd_member_id).filter(Boolean))];
-    for (let from = 0; from < memberIds.length; from += 500) {
-      const batch = memberIds.slice(from, from + 500);
-      const { data: members, error } = await (supabaseAdmin as any).from("pd_members")
-        .select("id, discord_forum_thread_id").in("id", batch);
-      if (error) return { ok: false as const, error: "No se pudieron consultar los hilos anteriores de los SAPD." };
-
-      for (const member of members ?? []) {
-        const threadId = String(member.discord_forum_thread_id ?? "");
-        if (!threadId || threadId.startsWith("pending:")) continue;
-        let channel: { parent_id?: string } | null = null;
-        try {
-          channel = await discord("channels/" + threadId) as { parent_id?: string } | null;
-        } catch {
-          return { ok: false as const, error: "No se pudo verificar un hilo antiguo de Discord. No se modificó su referencia para evitar duplicados." };
-        }
-        if (channel?.parent_id === forumId) {
-          try {
-            await discord("channels/" + threadId, { method: "DELETE" });
-          } catch {
-            return { ok: false as const, error: "No se pudo eliminar un hilo antiguo de certificados. Revisá los permisos del bot y volvé a intentar." };
-          }
-        }
-        const { error: clearError } = await (supabaseAdmin as any).from("pd_members")
-          .update({ discord_forum_thread_id: null }).eq("id", member.id).eq("discord_forum_thread_id", threadId);
-        if (clearError) return { ok: false as const, error: "Se eliminó/verificó un hilo, pero no se pudo reiniciar su vínculo en Registro PD." };
-      }
-    }
-
-    // Reset publication markers so every historical certificate is eligible again.
-    for (let from = 0; from < rows.length; from += 500) {
-      const batch = rows.slice(from, from + 500).map(row => row.id);
-      const { error } = await (supabaseAdmin as any).from("pd_trainings").update({
-        discord_published_at: null,
-        discord_published_forum_id: null,
-      }).in("id", batch);
-      if (error) return { ok: false as const, error: "No se pudieron reiniciar los estados de publicación de los certificados." };
-    }
-
-    const { publishTrainingCertificateToForum } = await import("@/lib/discordGateway.server");
-    let sent = 0, skipped = 0, failed = 0;
-    for (const row of rows) {
-      // Historical rows without a PNG are rebuilt by the existing sequential
-      // browser renderer in CertificarView, then published through this same path.
-      if (!row.certificate_image_url) { skipped++; continue; }
-      try {
-        await publishTrainingCertificateToForum(supabaseAdmin as any, row.id);
-        sent++;
-      } catch { failed++; }
-    }
-    return { ok: true as const, sent, skipped, failed };
   });
