@@ -39,7 +39,7 @@ export const applyBulkPromotions = createServerFn({ method: "POST" })
     const claims = await freshClaims(verifyToken(data.token), supabaseAdmin as any);
     if (!claims?.alto) return { ok: false as const, error: "Solo Administrador puede aplicar ascensos masivos." };
 
-    const { EXTERNAL_RANK_ROLE_IDS, FACTION_RANK_ROLE_IDS } = await import("@/lib/promociones");
+    const { EXTERNAL_RANK_ROLE_IDS, FACTION_RANK_ROLE_IDS, policeRankOrder } = await import("@/lib/promociones");
     const { FACTION_GUILD_ID } = await import("@/lib/discordMembership");
     const { discord } = await import("@/lib/discordGateway.server");
     const seen = new Set<string>();
@@ -76,6 +76,11 @@ export const applyBulkPromotions = createServerFn({ method: "POST" })
           throw new Error(linkedRows?.length ? "Hay más de una ficha vinculada; requiere revisión manual." : "No tiene una ficha vinculada en Registro PD.");
         }
         const pdMember = linkedRows[0];
+        const currentRankOrder = policeRankOrder(pdMember.rango);
+        const targetRankOrder = policeRankOrder(rank);
+        if (currentRankOrder >= 0 && targetRankOrder >= currentRankOrder) {
+          throw new Error("El rango destino no es superior al rango actual de Registro PD; se omitió para evitar una degradación o un cambio duplicado.");
+        }
 
         const member = await discord(`guilds/${FACTION_GUILD_ID}/members/${item.discordId}`) as { user?: { id?: string }; roles?: string[] } | null;
         if (!member?.user?.id || member.user.id !== item.discordId) {
