@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
-import tpl from "@/assets/certificado-new-capacitacion.png";
 import pictoM4 from "@/assets/picto-m4.png.asset.json";
 import pictoEdc from "@/assets/picto-edc.png.asset.json";
 import pictoSniper from "@/assets/picto-sniper.png.asset.json";
@@ -239,7 +238,8 @@ export function CertificarView({ session: _session }: { session: Session }) {
   </div>;
 }
 
-const NAVY = "#12294f";
+const NAVY = "#101f38";
+const GOLD = "#c6a45b";
 
 const PICTOS: Record<string, string> = {
   M4: pictoM4.url,
@@ -250,10 +250,20 @@ const PICTOS: Record<string, string> = {
   AIR: pictoAir.url,
 };
 
+const CERTIFICATE_META: Record<string, { title: string; subtitle: string }> = {
+  M4: { title: "ARMAMENTO", subtitle: "FUSIL M4" },
+  EDC: { title: "ARMAMENTO", subtitle: "ESCOPETA SPAS-12" },
+  "AK-47": { title: "ARMAMENTO", subtitle: "FUSIL AK-47" },
+  SNIPER: { title: "ARMAMENTO", subtitle: "FUSIL DE PRECISIÓN" },
+  MARY: { title: "UNIDAD TERRESTRE", subtitle: "UNIDAD MOTORIZADA MARY" },
+  AIR: { title: "UNIDAD AÉREA", subtitle: "UNIDAD AÉREA · AIR" },
+  OTRA: { title: "FORMACIÓN ESPECIAL", subtitle: "CAPACITACIÓN ESPECIAL" },
+};
 
 export function CertCard({ data, downloadable = false, autoGenerate = false, onGenerated, onError }: { data: CertificateForm; downloadable?: boolean; autoGenerate?: boolean; onGenerated?: (dataUrl: string) => void; onError?: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const tipo = TIPOS.find(t => t.value === data.tipo) ?? TIPOS[0];
+  const meta = CERTIFICATE_META[tipo.categoria] ?? CERTIFICATE_META.OTRA;
 
   useEffect(() => {
     if (!autoGenerate || !ref.current || !onGenerated) return;
@@ -270,13 +280,10 @@ export function CertCard({ data, downloadable = false, autoGenerate = false, onG
     if (!ref.current) return;
     try {
       const w = ref.current.offsetWidth || 1357;
-      const dataUrl = await toPng(ref.current, {
-        cacheBust: true,
-        pixelRatio: Math.max(2, 1357 / w),
-      });
+      const dataUrl = await toPng(ref.current, { cacheBust: true, pixelRatio: Math.max(2, 1357 / w) });
       const a = document.createElement("a");
       a.href = dataUrl;
-      a.download = `Certificado_${(data.nombre || "SAPD").replace(/\s+/g, "_")}_${tipo.categoria}.png`;
+      a.download = `Certificado_${(data.nombre || "SAPD").replace(/\\s+/g, "_")}_${tipo.categoria}.png`;
       a.click();
     } catch (e: any) {
       toast.error("No se pudo descargar: " + (e?.message ?? "error"));
@@ -285,126 +292,72 @@ export function CertCard({ data, downloadable = false, autoGenerate = false, onG
 
   return (
     <div className="space-y-3">
-      <div
-        ref={ref}
-        className="relative w-full mx-auto select-none"
-        style={{ aspectRatio: "1357 / 1920", containerType: "inline-size" }}
-      >
-        <img src={tpl} alt="Certificado" className="absolute inset-0 w-full h-full" draggable={false} />
+      <div ref={ref} className="relative mx-auto w-full overflow-hidden select-none" style={{ aspectRatio: "1357 / 960", background: "#f5f3ed", color: NAVY, fontFamily: "Arial, Helvetica, sans-serif" }}>
+        <div className="absolute inset-[2.2%] border-[3px]" style={{ borderColor: GOLD }} />
+        <div className="absolute inset-[3.2%] border" style={{ borderColor: "#d9c99f" }} />
+        <div className="absolute left-0 top-0 h-full w-[1.1%]" style={{ background: NAVY }} />
+        <div className="absolute right-0 top-0 h-full w-[1.1%]" style={{ background: NAVY }} />
 
-        {/* Persona a certificar */}
-        <Centered top="44.5%" size="4.6cqw" spacing="0.06em">
-          {(data.nombre || "NOMBRE APELLIDO").toUpperCase()}
-        </Centered>
-
-        {/* Clase / categoría / objeto */}
-        <Centered top="59.7%" size="2.1cqw" weight={700}>
-          {tipo.clase}
-        </Centered>
-
-        {/* Pictograma del objeto dentro del recuadro */}
-        <div
-          className="absolute flex items-center justify-center"
-          style={{
-            top: "64.2%",
-            left: "50%",
-            width: "17.5%",
-            aspectRatio: "1",
-            padding: "3%",
-            transform: "translateX(-50%)",
-          }}
-        >
-          {tipo.categoria === "OTRA" ? (
-            <div className="flex h-full w-full items-center justify-center rounded-full border-4 border-[#12294f] text-[2.5cqw] font-black text-[#12294f]">SAPD</div>
-          ) : (
-            <img src={PICTOS[tipo.categoria] ?? pictoM4.url} alt={tipo.categoria} className="max-w-full max-h-full object-contain" draggable={false} />
-          )}
+        <div className="absolute left-[6%] top-[7%] flex items-center gap-[1.4%]">
+          <div className="flex h-[74px] w-[74px] items-center justify-center rounded-full border-2 bg-white p-2" style={{ borderColor: GOLD }}>
+            <img src={sapdLogo.url} alt="SAPD" className="h-full w-full object-contain" draggable={false} />
+          </div>
+          <div>
+            <p className="text-[17px] font-black uppercase tracking-[0.28em]" style={{ color: NAVY }}>San Andreas Police Department</p>
+            <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.34em]" style={{ color: "#8b7548" }}>Formación · Excelencia · Servicio</p>
+          </div>
         </div>
 
-        {/* Tapa el "CATEGORIA" impreso de la plantilla */}
-        <div
-          className="absolute"
-          style={{
-            top: "73.6%",
-            left: "50%",
-            width: "15%",
-            height: "2.8%",
-            transform: "translateX(-50%)",
-            background: "#fcf6ed",
-          }}
-        />
-
-        {/* Categoría dentro del recuadro */}
-        <Centered top="74.2%" size="2.3cqw" weight={800} spacing="0.04em">
-          {tipo.categoria}
-        </Centered>
-
-        {/* Firmas */}
-        <Centered top="75.8%" left="24%" width="30%" size="2.2cqw" weight={600}>
-          {(data.instructor || "NOMBRE APELLIDO").toUpperCase()}
-        </Centered>
-        <Centered top="75.8%" left="76%" width="30%" size="2.2cqw" weight={600}>
-          {(data.comisario || "NOMBRE APELLIDO").toUpperCase()}
-        </Centered>
-
-        {/* Fecha */}
-        <div
-          className="absolute"
-          style={{
-            left: "24.5%", top: "89.6%", width: "22%",
-            color: NAVY, fontSize: "1.8cqw", fontWeight: 600, textAlign: "center", lineHeight: 1,
-          }}
-        >
-          {data.fecha || "DD/MM/AAAA"}
+        <div className="absolute right-[6%] top-[9%] text-right">
+          <p className="text-[11px] font-bold uppercase tracking-[0.25em]" style={{ color: "#8b7548" }}>Documento oficial</p>
+          <p className="mt-1 font-mono text-[13px] font-bold tracking-wider">{data.numero || "000000"}</p>
         </div>
 
-        {/* Nº de certificado */}
-        <div
-          className="absolute"
-          style={{
-            left: "76%", top: "89.6%", width: "20%",
-            color: NAVY, fontSize: "1.8cqw", fontWeight: 600, textAlign: "center", lineHeight: 1,
-          }}
-        >
-          {data.numero}
+        <div className="absolute left-0 top-[24%] w-full text-center">
+          <p className="text-[13px] font-black uppercase tracking-[0.48em]" style={{ color: "#9b8048" }}>Certificado de capacitación</p>
+          <div className="mx-auto mt-3 h-[3px] w-[12%]" style={{ background: GOLD }} />
+          <p className="mt-4 text-[15px] font-medium tracking-[0.12em]" style={{ color: "#5e6877" }}>Se certifica que</p>
+          <p className="mt-2 text-[38px] font-black uppercase tracking-[0.055em]" style={{ color: NAVY }}>{data.nombre || "NOMBRE DEL OFICIAL"}</p>
+          <p className="mt-2 text-[14px] font-medium" style={{ color: "#5e6877" }}>ha completado satisfactoriamente la siguiente formación</p>
+        </div>
+
+        <div className="absolute left-[9%] top-[55%] flex h-[25%] w-[82%] items-center rounded-xl border bg-white/70 px-[4%]" style={{ borderColor: "#dfd5bd", boxShadow: "0 8px 24px rgba(16,31,56,.07)" }}>
+          <div className="flex h-full w-[23%] items-center justify-center border-r" style={{ borderColor: "#e4dccb" }}>
+            {PICTOS[tipo.categoria] ? <img src={PICTOS[tipo.categoria]} alt={tipo.categoria} className="max-h-[82%] max-w-[82%] object-contain" draggable={false} /> :
+              <div className="flex h-[74px] w-[74px] items-center justify-center rounded-full border-2 text-[19px] font-black" style={{ borderColor: GOLD, color: NAVY }}>SAPD</div>}
+          </div>
+          <div className="flex-1 pl-[4%]">
+            <p className="text-[12px] font-black uppercase tracking-[0.28em]" style={{ color: "#9b8048" }}>{meta.title}</p>
+            <p className="mt-2 text-[27px] font-black uppercase tracking-[0.04em]" style={{ color: NAVY }}>{tipo.categoria === "OTRA" ? (data.tipo || "CAPACITACIÓN ESPECIAL") : meta.subtitle}</p>
+            <p className="mt-2 text-[12px] font-semibold uppercase tracking-[0.16em]" style={{ color: "#697586" }}>Acreditación de competencia · SAPD</p>
+          </div>
+          <div className="mr-[1%] flex h-[90px] w-[90px] items-center justify-center rounded-full border-[3px] text-center" style={{ borderColor: "#d8c69a", color: "#9b8048" }}>
+            <div><p className="text-[10px] font-black tracking-widest">SAPD</p><p className="mt-1 text-[8px] font-bold tracking-wider">VERIFICADO</p></div>
+          </div>
+        </div>
+
+        <div className="absolute bottom-[12%] left-[9%] flex w-[82%] items-end justify-between">
+          <div className="w-[34%] border-t pt-2 text-center" style={{ borderColor: "#9d927d" }}>
+            <p className="text-[13px] font-black uppercase">{data.instructor || "INSTRUCTOR"}</p>
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: "#7b8491" }}>Instructor responsable</p>
+          </div>
+          <div className="w-[25%] text-center">
+            <p className="text-[17px] font-black tracking-wider">{data.fecha || "DD/MM/AAAA"}</p>
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: "#7b8491" }}>Fecha de otorgamiento</p>
+          </div>
+          <div className="w-[34%] border-t pt-2 text-center" style={{ borderColor: "#9d927d" }}>
+            <p className="text-[13px] font-black uppercase">{data.comisario || "SAN ANDREAS POLICE DEPARTMENT"}</p>
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: "#7b8491" }}>Dirección del departamento</p>
+          </div>
+        </div>
+
+        <div className="absolute bottom-[4.2%] left-0 w-full text-center text-[9px] font-bold uppercase tracking-[0.34em]" style={{ color: "#8b7548" }}>
+          San Andreas Police Department · mySAPD · Certificación institucional
         </div>
       </div>
 
-      {downloadable && (
-        <div className="flex justify-end">
-          <Button onClick={download} className="rounded-none bg-blue-600 hover:bg-blue-700 text-white">
-            <Download className="w-4 h-4 mr-1" /> Descargar PNG
-          </Button>
-        </div>
-      )}
+      {downloadable && <div className="flex justify-end"><Button onClick={download} className="rounded-none bg-blue-600 text-white hover:bg-blue-700"><Download className="mr-1 h-4 w-4" /> Descargar PNG</Button></div>}
     </div>
   );
 }
 
-function Centered({
-  top, left = "50%", width = "80%", size, weight = 500, spacing, children,
-}: {
-  top: string; left?: string; width?: string; size: string;
-  weight?: number; spacing?: string; children: React.ReactNode;
-}) {
-  return (
-    <div
-      className="absolute"
-      style={{
-        top,
-        left,
-        width,
-        transform: "translateX(-50%)",
-        textAlign: "center",
-        color: NAVY,
-        fontSize: size,
-        fontWeight: weight,
-        letterSpacing: spacing,
-        lineHeight: 1.1,
-        whiteSpace: "nowrap",
-      }}
-    >
-      {children}
-    </div>
-  );
-}
