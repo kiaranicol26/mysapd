@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { db } from "@/lib/db";
@@ -83,7 +84,7 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
       <Card className="overflow-hidden rounded-none border-2 border-blue-300 bg-white">
         <div className="h-1.5 bg-blue-700" />
         <div className="flex items-center gap-4 p-5">
-          <div className="flex h-12 w-12 items-center justify-center border-2 border-blue-300 text-blue-700"><GraduationCap className="h-7 w-7" /></div>
+          <div className="w-12 h-12 flex items-center justify-center border-2 border-blue-300 bg-white p-1"><img src={sapdLogo.url} alt="SAPD" className="w-full h-full object-contain" /></div>
           <div className="flex-1">
             <p className="text-xs font-extrabold uppercase tracking-[0.3em] text-blue-700">San Andreas Police Department</p>
             <h2 className="text-2xl font-black uppercase text-slate-900">Capacitaciones</h2>
