@@ -289,7 +289,7 @@ export const syncExistingCertificatesToForum = createServerFn({ method: "POST" }
     const forumId = !configuredForumId || configuredForumId === "1569565004712116326"
       ? "1569567016543584276"
       : configuredForumId;
-    if (!/^\\d{17,20}$/.test(forumId)) {
+    if (!/^\d{17,20}$/.test(forumId)) {
       return { ok: false as const, error: "Configurá un ID válido de canal Foro en Administración → Configuración Web." };
     }
 
