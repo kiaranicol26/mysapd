@@ -361,9 +361,12 @@ async function publishTrainingCertificateToForumUnlocked(
     footer: { text: "San Andreas Police Department · mySAPD" },
   };
 
+  let createdThreadForThisCall = false;
   const makeThread = async (reservation: string) => {
     const safeTitle = String(member.nombre ?? "SAPD").trim().replace(/\s+/g, "_").slice(0, 100);
-    const created = await discord("channels/" + forumId + "/threads", {
+    let created: { id?: string };
+    try {
+      created = await discord("channels/" + forumId + "/threads", {
       method: "POST",
       body: JSON.stringify({
         name: safeTitle,
@@ -374,6 +377,11 @@ async function publishTrainingCertificateToForumUnlocked(
         },
       }),
     }) as { id?: string };
+    } catch (error) {
+      await admin.from("pd_members").update({ discord_forum_thread_id: null })
+        .eq("id", member.id).eq("discord_forum_thread_id", reservation);
+      throw error;
+    }
     if (!created?.id) {
       await admin.from("pd_members").update({ discord_forum_thread_id: null })
         .eq("id", member.id).eq("discord_forum_thread_id", reservation);
@@ -382,6 +390,7 @@ async function publishTrainingCertificateToForumUnlocked(
     const { error } = await admin.from("pd_members").update({ discord_forum_thread_id: created.id })
       .eq("id", member.id).eq("discord_forum_thread_id", reservation);
     if (error) throw new Error("La publicación se creó, pero no se pudo vincular al SAPD en mySAPD");
+    createdThreadForThisCall = true;
     return created.id;
   };
 
@@ -447,12 +456,11 @@ async function publishTrainingCertificateToForumUnlocked(
 
   // A new forum post already contains its first certificate. Existing posts
   // receive one new message per training, so all certificates stay grouped.
-  const wasCreatedForThisCall = String(member.discord_forum_thread_id ?? "") === "";
-  if (!wasCreatedForThisCall || threadId) {
-    // Detect whether this call created the starter post by checking the
-    // publication timestamp is still unset and the post's starter message
-    // was sent in makeThread. The marker is recorded below to avoid a second
-    // copy of the first certificate.
+  if (!createdThreadForThisCall) {
+    await discord("channels/" + threadId + "/messages", {
+      method: "POST",
+      body: JSON.stringify({ embeds: [embed] }),
+    });
   }
 
   const { error: publicationError } = await admin.from("pd_trainings").update({
