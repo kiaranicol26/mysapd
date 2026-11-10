@@ -265,6 +265,7 @@ export async function publishTrainingCertificateToForum(
   admin: { from: (table: string) => any; storage: any },
   trainingId: string,
   certificateDataUrl?: string,
+  force = false,
 ) {
   const { data: initial, error: initialError } = await admin.from("pd_trainings")
     .select("id, pd_member_id").eq("id", trainingId).maybeSingle();
@@ -275,7 +276,7 @@ export async function publishTrainingCertificateToForum(
   const memberKey = String(initial.pd_member_id);
   const previous = certificatePublicationQueues.get(memberKey) ?? Promise.resolve();
   const current = previous.catch(() => undefined).then(() =>
-    publishTrainingCertificateToForumUnlocked(admin, trainingId, certificateDataUrl)
+    publishTrainingCertificateToForumUnlocked(admin, trainingId, certificateDataUrl, force)
   );
   certificatePublicationQueues.set(memberKey, current);
   try {
@@ -291,12 +292,13 @@ async function publishTrainingCertificateToForumUnlocked(
   admin: { from: (table: string) => any; storage: any },
   trainingId: string,
   certificateDataUrl?: string,
+  force = false,
 ) {
   const { data: training, error: trainingError } = await admin.from("pd_trainings")
     .select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, certificate_image_url, discord_published_at")
     .eq("id", trainingId).maybeSingle();
   if (trainingError || !training) throw new Error("No se encontró la capacitación para publicar");
-  if (training.discord_published_at) {
+  if (training.discord_published_at && !force) {
     return { ok: true as const, alreadyPublished: true, threadId: null, imageUrl: training.certificate_image_url };
   }
 
@@ -312,6 +314,19 @@ async function publishTrainingCertificateToForumUnlocked(
     : configuredForumId;
   if (!/^\d{17,20}$/.test(forumId)) throw new Error("Configurá un ID válido de canal Foro en Administración → Configuración Web");
   if (!member) throw new Error("No se encontró el SAPD asociado a la capacitación");
+
+  // During a forced migration, keep already-published records untouched when
+  // their saved thread already belongs to the destination forum.
+  if (force && training.discord_published_at && member.discord_forum_thread_id) {
+    try {
+      const savedThread = await discord("channels/" + member.discord_forum_thread_id) as { parent_id?: string };
+      if (savedThread?.parent_id === forumId) {
+        return { ok: true as const, alreadyPublished: true, threadId: member.discord_forum_thread_id, imageUrl: training.certificate_image_url };
+      }
+    } catch {
+      // A missing/deleted old thread is recreated below.
+    }
+  }
 
   let imageUrl = String(certificateDataUrl ?? training.certificate_image_url ?? "");
   if (imageUrl.startsWith("data:image/")) {
@@ -407,16 +422,19 @@ async function publishTrainingCertificateToForumUnlocked(
 
     if (currentThread && !currentThread.startsWith("pending:")) {
       try {
-        await discord("channels/" + currentThread);
-        threadId = currentThread;
-        break;
+        const savedThread = await discord("channels/" + currentThread) as { parent_id?: string };
+        if (savedThread?.parent_id === forumId) {
+          threadId = currentThread;
+          break;
+        }
       } catch {
-        // The saved thread was deleted or is inaccessible. Clear it only if
-        // nobody replaced it in the meantime, then safely reserve a new one.
-        await admin.from("pd_members").update({ discord_forum_thread_id: null })
-          .eq("id", member.id).eq("discord_forum_thread_id", currentThread);
-        continue;
+        // The saved thread was deleted or is inaccessible.
       }
+      // A valid thread in another forum is not reusable: start a fresh
+      // publication in the configured destination and link it to this SAPD.
+      await admin.from("pd_members").update({ discord_forum_thread_id: null })
+        .eq("id", member.id).eq("discord_forum_thread_id", currentThread);
+      continue;
     }
 
     if (currentThread.startsWith("pending:")) {
