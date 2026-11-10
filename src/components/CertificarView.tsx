@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import tpl from "@/assets/certificado-new-capacitacion.png";
 import pictoM4 from "@/assets/picto-m4.png.asset.json";
@@ -31,7 +31,7 @@ const TIPOS = [
   { value: "Unidad Aerea", clase: "Unidad Aerea - AIR", categoria: "AIR" },
 ] as const;
 
-type Form = {
+export type CertificateForm = {
   tipo: string;
   nombre: string;
   instructor: string;
@@ -58,8 +58,8 @@ function emptyForm(session: Session): Form {
 }
 
 export function CertificarView({ session }: { session: Session }) {
-  const [form, setForm] = useState<Form | null>(null);
-  const [preview, setPreview] = useState<Form | null>(null);
+  const [form, setForm] = useState<CertificateForm | null>(null);
+  const [preview, setPreview] = useState<CertificateForm | null>(null);
 
   function openCreate() {
     setForm(emptyForm(session));
@@ -200,11 +200,11 @@ const PICTOS: Record<string, string> = {
 };
 
 
-export function CertCard({ data, downloadable = false }: { data: Form; downloadable?: boolean }) {
+export function CertCard({ data, downloadable = false }: { data: CertificateForm; downloadable?: boolean; autoGenerate?: boolean; onGenerated?: (dataUrl: string) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const tipo = TIPOS.find(t => t.value === data.tipo) ?? TIPOS[0];
 
-  async function download() {
+  useEffect(() => {\n    if (!autoGenerate || !ref.current || !onGenerated) return;\n    let active = true;\n    const node = ref.current;\n    const width = node.offsetWidth || 900;\n    toPng(node, { cacheBust: true, pixelRatio: Math.max(2, 1357 / width) })\n      .then(url => { if (active) onGenerated(url); })\n      .catch(error => { if (active) toast.error("No se pudo generar el certificado: " + (error?.message ?? "error")); });\n    return () => { active = false; };\n  }, [autoGenerate, onGenerated, data]);\n\n  async function download() {
     if (!ref.current) return;
     try {
       const w = ref.current.offsetWidth || 1357;
