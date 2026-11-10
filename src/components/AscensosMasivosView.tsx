@@ -193,7 +193,7 @@ export function AscensosMasivosView({ session }: { session: Session }) {
         </div>
       </Card>
 
-      {!!preview.length && (
+      {(!!preview.length || !!issues.length) && (
         <>
           <div className="grid gap-3 sm:grid-cols-3">
             <Card className="rounded-none border border-emerald-200 bg-white p-4">
