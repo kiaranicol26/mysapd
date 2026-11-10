@@ -245,7 +245,7 @@ const PICTOS: Record<string, string> = {
 };
 
 
-export function CertCard({ data, downloadable = false, autoGenerate = false, onGenerated }: { data: CertificateForm; downloadable?: boolean; autoGenerate?: boolean; onGenerated?: (dataUrl: string) => void }) {
+export function CertCard({ data, downloadable = false, autoGenerate = false, onGenerated, onError }: { data: CertificateForm; downloadable?: boolean; autoGenerate?: boolean; onGenerated?: (dataUrl: string) => void; onError?: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const tipo = TIPOS.find(t => t.value === data.tipo) ?? TIPOS[0];
 
@@ -256,9 +256,9 @@ export function CertCard({ data, downloadable = false, autoGenerate = false, onG
     const width = node.offsetWidth || 900;
     toPng(node, { cacheBust: true, pixelRatio: Math.max(2, 1357 / width) })
       .then(url => { if (active) onGenerated(url); })
-      .catch(error => { if (active) toast.error("No se pudo generar el certificado: " + (error?.message ?? "error")); });
+      .catch(error => { if (active) { toast.error("No se pudo generar el certificado: " + (error?.message ?? "error")); onError?.(); } });
     return () => { active = false; };
-  }, [autoGenerate, onGenerated, data]);
+  }, [autoGenerate, onGenerated, onError, data]);
 
   async function download() {
     if (!ref.current) return;
