@@ -193,6 +193,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/alto-mando'
+    | '/ascensos-masivos'
     | '/aspirantes'
     | '/certificar'
     | '/exsapd'
@@ -210,6 +211,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/alto-mando'
+    | '/ascensos-masivos'
     | '/aspirantes'
     | '/certificar'
     | '/exsapd'
