@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { AlertTriangle, ArrowUpCircle, CheckCircle2, ClipboardPaste, Loader2, RefreshCw, Settings2, ShieldCheck, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
