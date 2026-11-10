@@ -35,6 +35,8 @@ export type ParsedPromotion = {
 const normalizeRank = (value: string) =>
   value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
 
+export const POLICE_RANK_ORDER: PoliceRank[] = ["Comisario", "Inspector", "Capitan", "Teniente", "Sargento", "Cabo", "Oficial", "Cadete", "Aspirante"];
+
 const RANK_ALIASES: Record<string, PoliceRank> = {
   comisario: "Comisario",
   inspector: "Inspector",
@@ -67,6 +69,11 @@ export function parsePromotionAnnouncement(raw: string) {
       issues.push({ line: index + 1, text: text.trim(), reason: "El rol de destino no pertenece a la equivalencia de rangos configurada." });
       return;
     }
+    const previousRank = RANK_ALIASES[normalizeRank(previousRankText)];
+    if (!previousRank || POLICE_RANK_ORDER.indexOf(newRank) >= POLICE_RANK_ORDER.indexOf(previousRank)) {
+      issues.push({ line: index + 1, text: text.trim(), reason: "El rango de destino no es superior al rango anterior indicado; no se aplicó como ascenso." });
+      return;
+    }
     if (seen.has(discordId)) {
       issues.push({ line: index + 1, text: text.trim(), reason: "El mismo policía aparece más de una vez en el comunicado." });
       return;
@@ -76,6 +83,13 @@ export function parsePromotionAnnouncement(raw: string) {
   });
 
   return { promotions, issues };
+}
+
+export function policeRankOrder(value: string | null | undefined) {
+  if (!value) return -1;
+  const normalized = normalizeRank(value);
+  const rank = RANK_ALIASES[normalized];
+  return rank ? POLICE_RANK_ORDER.indexOf(rank) : -1;
 }
 
 export function rankTextMatches(actual: string | null | undefined, announced: string) {
