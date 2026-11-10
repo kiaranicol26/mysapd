@@ -36,7 +36,7 @@ export function LoginView() {
                 <p className="text-[9px] font-bold uppercase tracking-[0.28em] text-slate-700">mySAPD · Official Department Portal</p>
               </div>
             </div>
-            <span className="hidden text-xs font-bold uppercase tracking-[0.18em] text-slate-500 sm:block">WestZone Roleplay</span>
+            <span className="hidden text-xs font-bold uppercase tracking-[0.18em] text-slate-600 sm:block">WestZone Roleplay</span>
           </div>
         </header>
 
