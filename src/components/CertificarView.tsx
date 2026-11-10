@@ -45,6 +45,7 @@ type CertificateRecord = {
   instructor_pd_member_id: string | null;
   certificate_image_url: string | null;
   discord_published_at: string | null;
+  discord_published_forum_id: string | null;
   is_legacy?: boolean;
 };
 
@@ -74,7 +75,7 @@ async function loadAllCertificateRecords(): Promise<CertificateRecord[]> {
   const all: CertificateRecord[] = [];
   for (let from = 0; ; from += 1000) {
     const { data, error } = await db.from("pd_trainings")
-      .select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, certificate_image_url, discord_published_at, is_legacy")
+      .select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, certificate_image_url, discord_published_at, discord_published_forum_id, is_legacy")
       .order("awarded_at", { ascending: false })
       .range(from, from + 999);
     if (error) throw error;
@@ -125,7 +126,7 @@ function ShareCertificateButton({ row, memberName, instructorName, onPublished }
 
   async function share() {
     if (busy) return;
-    if (row.discord_published_at) return toast.info("Este certificado ya fue compartido con Discord.");
+    if (row.discord_published_at && row.discord_published_forum_id === "1569585390355218482") return toast.info("Este certificado ya fue compartido con Discord.");
     if (row.certificate_image_url) {
       await send();
     } else {
@@ -135,10 +136,10 @@ function ShareCertificateButton({ row, memberName, instructorName, onPublished }
   }
 
   return <>
-    <Button type="button" size="sm" onClick={share} disabled={busy || !!row.discord_published_at}
+    <Button type="button" size="sm" onClick={share} disabled={busy || ( !!row.discord_published_at && row.discord_published_forum_id === "1569585390355218482") }
       className="mt-2 w-full rounded-none bg-[#5865F2] text-white hover:bg-[#4752C4] disabled:opacity-70">
       {busy ? <><Share2 className="mr-2 h-4 w-4 animate-pulse" /> Generando / enviando…</> :
-        row.discord_published_at ? <><CheckCircle2 className="mr-2 h-4 w-4" /> Compartido con DC</> :
+        row.discord_published_at && row.discord_published_forum_id === "1569585390355218482" ? <><CheckCircle2 className="mr-2 h-4 w-4" /> Compartido con DC</> :
         <><Share2 className="mr-2 h-4 w-4" /> Compartir con DC</>}
     </Button>
     {generateImage && <div aria-hidden="true" className="pointer-events-none fixed left-[-10000px] top-0 w-[900px]">
@@ -182,7 +183,7 @@ export function CertificarView({ session: _session }: { session: Session }) {
   }), [records, members, filterMember, filterSection, filterTraining, filterInstructor, searchText]);
 
   const markPublished = useCallback((id: string) => {
-    setRecords(current => current.map(row => row.id === id ? { ...row, discord_published_at: new Date().toISOString() } : row));
+    setRecords(current => current.map(row => row.id === id ? { ...row, discord_published_at: new Date().toISOString(), discord_published_forum_id: "1569585390355218482" } : row));
   }, []);
 
   return <div className="space-y-4">
