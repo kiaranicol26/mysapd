@@ -1,5 +1,17 @@
 import { FACTION_GUILD_ID, membershipDisabled } from "./discordMembership";
 
+/** Discord API failure with safe diagnostic fields for server-side handling. */
+export class DiscordApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly discordCode?: number,
+  ) {
+    super(message);
+    this.name = "DiscordApiError";
+  }
+}
+
 /** Highest rank first: a member with several rank roles gets the highest. */
 const RANK_ORDER = ["Comisario", "Inspector", "Capitan", "Teniente", "Sargento", "Cabo", "Oficial", "Cadete", "Aspirante"];
 
@@ -13,9 +25,14 @@ export async function discord(path: string, init?: RequestInit) {
   });
   // Only an actual missing-member response establishes that the member left.
   if (res.status === 404 && /^guilds\/\d+\/members\/\d+$/.test(path)) return null;
-  // Discord returns 404 Unknown Channel for deleted forum posts; treat that as a missing publication.
+  // Discord returns 404 Unknown Channel for deleted forum posts; treat as missing publication.
   if (res.status === 404 && /^channels\/\d+$/.test(path) && (!init?.method || init.method === "GET")) return null;
-  if (!res.ok) throw new Error("No se pudo verificar Discord. Intentá nuevamente en unos momentos.");
+  if (!res.ok) {
+    const body = await res.clone().json().catch(() => null) as { code?: unknown; message?: unknown } | null;
+    const code = typeof body?.code === "number" ? body.code : undefined;
+    const message = typeof body?.message === "string" ? body.message : `Discord HTTP ${res.status}`;
+    throw new DiscordApiError(message, res.status, code);
+  }
   return res.status === 204 ? null : res.json();
 }
 
