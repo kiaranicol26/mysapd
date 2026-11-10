@@ -60,7 +60,8 @@ const TRAINING_CERTIFICATE_TYPES: Record<string, string> = {
   OTRA: "Capacitación Especial",
 };
 
-function certificateTipo(training: string) {
+function certificateTipo(training: string, other?: string | null) {
+  if (training === "OTRA") return other?.trim() || "Capacitación Especial";
   return TRAINING_CERTIFICATE_TYPES[training] ?? "Fusil M4";
 }
 
@@ -95,7 +96,7 @@ function ShareCertificateButton({ row, memberName, instructorName, onPublished }
   const [busy, setBusy] = useState(false);
   const [generateImage, setGenerateImage] = useState(false);
   const formData: CertificateForm = {
-    tipo: certificateTipo(row.training),
+    tipo: certificateTipo(row.training, row.training_other),
     seccion: row.section,
     nombre: memberName,
     instructor: instructorName,
@@ -256,7 +257,7 @@ const PICTOS: Record<string, string> = {
 
 export function CertCard({ data, downloadable = false, autoGenerate = false, onGenerated, onError }: { data: CertificateForm; downloadable?: boolean; autoGenerate?: boolean; onGenerated?: (dataUrl: string) => void; onError?: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
-  const tipo = TIPOS.find(t => t.value === data.tipo) ?? TIPOS[0];
+  const tipo = TIPOS.find(t => t.value === data.tipo) ?? { value: data.tipo, clase: data.tipo, categoria: "OTRA" as const };
   const isVehicle = data.seccion === "Vehículos";
   const certificateName = isVehicle ? "Licencia de conducción" : "Licencia de armamento";
   const categoryLabel = isVehicle ? "AUTO" : "ARMA";
@@ -280,7 +281,7 @@ export function CertCard({ data, downloadable = false, autoGenerate = false, onG
       const dataUrl = await toPng(ref.current, { cacheBust: true, pixelRatio: Math.max(2, 1800 / w) });
       const a = document.createElement("a");
       a.href = dataUrl;
-      a.download = \`Licencia_\${(data.nombre || "SAPD").replace(/\s+/g, "_")}_\${tipo.categoria}.png\`;
+      a.download = "Licencia_" + (data.nombre || "SAPD").replace(/\s+/g, "_") + "_" + tipo.categoria + ".png";
       a.click();
     } catch (e: any) {
       toast.error("No se pudo descargar: " + (e?.message ?? "error"));
