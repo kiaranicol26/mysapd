@@ -295,10 +295,10 @@ async function publishTrainingCertificateToForumUnlocked(
   force = false,
 ) {
   const { data: training, error: trainingError } = await admin.from("pd_trainings")
-    .select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, certificate_image_url, discord_published_at")
+    .select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, certificate_image_url, discord_published_at, discord_published_forum_id")
     .eq("id", trainingId).maybeSingle();
   if (trainingError || !training) throw new Error("No se encontró la capacitación para publicar");
-  if (training.discord_published_at && !force) {
+  if (training.discord_published_at && (!force || training.discord_published_forum_id === forumId)) {
     return { ok: true as const, alreadyPublished: true, threadId: null, imageUrl: training.certificate_image_url };
   }
 
@@ -314,19 +314,6 @@ async function publishTrainingCertificateToForumUnlocked(
     : configuredForumId;
   if (!/^\d{17,20}$/.test(forumId)) throw new Error("Configurá un ID válido de canal Foro en Administración → Configuración Web");
   if (!member) throw new Error("No se encontró el SAPD asociado a la capacitación");
-
-  // During a forced migration, keep already-published records untouched when
-  // their saved thread already belongs to the destination forum.
-  if (force && training.discord_published_at && member.discord_forum_thread_id) {
-    try {
-      const savedThread = await discord("channels/" + member.discord_forum_thread_id) as { parent_id?: string };
-      if (savedThread?.parent_id === forumId) {
-        return { ok: true as const, alreadyPublished: true, threadId: member.discord_forum_thread_id, imageUrl: training.certificate_image_url };
-      }
-    } catch {
-      // A missing/deleted old thread is recreated below.
-    }
-  }
 
   let imageUrl = String(certificateDataUrl ?? training.certificate_image_url ?? "");
   if (imageUrl.startsWith("data:image/")) {
@@ -469,9 +456,9 @@ async function publishTrainingCertificateToForumUnlocked(
   // Another request may have completed this exact training while this request
   // was waiting for the member's thread. Re-check before appending the embed.
   const { data: latestTraining, error: latestTrainingError } = await admin.from("pd_trainings")
-    .select("discord_published_at, certificate_image_url").eq("id", training.id).maybeSingle();
+    .select("discord_published_at, discord_published_forum_id, certificate_image_url").eq("id", training.id).maybeSingle();
   if (latestTrainingError) throw new Error("No se pudo verificar el estado de publicación del certificado");
-  if (latestTraining?.discord_published_at && (!force || latestTraining.discord_published_at !== training.discord_published_at)) {
+  if (latestTraining?.discord_published_at && (!force || latestTraining.discord_published_forum_id === forumId)) {
     return { ok: true as const, alreadyPublished: true, threadId, imageUrl: latestTraining.certificate_image_url ?? imageUrl };
   }
 
@@ -487,6 +474,7 @@ async function publishTrainingCertificateToForumUnlocked(
   const { error: publicationError } = await admin.from("pd_trainings").update({
     certificate_image_url: imageUrl,
     discord_published_at: new Date().toISOString(),
+    discord_published_forum_id: forumId,
   }).eq("id", training.id);
   if (publicationError) throw new Error("El certificado se publicó, pero no se pudo registrar la sincronización en mySAPD");
   return { ok: true as const, threadId, imageUrl };
