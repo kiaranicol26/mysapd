@@ -102,7 +102,6 @@ function ShareCertificateButton({ row, memberName, instructorName, onPublished }
   };
 
   const send = useCallback(async (image?: string) => {
-    if (busy) return;
     setBusy(true);
     setGenerateImage(false);
     try {
@@ -119,7 +118,7 @@ function ShareCertificateButton({ row, memberName, instructorName, onPublished }
     } finally {
       setBusy(false);
     }
-  }, [busy, row.id, memberName, onPublished]);
+  }, [row.id, memberName, onPublished]);
 
   const onGenerated = useCallback((image: string) => { void send(image); }, [send]);
   const onError = useCallback(() => { setGenerateImage(false); setBusy(false); }, []);
