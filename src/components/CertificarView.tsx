@@ -254,7 +254,7 @@ export function CertCard({ data, downloadable = false, autoGenerate = false, onG
   const tipo = TIPOS.find(t => t.value === data.tipo) ?? { value: data.tipo, clase: data.tipo, categoria: "OTRA" as const };
   const isVehicle = data.seccion === "Vehículos";
   const certificateName = isVehicle ? "Licencia de conducción" : "Licencia de armamento";
-  const categoryLabel = isVehicle ? "AUTO" : "ARMA";
+  const categoryLabel = isVehicle ? "VEHICULO" : "ARMA";
   const detail = tipo.categoria === "OTRA" ? (data.tipo || "Capacitación especial") : tipo.categoria;
 
   useEffect(() => {
