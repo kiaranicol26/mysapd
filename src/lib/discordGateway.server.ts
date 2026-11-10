@@ -352,6 +352,12 @@ async function publishTrainingCertificateToForumUnlocked(
   const trainingLabel = training.training === "OTRA"
     ? String(training.training_other ?? "Capacitación especial")
     : String(training.training ?? "Capacitación");
+  const sectionLabel = String(training.section ?? "");
+  const sectionIcon = sectionLabel.toLowerCase().startsWith("arma")
+    ? "🔫"
+    : sectionLabel.toLowerCase().startsWith("veh")
+      ? "🚗"
+      : "📋";
   const certificateEmbed = {
     title: "Certificación de capacitación",
     color: 0x1d4ed8,
@@ -365,7 +371,7 @@ async function publishTrainingCertificateToForumUnlocked(
       },
       {
         name: "Tipo",
-        value: [String(training.section ?? ""), trainingLabel].filter(Boolean).join(" · "),
+        value: [sectionIcon, sectionLabel, trainingLabel].filter(Boolean).join(" · "),
         inline: true,
       },
       {
