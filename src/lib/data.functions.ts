@@ -18,6 +18,147 @@ export const forceDiscordSync = createServerFn({ method: "POST" })
     }
   });
 
+
+const bulkPromotionSchema = z.object({
+  token: z.string().min(1).max(4096),
+  items: z.array(z.object({
+    discordId: z.string().regex(/^[0-9]{17,20}$/),
+    externalRoleId: z.string().regex(/^[0-9]{17,20}$/),
+  })).min(1).max(200),
+});
+
+/**
+ * Applies a reviewed promotion batch. Rank names are resolved server-side from
+ * the external role IDs; the browser cannot choose arbitrary Discord roles.
+ */
+export const applyBulkPromotions = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => bulkPromotionSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { verifyToken, freshClaims } = await import("@/lib/dbAuth.server");
+    const claims = await freshClaims(verifyToken(data.token), supabaseAdmin as any);
+    if (!claims?.alto) return { ok: false as const, error: "Solo Administrador puede aplicar ascensos masivos." };
+
+    const { parsePromotionRoleConfig, policeRankOrder } = await import("@/lib/promociones");
+    const { FACTION_GUILD_ID } = await import("@/lib/discordMembership");
+    const { discord } = await import("@/lib/discordGateway.server");
+    const { data: roleSettings, error: roleSettingsError } = await (supabaseAdmin as any)
+      .from("app_settings").select("value").eq("key", "bulk_promotion_role_mappings").maybeSingle();
+    if (roleSettingsError) return { ok: false as const, error: "No se pudo leer la configuración de equivalencias." };
+    const roleConfig = parsePromotionRoleConfig(roleSettings?.value);
+    const seen = new Set<string>();
+    for (const item of data.items) {
+      if (seen.has(item.discordId)) return { ok: false as const, error: "El comunicado contiene policías duplicados." };
+      seen.add(item.discordId);
+      if (!Object.hasOwn(roleConfig.external, item.externalRoleId)) {
+        return { ok: false as const, error: "El comunicado contiene un rol externo no configurado." };
+      }
+    }
+
+    const results: {
+      discordId: string;
+      name?: string;
+      rank?: string;
+      status: "success" | "warning" | "error";
+      message: string;
+    }[] = [];
+
+    for (const item of data.items) {
+      const rank = roleConfig.external[item.externalRoleId];
+      const targetRoleId = roleConfig.faction[rank];
+      let targetRoleWasAdded = false;
+      try {
+        const { data: instructor, error: instructorError } = await (supabaseAdmin as any)
+          .from("instructors").select("id,name,discord_id").eq("discord_id", item.discordId).maybeSingle();
+        if (instructorError) throw new Error("No se pudo consultar el usuario en mySAPD.");
+        if (!instructor) throw new Error("No existe una cuenta vinculada a este Discord ID.");
+
+        const { data: linkedRows, error: pdError } = await (supabaseAdmin as any)
+          .from("pd_members").select("id,nombre,rango").eq("instructor_id", instructor.id).limit(2);
+        if (pdError) throw new Error("No se pudo consultar Registro PD.");
+        if (!linkedRows || linkedRows.length !== 1) {
+          throw new Error(linkedRows?.length ? "Hay más de una ficha vinculada; requiere revisión manual." : "No tiene una ficha vinculada en Registro PD.");
+        }
+        const pdMember = linkedRows[0];
+        const currentRankOrder = policeRankOrder(pdMember.rango);
+        const targetRankOrder = policeRankOrder(rank);
+        if (currentRankOrder >= 0 && targetRankOrder >= currentRankOrder) {
+          throw new Error("El rango destino no es superior al rango actual de Registro PD; se omitió para evitar una degradación o un cambio duplicado.");
+        }
+
+        const member = await discord(`guilds/${FACTION_GUILD_ID}/members/${item.discordId}`) as { user?: { id?: string }; roles?: string[] } | null;
+        if (!member?.user?.id || member.user.id !== item.discordId) {
+          throw new Error("El policía no pertenece al Discord de Westzone PD.");
+        }
+
+        const currentRankRoleIds = Object.values(roleConfig.faction);
+        const rolesToRemove = currentRankRoleIds.filter(roleId => roleId !== targetRoleId && member.roles?.includes(roleId));
+        if (!member.roles?.includes(targetRoleId)) {
+          await discord(`guilds/${FACTION_GUILD_ID}/members/${item.discordId}/roles/${targetRoleId}`, { method: "PUT" });
+          targetRoleWasAdded = true;
+        }
+
+        const { error: updateError } = await (supabaseAdmin as any)
+          .from("pd_members").update({ rango: rank }).eq("id", pdMember.id);
+        if (updateError) {
+          if (targetRoleWasAdded) {
+            try { await discord(`guilds/${FACTION_GUILD_ID}/members/${item.discordId}/roles/${targetRoleId}`, { method: "DELETE" }); } catch { /* best-effort rollback */ }
+          }
+          throw new Error("Discord recibió el nuevo rol, pero no se pudo actualizar Registro PD. Revisá este caso.");
+        }
+
+        const failedRemovals: string[] = [];
+        for (const roleId of rolesToRemove) {
+          try {
+            await discord(`guilds/${FACTION_GUILD_ID}/members/${item.discordId}/roles/${roleId}`, { method: "DELETE" });
+          } catch {
+            failedRemovals.push(roleId);
+          }
+        }
+
+        await (supabaseAdmin as any).from("logs").insert({
+          instructor_id: claims.id,
+          instructor_name: claims.name,
+          action: "BULK_POLICE_PROMOTION",
+          details: {
+            target_instructor_id: instructor.id,
+            target_discord_id: item.discordId,
+            target_name: pdMember.nombre,
+            previous_rank: pdMember.rango,
+            new_rank: rank,
+            source: "external_discord_announcement",
+          },
+        });
+
+        results.push({
+          discordId: item.discordId,
+          name: pdMember.nombre || instructor.name,
+          rank,
+          status: failedRemovals.length ? "warning" : "success",
+          message: failedRemovals.length
+            ? "Rango actualizado; no se pudieron retirar uno o más roles policiales anteriores."
+            : "Rango actualizado en Registro PD y Discord.",
+        });
+      } catch (error) {
+        results.push({
+          discordId: item.discordId,
+          rank,
+          status: "error",
+          message: error instanceof Error ? error.message : "No se pudo aplicar el ascenso.",
+        });
+      }
+    }
+
+    return {
+      ok: true as const,
+      total: results.length,
+      success: results.filter(row => row.status === "success").length,
+      warnings: results.filter(row => row.status === "warning").length,
+      failed: results.filter(row => row.status === "error").length,
+      results,
+    };
+  });
+
 /** Throttled (10 min) background sync launched when opening Registro PD or Salarios. */
 export const autoDiscordSync = createServerFn({ method: "POST" })
   .handler(async () => {
