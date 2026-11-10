@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, BadgeCheck, Building2, CalendarDays, Coins, GraduationCap, IdCard, MapPin, Shield, Users, Wallet } from "lucide-react";
-import { getBackground, getLoginBackground } from "@/lib/appearance";
 import { getDiscordCodeLoginEnabled } from "@/lib/discord";
 import { Button } from "@/components/ui/button";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
@@ -16,19 +15,11 @@ const areas = [
 ];
 
 export function LoginView() {
-  const [bg, setBg] = useState("");
-  const [loginBg, setLoginBg] = useState("");
   const [discordRegistrationEnabled, setDiscordRegistrationEnabled] = useState(true);
   const [joinMessage, setJoinMessage] = useState("");
 
   useEffect(() => {
-    const load = () => getLoginBackground().then(setLoginBg).catch(() => {});
-    const loadGeneral = () => getBackground().then(setBg).catch(() => {});
     getDiscordCodeLoginEnabled(true).then(setDiscordRegistrationEnabled).catch(() => {});
-    load(); loadGeneral();
-    window.addEventListener("login-background-change", load);
-    window.addEventListener("background-change", loadGeneral);
-    return () => { window.removeEventListener("login-background-change", load); window.removeEventListener("background-change", loadGeneral); };
   }, []);
 
   return (
@@ -42,7 +33,7 @@ export function LoginView() {
               <img src={sapdLogo.url} alt="Escudo SAPD" className="h-12 w-12 object-contain" />
               <div>
                 <p className="text-lg font-black tracking-[0.12em] text-[#17345c]">SAN ANDREAS <span className="text-[#b18a3b]">POLICE DEPARTMENT</span></p>
-                <p className="text-[9px] font-bold uppercase tracking-[0.28em] text-slate-500">mySAPD · Official Department Portal</p>
+                <p className="text-[9px] font-bold uppercase tracking-[0.28em] text-slate-700">mySAPD · Official Department Portal</p>
               </div>
             </div>
             <span className="hidden text-xs font-bold uppercase tracking-[0.18em] text-slate-500 sm:block">WestZone Roleplay</span>
@@ -52,7 +43,7 @@ export function LoginView() {
         <main className="mx-auto max-w-7xl px-4 pb-12 pt-8 sm:px-6 lg:px-8">
           <section className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_410px]">
             <div className="text-center lg:py-8">
-              <div className="mx-auto flex h-44 w-44 items-center justify-center rounded-full border border-slate-200 bg-white p-5 shadow-[0_18px_55px_rgba(23,52,92,0.12)] sm:h-56 sm:w-56">
+              <div className="mx-auto flex h-44 w-44 items-center justify-center p-2 sm:h-56 sm:w-56">
                 <img src={sapdLogo.url} alt="Logo oficial mySAPD" className="h-full w-full object-contain" />
               </div>
               <p className="mt-7 text-[11px] font-extrabold uppercase tracking-[0.34em] text-[#a17b32]">San Andreas · WestZone Roleplay</p>
@@ -89,7 +80,7 @@ export function LoginView() {
           <section className="mt-10">
             <div className="mb-5"><p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#9b7838]">Estructura institucional</p><h2 className="mt-2 text-2xl font-black uppercase text-[#17345c]">Divisiones y servicios</h2></div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {areas.map(({ icon: Icon, title, description }) => <article key={title} className="border border-slate-200 bg-white p-5 shadow-sm"><div className="flex h-10 w-10 items-center justify-center border border-[#d8c69f] bg-[#f8f5ed] text-[#17345c]"><Icon className="h-5 w-5" /></div><h3 className="mt-4 text-sm font-black uppercase tracking-wide text-[#17345c]">{title}</h3><p className="mt-2 text-xs leading-5 text-slate-500">{description}</p></article>)}
+              {areas.map(({ icon: Icon, title, description }) => <article key={title} className="border border-slate-200 bg-white p-5 shadow-sm"><div className="flex h-10 w-10 items-center justify-center bg-transparent text-[#17345c]"><Icon className="h-5 w-5" /></div><h3 className="mt-4 text-sm font-black uppercase tracking-wide text-[#17345c]">{title}</h3><p className="mt-2 text-xs leading-5 text-slate-500">{description}</p></article>)}
             </div>
           </section>
 
