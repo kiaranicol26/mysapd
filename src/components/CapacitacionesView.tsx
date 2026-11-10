@@ -17,7 +17,7 @@ type Training = {
   instructor?: { nombre: string } | null;
 };
 const TRAINING_OPTIONS = ["M4", "EDC", "AK-47", "SNIPER", "MARY", "AIR", "OTRA"];
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => { const d = new Date(); return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0")].join("-"); };
 const legajoLabel = (n: number) => String(n).padStart(4, "0");
 
 export function CapacitacionesView({ session }: { session: Session | null }) {
@@ -89,7 +89,7 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
     const tipoMap: Record<string, string> = { M4: "Fusil M4", EDC: "Escopeta Spas12", "AK-47": "Fusil de Asalto AK-47", SNIPER: "Fusil de Precisión", MARY: "Unidad Motorizada Mary", AIR: "Unidad Aerea", OTRA: "Capacitación Especial" };
     const awardedAt = today();
     const [year, month, day] = awardedAt.split("-");
-    const form: CertificateForm = { tipo: tipoMap[training] ?? "Fusil M4", seccion: section, nombre: target.nombre, instructor: instructor.nombre, comisario: session?.name ?? "San Andreas Police Department", fecha: day + "/" + month + "/" + year, numero: String(Math.floor(100000 + Math.random() * 900000)) };
+    const form: CertificateForm = { tipo: training === "OTRA" ? trainingOther.trim() : (tipoMap[training] ?? "Fusil M4"), seccion: section, nombre: target.nombre, instructor: instructor.nombre, comisario: session?.name ?? "San Andreas Police Department", fecha: day + "/" + month + "/" + year, numero: String(Math.floor(100000 + Math.random() * 900000)) };
     setSaving(true);
     setCertificateDraft({ form, payload: { pd_member_id: memberId, section, training, training_other: training === "OTRA" ? trainingOther.trim() : null, awarded_at: awardedAt, instructor_pd_member_id: instructorId } });
   }
