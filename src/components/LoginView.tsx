@@ -23,9 +23,7 @@ export function LoginView() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#f4f6f9] text-slate-800">
-      <div className="pointer-events-none fixed inset-0 bg-cover bg-center opacity-[0.07]" style={(loginBg || bg) ? { backgroundImage: `url(${loginBg || bg})` } : undefined} />
-      <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-white/75 via-[#f4f6f9]/90 to-[#e8edf4]/95" />
+    <div className="sapd-login min-h-screen bg-white text-slate-800">
       <div className="relative">
         <header className="border-b border-slate-200 bg-white/95 shadow-sm">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 lg:px-8">
@@ -48,8 +46,8 @@ export function LoginView() {
               </div>
               <p className="mt-7 text-[11px] font-extrabold uppercase tracking-[0.34em] text-[#a17b32]">San Andreas · WestZone Roleplay</p>
               <h1 className="mt-3 text-4xl font-black uppercase leading-[1.04] tracking-tight text-[#17345c] sm:text-6xl">Servicio.<br /><span className="text-[#9b7838]">Integridad. Compromiso.</span></h1>
-              <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">Portal institucional del San Andreas Police Department. Una plataforma oficial para la gestión del personal, la formación, las certificaciones y los recursos del Departamento.</p>
-              <div className="mt-7 flex flex-wrap justify-center gap-2 text-[10px] font-extrabold uppercase tracking-wider text-slate-600">
+              <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-slate-700 sm:text-base">Portal institucional del San Andreas Police Department. Una plataforma oficial para la gestión del personal, la formación, las certificaciones y los recursos del Departamento.</p>
+              <div className="mt-7 flex flex-wrap justify-center gap-2 text-[10px] font-extrabold uppercase tracking-wider text-slate-700">
                 <span className="border border-slate-300 bg-white px-4 py-2">Est. 1869</span><span className="border border-slate-300 bg-white px-4 py-2">San Andreas</span><span className="border border-slate-300 bg-white px-4 py-2">Public Safety</span>
               </div>
             </div>
@@ -59,33 +57,33 @@ export function LoginView() {
               <div className="border-b border-slate-200 px-7 py-6">
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#9b7838]">Personal autorizado</p>
                 <h2 className="mt-2 text-2xl font-black uppercase text-[#17345c]">Acceso al sistema</h2>
-                <p className="mt-2 text-xs leading-5 text-slate-500">Ingresá con tus credenciales institucionales para continuar.</p>
+                <p className="mt-2 text-xs leading-5 text-slate-700">Ingresá con tus credenciales institucionales para continuar.</p>
               </div>
               <div className="space-y-4 p-7">
                 <IdLogin />
                 {discordRegistrationEnabled && <div className="border-t border-slate-200 pt-4"><DiscordLogin /></div>}
-                <div className="flex items-start gap-2 border-t border-slate-100 pt-4 text-[11px] leading-5 text-slate-500"><BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#9b7838]" /> Acceso exclusivo para integrantes autorizados del SAPD.</div>
+                <div className="flex items-start gap-2 border-t border-slate-100 pt-4 text-[11px] leading-5 text-slate-700"><BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#9b7838]" /> Acceso exclusivo para integrantes autorizados del SAPD.</div>
               </div>
             </div>
           </section>
 
           <section className="mt-10 border-y border-slate-200 bg-white px-6 py-8 sm:px-9">
             <div className="grid gap-7 md:grid-cols-3">
-              <div><p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#9b7838]">Nuestra institución</p><h2 className="mt-2 text-2xl font-black uppercase text-[#17345c]">Una misión.<br />Una comunidad.</h2><p className="mt-3 text-sm leading-6 text-slate-600">El SAPD trabaja para proteger a los ciudadanos de San Andreas mediante disciplina, profesionalismo y servicio público.</p></div>
-              <div className="border-y border-slate-100 py-5 md:border-x md:border-y-0 md:px-7 md:py-0"><CalendarDays className="h-5 w-5 text-[#9b7838]" /><p className="mt-3 text-2xl font-black text-[#17345c]">1869</p><p className="mt-1 text-xs leading-5 text-slate-500">Referencia histórica de la institución, dentro del universo de WestZone Roleplay.</p></div>
-              <div><Shield className="h-5 w-5 text-[#9b7838]" /><p className="mt-3 font-black uppercase text-[#17345c]">Dirección institucional</p><p className="mt-2 text-sm text-slate-700">Kendo Lockser · Mike Holloway</p><p className="mt-1 text-xs leading-5 text-slate-500">Conducción y coordinación del Departamento.</p></div>
+              <div><p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#9b7838]">Nuestra institución</p><h2 className="mt-2 text-2xl font-black uppercase text-[#17345c]">Una misión.<br />Una comunidad.</h2><p className="mt-3 text-sm leading-6 text-slate-700">El SAPD trabaja para proteger a los ciudadanos de San Andreas mediante disciplina, profesionalismo y servicio público.</p></div>
+              <div className="border-y border-slate-100 py-5 md:border-x md:border-y-0 md:px-7 md:py-0"><CalendarDays className="h-5 w-5 text-[#9b7838]" /><p className="mt-3 text-2xl font-black text-[#17345c]">1869</p><p className="mt-1 text-xs leading-5 text-slate-700">Referencia histórica de la institución, dentro del universo de WestZone Roleplay.</p></div>
+              <div><Shield className="h-5 w-5 text-[#9b7838]" /><p className="mt-3 font-black uppercase text-[#17345c]">Dirección institucional</p><p className="mt-2 text-sm text-slate-700">Kendo Lockser · Mike Holloway</p><p className="mt-1 text-xs leading-5 text-slate-700">Conducción y coordinación del Departamento.</p></div>
             </div>
           </section>
 
           <section className="mt-10">
             <div className="mb-5"><p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#9b7838]">Estructura institucional</p><h2 className="mt-2 text-2xl font-black uppercase text-[#17345c]">Divisiones y servicios</h2></div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {areas.map(({ icon: Icon, title, description }) => <article key={title} className="border border-slate-200 bg-white p-5 shadow-sm"><div className="flex h-10 w-10 items-center justify-center bg-transparent text-[#17345c]"><Icon className="h-5 w-5" /></div><h3 className="mt-4 text-sm font-black uppercase tracking-wide text-[#17345c]">{title}</h3><p className="mt-2 text-xs leading-5 text-slate-500">{description}</p></article>)}
+              {areas.map(({ icon: Icon, title, description }) => <article key={title} className="border border-slate-200 bg-white p-5 shadow-sm"><div className="flex h-10 w-10 items-center justify-center bg-transparent text-[#17345c]"><Icon className="h-5 w-5" /></div><h3 className="mt-4 text-sm font-black uppercase tracking-wide text-[#17345c]">{title}</h3><p className="mt-2 text-xs leading-5 text-slate-700">{description}</p></article>)}
             </div>
           </section>
 
           <section className="mt-10 grid gap-5 border border-slate-200 bg-white p-6 sm:grid-cols-[1fr_auto] sm:items-center sm:p-8">
-            <div><p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#9b7838]">Servicios institucionales</p><h2 className="mt-2 text-2xl font-black uppercase text-[#17345c]">Información pública</h2><p className="mt-2 text-sm text-slate-600">Consultá los recursos y registros públicos disponibles del Departamento.</p></div>
+            <div><p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#9b7838]">Servicios institucionales</p><h2 className="mt-2 text-2xl font-black uppercase text-[#17345c]">Información pública</h2><p className="mt-2 text-sm text-slate-700">Consultá los recursos y registros públicos disponibles del Departamento.</p></div>
             <div className="flex flex-col gap-2 sm:min-w-60">
               <Button asChild className="h-11 rounded-none bg-[#17345c] font-bold uppercase tracking-wider text-white hover:bg-[#254a78]"><Link to="/salario"><Coins className="mr-2 h-4 w-4" /> Salarios públicos <ArrowRight className="ml-auto h-4 w-4" /></Link></Button>
               <Button asChild variant="outline" className="h-11 rounded-none border-slate-300 bg-white font-bold uppercase tracking-wider text-[#17345c] hover:bg-slate-50"><Link to="/registro-policias"><IdCard className="mr-2 h-4 w-4" /> Registro PD <ArrowRight className="ml-auto h-4 w-4" /></Link></Button>
@@ -93,11 +91,11 @@ export function LoginView() {
           </section>
 
           <section className="mt-10 border border-[#d8c69f] bg-[#f8f5ed] px-6 py-8 text-center sm:px-10">
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#9b7838]">Reclutamiento</p><h2 className="mt-3 text-3xl font-black uppercase text-[#17345c] sm:text-4xl">Join SAPD</h2><p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-600">¿Querés formar parte de la institución? Mantenete atento a los próximos llamados de ingreso.</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#9b7838]">Reclutamiento</p><h2 className="mt-3 text-3xl font-black uppercase text-[#17345c] sm:text-4xl">Join SAPD</h2><p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-700">¿Querés formar parte de la institución? Mantenete atento a los próximos llamados de ingreso.</p>
             <Button onClick={() => setJoinMessage("Convocatorias Cerradas, espera tu proxima oportunidad")} className="mt-6 h-12 min-w-56 rounded-none bg-[#17345c] px-8 font-black uppercase tracking-[0.18em] text-white hover:bg-[#254a78]">Consultar convocatorias <ArrowRight className="ml-2 h-4 w-4" /></Button>
             {joinMessage && <p role="status" className="mx-auto mt-4 max-w-md border border-[#d8c69f] bg-white px-4 py-3 text-sm font-bold text-[#17345c]">{joinMessage}</p>}
           </section>
-          <footer className="mt-8 flex flex-col gap-2 border-t border-slate-200 py-5 text-center text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 sm:flex-row sm:justify-between sm:text-left"><span>San Andreas Police Department · WestZone Roleplay</span><span>mySAPD · Sistema de gestión institucional</span></footer>
+          <footer className="mt-8 flex flex-col gap-2 border-t border-slate-200 py-5 text-center text-[10px] font-bold uppercase tracking-[0.18em] text-slate-700 sm:flex-row sm:justify-between sm:text-left"><span>San Andreas Police Department · WestZone Roleplay</span><span>mySAPD · Sistema de gestión institucional</span></footer>
         </main>
       </div>
     </div>
