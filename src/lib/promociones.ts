@@ -33,7 +33,7 @@ export type ParsedPromotion = {
 };
 
 const normalizeRank = (value: string) =>
-  value.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").trim().toLowerCase();
+  value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
 
 const RANK_ALIASES: Record<string, PoliceRank> = {
   comisario: "Comisario",
@@ -51,11 +51,11 @@ export function parsePromotionAnnouncement(raw: string) {
   const promotions: ParsedPromotion[] = [];
   const issues: { line: number; text: string; reason: string }[] = [];
   const seen = new Set<string>();
-  const lines = raw.split(/\\r?\\n/);
+  const lines = raw.split(/\r?\n/);
 
   lines.forEach((text, index) => {
-    if (!/asciende\\s+a/i.test(text)) return;
-    const match = text.match(/(?:El|La)\\s+\\*\\*([^*]+)\\*\\*\\s*<@!?([0-9]{17,20})>\\s+asciende\\s+a\\s+<@&([0-9]{17,20})>/i);
+    if (!/asciende\s+a/i.test(text)) return;
+    const match = text.match(/(?:El|La)\s+\*\*([^*]+)\*\*\s*<@!?([0-9]{17,20})>\s+asciende\s+a\s+<@&([0-9]{17,20})>/i);
     if (!match) {
       issues.push({ line: index + 1, text: text.trim(), reason: "No se pudo interpretar la línea. Revisá el formato de menciones." });
       return;
