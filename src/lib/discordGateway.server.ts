@@ -261,9 +261,10 @@ export async function mergeDuplicatePdMembers(admin: { from: (table: string) => 
 
 export async function publishTrainingCertificateToForum(admin: { from: (table: string) => any; storage: any }, trainingId: string, certificateDataUrl?: string) {
   const { data: training, error: trainingError } = await admin.from("pd_trainings")
-    .select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, certificate_image_url")
+    .select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, certificate_image_url, discord_published_at")
     .eq("id", trainingId).maybeSingle();
   if (trainingError || !training) throw new Error("No se encontró la capacitación para publicar");
+  if (training.discord_published_at) return { ok: true as const, alreadyPublished: true, threadId: null, imageUrl: training.certificate_image_url };
   const [{ data: member }, { data: instructor }, { data: setting }] = await Promise.all([
     admin.from("pd_members").select("id, nombre, legajo, discord_forum_thread_id").eq("id", training.pd_member_id).maybeSingle(),
     admin.from("pd_members").select("nombre").eq("id", training.instructor_pd_member_id).maybeSingle(),
@@ -335,5 +336,7 @@ export async function publishTrainingCertificateToForum(admin: { from: (table: s
       body: JSON.stringify({ embeds: [embed] }),
     });
   }
+  const { error: publicationError } = await admin.from("pd_trainings").update({ certificate_image_url: imageUrl, discord_published_at: new Date().toISOString() }).eq("id", training.id);
+  if (publicationError) throw new Error("El certificado se publicó, pero no se pudo registrar la sincronización en mySAPD");
   return { ok: true as const, threadId, imageUrl };
 }
