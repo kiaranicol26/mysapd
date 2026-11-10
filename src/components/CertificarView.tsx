@@ -204,7 +204,18 @@ export function CertCard({ data, downloadable = false, autoGenerate = false, onG
   const ref = useRef<HTMLDivElement>(null);
   const tipo = TIPOS.find(t => t.value === data.tipo) ?? TIPOS[0];
 
-  useEffect(() => {\n    if (!autoGenerate || !ref.current || !onGenerated) return;\n    let active = true;\n    const node = ref.current;\n    const width = node.offsetWidth || 900;\n    toPng(node, { cacheBust: true, pixelRatio: Math.max(2, 1357 / width) })\n      .then(url => { if (active) onGenerated(url); })\n      .catch(error => { if (active) toast.error("No se pudo generar el certificado: " + (error?.message ?? "error")); });\n    return () => { active = false; };\n  }, [autoGenerate, onGenerated, data]);\n\n  async function download() {
+  useEffect(() => {
+    if (!autoGenerate || !ref.current || !onGenerated) return;
+    let active = true;
+    const node = ref.current;
+    const width = node.offsetWidth || 900;
+    toPng(node, { cacheBust: true, pixelRatio: Math.max(2, 1357 / width) })
+      .then(url => { if (active) onGenerated(url); })
+      .catch(error => { if (active) toast.error("No se pudo generar el certificado: " + (error?.message ?? "error")); });
+    return () => { active = false; };
+  }, [autoGenerate, onGenerated, data]);
+
+  async function download() {
     if (!ref.current) return;
     try {
       const w = ref.current.offsetWidth || 1357;
