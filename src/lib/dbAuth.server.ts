@@ -24,6 +24,7 @@ export type QuerySpec = {
   columns?: string | null;
   order?: { column: string; ascending: boolean } | null;
   limit?: number | null;
+  range?: { from: number; to: number } | null;
   filters?: Filter[];
   values?: unknown;
   returning?: string | null;
@@ -367,6 +368,7 @@ export async function runQuery(spec: QuerySpec, claims: Claims | null, admin: Ad
   }
   if (safe.op !== "select" && safe.returning != null) q = q.select(safe.returning || "*");
   if (safe.order) q = q.order(safe.order.column, { ascending: safe.order.ascending });
+  if (safe.range) q = q.range(safe.range.from, safe.range.to);
   if (safe.limit != null) q = q.limit(safe.limit);
   if (safe.single === "single") q = q.single();
   else if (safe.single === "maybeSingle") q = q.maybeSingle();
