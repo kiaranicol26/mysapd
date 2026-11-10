@@ -65,8 +65,8 @@ function certificateTipo(training: string) {
 function certificateDate(value: string | null) {
   if (!value) return "Nada";
   const datePart = value.trim().split("T")[0];
-  if (/^\\d{4}-\\d{2}-\\d{2}$/.test(datePart)) return datePart.split("-").reverse().join("/");
-  if (/^\\d{2}\\/\\d{2}\\/\\d{4}$/.test(datePart)) return datePart;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return datePart.split("-").reverse().join("/");
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(datePart)) return datePart;
   return value;
 }
 
@@ -98,7 +98,7 @@ function ShareCertificateButton({ row, memberName, instructorName, onPublished }
     instructor: instructorName,
     comisario: "San Andreas Police Department",
     fecha: certificateDate(row.awarded_at),
-    numero: row.id.replace(/\\D/g, "").slice(-6).padStart(6, "0"),
+    numero: row.id.replace(/\D/g, "").slice(-6).padStart(6, "0"),
   };
 
   const send = useCallback(async (image?: string) => {
@@ -222,7 +222,7 @@ export function CertificarView({ session: _session }: { session: Session }) {
                 instructor: instructor?.nombre ?? "Nada",
                 comisario: "San Andreas Police Department",
                 fecha: certificateDate(row.awarded_at),
-                numero: row.id.replace(/\\D/g, "").slice(-6).padStart(6, "0"),
+                numero: row.id.replace(/\D/g, "").slice(-6).padStart(6, "0"),
               }} downloadable /></div>}
             <div className="space-y-1 p-3 text-sm">
               <p className="font-black text-slate-900">{memberName} <span className="font-mono text-xs text-slate-500">#{target?.legajo ?? "—"}</span></p>
