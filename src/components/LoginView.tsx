@@ -92,6 +92,7 @@ export function LoginView() {
               </div>
               <div className="p-6">
                 <IdLogin />
+                {discordRegistrationEnabled && <DiscordLogin />}
                 <div className="mt-5 border-t border-slate-200 pt-4">
                   <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                     <BadgeCheck className="h-4 w-4 text-blue-700" /> Acceso exclusivo para personal autorizado
