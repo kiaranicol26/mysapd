@@ -43,7 +43,8 @@ function daysSince(value: string | null) {
 
 export function RegistroPdPublicView({ session }: { session: Session | null }) {
   const [members, setMembers] = useState<Member[]>([]);
-  const [users, setUsers] = useState<User[]>([]);\n  const [trainings, setTrainings] = useState<Training[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [trainings, setTrainings] = useState<Training[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -51,11 +52,13 @@ export function RegistroPdPublicView({ session }: { session: Session | null }) {
     let active = true;
     Promise.all([
       db.from("pd_members").select("id, instructor_id, nombre, rango, foto, placa, es_instructor, division, division_rango, division2, division2_rango, division3, division3_rango, cap_m4, cap_edc, cap_mary, cap_sniper, cap_air, cap_ak47").order("nombre", { ascending: true }),
-      db.from("instructors").select("id, name, avatar_url, role, placa, discord_joined_at, discord_inhabilitado").order("name", { ascending: true })
-    ]).then(([a, b]) => {
+      db.from("instructors").select("id, name, avatar_url, role, placa, discord_joined_at, discord_inhabilitado").order("name", { ascending: true }),
+      db.from("pd_trainings").select("id, pd_member_id, section, training, training_other, awarded_at, is_legacy").order("awarded_at", { ascending: false, nullsFirst: false })
+    ]).then(([a, b, t]) => {
       if (!active) return;
       if (a.data) setMembers(a.data as Member[]);
       if (b.data) setUsers(b.data as User[]);
+      if (t.data) setTrainings(t.data as Training[]);
       setLoading(false);
     }).catch(() => setLoading(false));
     return () => { active = false };
@@ -66,7 +69,7 @@ export function RegistroPdPublicView({ session }: { session: Session | null }) {
       members.find(x => x.nombre.trim().toLowerCase() === u.name.trim().toLowerCase());
     return { u, m };
   }).filter(({ u, m }) => (u.name + " " + (u.placa ?? m?.placa ?? "") + " " + (m?.rango ?? "") + " " +
-    CAPACITACIONES.filter(c => m?.[c.key]).map(c => c.label).join(" ")).toLowerCase().includes(query.toLowerCase())), [users, members, query]);
+    trainings.filter(t => t.pd_member_id === m?.id).map(t => t.training === "OTRA" ? t.training_other : t.training).join(" ")).toLowerCase().includes(query.toLowerCase())), [users, members, trainings, query]);
 
   const rankOrder = ["Comisario", "Inspector", "Capitan", "Capitán", "Teniente", "Sargento", "Cabo", "Oficial", "Cadete", "Aspirante"];
   const groupedRows = rankOrder.map(rank => ({
