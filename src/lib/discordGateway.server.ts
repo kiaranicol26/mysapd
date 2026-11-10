@@ -259,7 +259,7 @@ export async function mergeDuplicatePdMembers(admin: { from: (table: string) => 
 }
 
 
-export async function publishTrainingCertificateToForum(admin: { from: (table: string) => any; storage: any }, trainingId: string) {
+export async function publishTrainingCertificateToForum(admin: { from: (table: string) => any; storage: any }, trainingId: string, certificateDataUrl?: string) {
   const { data: training, error: trainingError } = await admin.from("pd_trainings")
     .select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, certificate_image_url")
     .eq("id", trainingId).maybeSingle();
@@ -273,7 +273,7 @@ export async function publishTrainingCertificateToForum(admin: { from: (table: s
   if (!/^\\d{17,20}$/.test(forumId)) throw new Error("Configurá un ID válido de canal Foro en Administración → Configuración Web");
   if (!member) throw new Error("No se encontró el SAPD asociado a la capacitación");
 
-  let imageUrl = String(training.certificate_image_url ?? "");
+  let imageUrl = String(certificateDataUrl ?? training.certificate_image_url ?? "");
   if (imageUrl.startsWith("data:image/")) {
     const match = imageUrl.match(/^data:image\\/png;base64,([A-Za-z0-9+/=]+)$/);
     if (!match) throw new Error("El certificado no contiene un PNG válido");
