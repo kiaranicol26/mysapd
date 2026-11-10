@@ -298,7 +298,7 @@ async function publishTrainingCertificateToForumUnlocked(
     .select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, certificate_image_url, discord_published_at, discord_published_forum_id")
     .eq("id", trainingId).maybeSingle();
   if (trainingError || !training) throw new Error("No se encontró la capacitación para publicar");
-  if (training.discord_published_at && (!force || training.discord_published_forum_id === forumId)) {
+  if (training.discord_published_at && !force) {
     return { ok: true as const, alreadyPublished: true, threadId: null, imageUrl: training.certificate_image_url };
   }
 
@@ -314,6 +314,9 @@ async function publishTrainingCertificateToForumUnlocked(
     : configuredForumId;
   if (!/^\d{17,20}$/.test(forumId)) throw new Error("Configurá un ID válido de canal Foro en Administración → Configuración Web");
   if (!member) throw new Error("No se encontró el SAPD asociado a la capacitación");
+  if (force && training.discord_published_at && training.discord_published_forum_id === forumId) {
+    return { ok: true as const, alreadyPublished: true, threadId: member.discord_forum_thread_id, imageUrl: training.certificate_image_url };
+  }
 
   let imageUrl = String(certificateDataUrl ?? training.certificate_image_url ?? "");
   if (imageUrl.startsWith("data:image/")) {
