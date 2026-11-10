@@ -43,7 +43,7 @@ describe("bulk promotion announcement parser", () => {
       "El **Comisario** <@609887467574919211> asciende a <@&890703787717722122>",
     ].join("\n"));
 
-    expect(result.promotions).toHaveLength(1);
+    expect(result.promotions.length).toBe(1);
     expect(result.issues.length).toBe(2);
   });
 });
