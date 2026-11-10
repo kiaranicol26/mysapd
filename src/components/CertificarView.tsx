@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import tpl from "@/assets/certificado-new-capacitacion.png";
 import pictoM4 from "@/assets/picto-m4.png.asset.json";
@@ -8,19 +8,12 @@ import pictoAk from "@/assets/picto-ak.png.asset.json";
 import pictoMary from "@/assets/picto-mary.png.asset.json";
 import pictoAir from "@/assets/picto-air.png.asset.json";
 import { db, getToken } from "@/lib/db";
-import { publishTrainingCertificate, syncExistingCertificatesToForum } from "@/lib/data.functions";
-import { Session, logAction } from "@/lib/session";
+import { publishTrainingCertificate } from "@/lib/data.functions";
+import type { Session } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Download } from "lucide-react";
+import { Download, Share2, CheckCircle2 } from "lucide-react";
 import { toPng } from "html-to-image";
 
 const TIPOS = [
@@ -42,24 +35,19 @@ export type CertificateForm = {
   numero: string;
 };
 
-function randomNumero() {
-  return String(Math.floor(100000 + Math.random() * 900000));
-}
+type CertificateRecord = {
+  id: string;
+  pd_member_id: string;
+  section: string;
+  training: string;
+  training_other: string | null;
+  awarded_at: string | null;
+  instructor_pd_member_id: string | null;
+  certificate_image_url: string | null;
+  discord_published_at: string | null;
+  is_legacy?: boolean;
+};
 
-function emptyForm(session: Session): CertificateForm {
-  const d = new Date();
-  const fecha = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-  return {
-    tipo: TIPOS[0].value,
-    nombre: "",
-    instructor: session.name,
-    comisario: "",
-    fecha,
-    numero: randomNumero(),
-  };
-}
-
-type CertificateRecord = { id: string; pd_member_id: string; section: string; training: string; training_other: string | null; awarded_at: string | null; instructor_pd_member_id: string | null; certificate_image_url: string | null; is_legacy?: boolean };
 const TRAINING_CERTIFICATE_TYPES: Record<string, string> = {
   M4: "Fusil M4",
   EDC: "Escopeta Spas12",
@@ -77,45 +65,16 @@ function certificateTipo(training: string) {
 function certificateDate(value: string | null) {
   if (!value) return "Nada";
   const datePart = value.trim().split("T")[0];
-  if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return datePart.split("-").reverse().join("/");
-  if (/^\d{2}\/\d{2}\/\d{4}$/.test(datePart)) return datePart;
+  if (/^\\d{4}-\\d{2}-\\d{2}$/.test(datePart)) return datePart.split("-").reverse().join("/");
+  if (/^\\d{2}\\/\\d{2}\\/\\d{4}$/.test(datePart)) return datePart;
   return value;
-}
-
-
-function LegacyCertificatePublisher({ row, memberName, instructorName, onDone }: { row: CertificateRecord; memberName: string; instructorName: string; onDone: (success: boolean) => void }) {
-  const [finished, setFinished] = useState(false);
-  const data: CertificateForm = {
-    tipo: certificateTipo(row.training),
-    nombre: memberName,
-    instructor: instructorName,
-    comisario: "San Andreas Police Department",
-    fecha: certificateDate(row.awarded_at),
-    numero: row.id.replace(/\\D/g, "").slice(-6).padStart(6, "0"),
-  };
-  const publish = useCallback(async (image: string) => {
-    if (finished) return;
-    setFinished(true);
-    let success = false;
-    try {
-      const token = getToken();
-      if (!token) throw new Error("Tu sesión expiró.");
-      const result = await publishTrainingCertificate({ data: { token, trainingId: row.id, certificateImage: image } });
-      if (!result.ok) throw new Error(result.error);
-      success = true;
-    } catch (error) {
-      toast.error("No se pudo publicar el certificado de " + memberName + ": " + (error instanceof Error ? error.message : "error"));
-    } finally { onDone(success); }
-  }, [finished, row.id, memberName, onDone]);
-  if (finished) return null;
-  return <div aria-hidden="true" className="pointer-events-none fixed left-[-10000px] top-0 w-[900px]"><CertCard data={data} autoGenerate onGenerated={publish} onError={() => { setFinished(true); toast.error("No se pudo generar el certificado de " + memberName); onDone(false); }} /></div>;
 }
 
 async function loadAllCertificateRecords(): Promise<CertificateRecord[]> {
   const all: CertificateRecord[] = [];
   for (let from = 0; ; from += 1000) {
     const { data, error } = await db.from("pd_trainings")
-      .select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, certificate_image_url, is_legacy")
+      .select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, certificate_image_url, discord_published_at, is_legacy")
       .order("awarded_at", { ascending: false })
       .range(from, from + 999);
     if (error) throw error;
@@ -125,7 +84,71 @@ async function loadAllCertificateRecords(): Promise<CertificateRecord[]> {
   }
 }
 
-export function CertificarView({ session }: { session: Session }) {
+function ShareCertificateButton({ row, memberName, instructorName, onPublished }: {
+  row: CertificateRecord;
+  memberName: string;
+  instructorName: string;
+  onPublished: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [generateImage, setGenerateImage] = useState(false);
+  const formData: CertificateForm = {
+    tipo: certificateTipo(row.training),
+    nombre: memberName,
+    instructor: instructorName,
+    comisario: "San Andreas Police Department",
+    fecha: certificateDate(row.awarded_at),
+    numero: row.id.replace(/\\D/g, "").slice(-6).padStart(6, "0"),
+  };
+
+  const send = useCallback(async (image?: string) => {
+    if (busy) return;
+    setBusy(true);
+    setGenerateImage(false);
+    try {
+      const token = getToken();
+      if (!token) throw new Error("Tu sesión expiró.");
+      const result = await publishTrainingCertificate({
+        data: { token, trainingId: row.id, ...(image ? { certificateImage: image } : {}) },
+      });
+      if (!result.ok) throw new Error(result.error);
+      toast.success("Certificado compartido en la publicación de foro de " + memberName + ".");
+      onPublished();
+    } catch (error) {
+      toast.error("No se pudo compartir el certificado: " + (error instanceof Error ? error.message : "error"));
+    } finally {
+      setBusy(false);
+    }
+  }, [busy, row.id, memberName, onPublished]);
+
+  const onGenerated = useCallback((image: string) => { void send(image); }, [send]);
+  const onError = useCallback(() => { setGenerateImage(false); setBusy(false); }, []);
+
+  async function share() {
+    if (busy) return;
+    if (row.discord_published_at) return toast.info("Este certificado ya fue compartido con Discord.");
+    if (row.certificate_image_url) {
+      await send();
+    } else {
+      setBusy(true);
+      setGenerateImage(true);
+    }
+  }
+
+  return <>
+    <Button type="button" size="sm" onClick={share} disabled={busy || !!row.discord_published_at}
+      className="mt-2 w-full rounded-none bg-[#5865F2] text-white hover:bg-[#4752C4] disabled:opacity-70">
+      {busy ? <><Share2 className="mr-2 h-4 w-4 animate-pulse" /> Generando / enviando…</> :
+        row.discord_published_at ? <><CheckCircle2 className="mr-2 h-4 w-4" /> Compartido con DC</> :
+        <><Share2 className="mr-2 h-4 w-4" /> Compartir con DC</>}
+    </Button>
+    {generateImage && <div aria-hidden="true" className="pointer-events-none fixed left-[-10000px] top-0 w-[900px]">
+      <CertCard data={formData} autoGenerate onGenerated={onGenerated} onError={onError} />
+    </div>}
+  </>;
+}
+
+export function CertificarView({ session: _session }: { session: Session }) {
   const [records, setRecords] = useState<CertificateRecord[]>([]);
   const [members, setMembers] = useState<{ id: string; nombre: string; legajo: number }[]>([]);
   const [filterMember, setFilterMember] = useState("");
@@ -133,213 +156,86 @@ export function CertificarView({ session }: { session: Session }) {
   const [filterTraining, setFilterTraining] = useState("");
   const [filterInstructor, setFilterInstructor] = useState("");
   const [searchText, setSearchText] = useState("");
-  const [syncingDiscord, setSyncingDiscord] = useState(false);
-  const [legacyRecords, setLegacyRecords] = useState<CertificateRecord[]>([]);
-  const [legacyDone, setLegacyDone] = useState(0);
-  const [legacyFailed, setLegacyFailed] = useState(0);
-  const [form, setForm] = useState<CertificateForm | null>(null);
-  const [preview, setPreview] = useState<CertificateForm | null>(null);
+
+  const reload = useCallback(async () => {
+    const [rows, memberRows] = await Promise.all([
+      loadAllCertificateRecords(),
+      db.from("pd_members").select("id, nombre, legajo").order("nombre", { ascending: true }),
+    ]);
+    setRecords(rows);
+    if (memberRows.error) throw memberRows.error;
+    setMembers((memberRows.data ?? []) as { id: string; nombre: string; legajo: number }[]);
+  }, []);
 
   useEffect(() => {
-    Promise.all([
-      loadAllCertificateRecords().then(setRecords).catch(error => toast.error(error instanceof Error ? error.message : "No se pudieron cargar todos los certificados.")),
-      db.from("pd_members").select("id, nombre, legajo").order("nombre", { ascending: true }),
-    ]).then(([, memberRows]) => {
-      if (memberRows.error) toast.error(memberRows.error.message); else setMembers((memberRows.data ?? []) as { id: string; nombre: string; legajo: number }[]);
-    });
-  }, []);
+    reload().catch(error => toast.error(error instanceof Error ? error.message : "No se pudieron cargar los certificados."));
+  }, [reload]);
 
   const visibleRecords = useMemo(() => records.filter(row => {
     const target = members.find(m => m.id === row.pd_member_id);
     const instructor = members.find(m => m.id === row.instructor_pd_member_id);
     const haystack = [target?.nombre, instructor?.nombre, String(target?.legajo ?? ""), row.training, row.training_other ?? ""].join(" ").toLowerCase();
-    return (!filterMember || row.pd_member_id === filterMember) && (!filterSection || row.section === filterSection) && (!filterTraining || row.training === filterTraining) && (!filterInstructor || row.instructor_pd_member_id === filterInstructor) && (!searchText || haystack.includes(searchText.toLowerCase()));
+    return (!filterMember || row.pd_member_id === filterMember) &&
+      (!filterSection || row.section === filterSection) &&
+      (!filterTraining || row.training === filterTraining) &&
+      (!filterInstructor || row.instructor_pd_member_id === filterInstructor) &&
+      (!searchText || haystack.includes(searchText.toLowerCase()));
   }), [records, members, filterMember, filterSection, filterTraining, filterInstructor, searchText]);
 
-  const onLegacyDone = useCallback((success: boolean) => {
-    setLegacyDone(value => value + 1);
-    if (!success) setLegacyFailed(value => value + 1);
+  const markPublished = useCallback((id: string) => {
+    setRecords(current => current.map(row => row.id === id ? { ...row, discord_published_at: new Date().toISOString() } : row));
   }, []);
 
-  useEffect(() => {
-    if (legacyRecords.length && legacyDone >= legacyRecords.length) {
-      if (legacyFailed) toast.warning("Se procesaron los certificados históricos: " + (legacyRecords.length - legacyFailed) + " publicados y " + legacyFailed + " con error. Podés volver a sincronizar para reintentar.");
-      else toast.success("Todos los certificados históricos fueron generados y publicados.");
-      setLegacyRecords([]);
-      setLegacyDone(0);
-      setLegacyFailed(0);
-      loadAllCertificateRecords().then(setRecords).catch(error => toast.error(error instanceof Error ? error.message : "No se pudo actualizar la biblioteca."));
-    }
-  }, [legacyRecords, legacyDone, legacyFailed]);
-
-  async function syncCertificatesToDiscord() {
-    const token = getToken();
-    if (!token) return toast.error("Tu sesión expiró.");
-    setSyncingDiscord(true);
-    try {
-      const result = await syncExistingCertificatesToForum({ data: { token } });
-      if (!result.ok) throw new Error(result.error);
-      const missing = records.filter(row => !row.certificate_image_url);
-      if (result.failed) toast.warning(result.sent + " certificados con imagen publicados; " + result.failed + " fallaron. Se continuará con " + missing.length + " históricos sin imagen.");
-      else toast.success(result.sent + " certificados con imagen publicados. Se reconstruirán " + missing.length + " históricos sin imagen.");
-      if (missing.length) { setLegacyRecords(missing); setLegacyDone(0); setLegacyFailed(0); }
-      else if (!result.failed) toast.success("La biblioteca ya estaba sincronizada.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo sincronizar Discord.");
-    } finally { setSyncingDiscord(false); }
-  }
-  function openCreate() {
-    setForm(emptyForm(session));
-  }
-
-  async function generar() {
-    if (!form) return;
-    if (!form.nombre.trim()) return toast.error("Escribí el nombre de la persona a certificar");
-    if (!form.instructor.trim()) return toast.error("Escribí el nombre del instructor");
-    if (!form.comisario.trim()) return toast.error("Escribí el nombre del comisario");
-    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(form.fecha.trim()))
-      return toast.error("La fecha debe tener el formato DD/MM/AAAA");
-    setPreview(form);
-    setForm(null);
-    await logAction(db, session, "CREATE_CERTIFICADO", { nombre: form.nombre, tipo: form.tipo });
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="w-full bg-white border border-blue-200 shadow-sm p-5">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 flex items-center justify-center bg-white border border-blue-200 p-1">
-            <img src={sapdLogo.url} alt="SAPD" className="w-full h-full object-contain" />
-          </div>
-          <div className="flex-1">
-            <p className="text-blue-600 text-xs uppercase tracking-[0.3em] font-bold">
-              San Andreas Police Department
-            </p>
-            <h2 className="text-2xl font-black text-slate-900 uppercase font-display">
-              Certificar — Certificados de Capacitación
-            </h2>
-            <p className="text-slate-500 text-sm">
-              Completá el formulario y descargá el certificado en PNG de alta resolución.
-            </p>
-          </div>
-          <Button onClick={openCreate} className="rounded-none bg-blue-600 hover:bg-blue-700 text-white font-semibold">
-            <Plus className="w-4 h-4 mr-1" /> Crear Certificado
-          </Button>
+  return <div className="space-y-4">
+    <div className="w-full border border-blue-200 bg-white p-5 shadow-sm">
+      <div className="flex items-center gap-4">
+        <div className="flex h-12 w-12 items-center justify-center border border-blue-200 bg-white p-1">
+          <img src={sapdLogo.url} alt="SAPD" className="h-full w-full object-contain" />
         </div>
+        <div className="flex-1">
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-blue-600">San Andreas Police Department</p>
+          <h2 className="font-display text-2xl font-black uppercase text-slate-900">Certificados</h2>
+          <p className="text-sm text-slate-500">Certificados generados automáticamente desde Capacitaciones.</p>
+        </div>
+        <span className="text-xs font-bold text-blue-700">{visibleRecords.length} / {records.length} registros</span>
       </div>
+    </div>
 
-      <div className="w-full border border-blue-200 bg-white p-5 shadow-sm space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-lg font-black uppercase text-slate-900">Biblioteca de certificados</h3><p className="text-sm text-slate-500">Certificados generados automáticamente desde Capacitaciones.</p></div><div className="flex flex-wrap items-center gap-3"><span className="text-xs font-bold text-blue-700">{visibleRecords.length} / {records.length} registros</span>{session.is_alto_mando && <Button onClick={syncCertificatesToDiscord} disabled={syncingDiscord || legacyRecords.length > 0} className="rounded-none bg-[#5865F2] text-white hover:bg-[#4752C4]">{syncingDiscord || legacyRecords.length > 0 ? "Sincronizando…" : "Sincronizar con Discord"}</Button>}</div></div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <Input value={searchText} onChange={e => setSearchText(e.target.value)} placeholder="Buscar agente o legajo…" className="rounded-none" />
-          <select value={filterMember} onChange={e => setFilterMember(e.target.value)} className="h-10 border border-slate-300 bg-white px-2 text-sm"><option value="">Todos los SAPD</option>{members.map(m => <option key={m.id} value={m.id}>{m.nombre} · {m.legajo}</option>)}</select>
-          <select value={filterSection} onChange={e => setFilterSection(e.target.value)} className="h-10 border border-slate-300 bg-white px-2 text-sm"><option value="">Armas y vehículos</option><option>Armas</option><option>Vehículos</option></select>
-          <select value={filterTraining} onChange={e => setFilterTraining(e.target.value)} className="h-10 border border-slate-300 bg-white px-2 text-sm"><option value="">Todas las capacitaciones</option>{["M4","EDC","AK-47","SNIPER","MARY","AIR","OTRA"].map(v => <option key={v}>{v}</option>)}</select>
-          <select value={filterInstructor} onChange={e => setFilterInstructor(e.target.value)} className="h-10 border border-slate-300 bg-white px-2 text-sm"><option value="">Todos los instructores</option>{members.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select>
-        </div>
-        {visibleRecords.length ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{visibleRecords.map(row => {
+    <div className="w-full space-y-4 border border-blue-200 bg-white p-5 shadow-sm">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <Input value={searchText} onChange={e => setSearchText(e.target.value)} placeholder="Buscar agente o legajo…" className="rounded-none" />
+        <select value={filterMember} onChange={e => setFilterMember(e.target.value)} className="h-10 border border-slate-300 bg-white px-2 text-sm"><option value="">Todos los SAPD</option>{members.map(m => <option key={m.id} value={m.id}>{m.nombre} · {m.legajo}</option>)}</select>
+        <select value={filterSection} onChange={e => setFilterSection(e.target.value)} className="h-10 border border-slate-300 bg-white px-2 text-sm"><option value="">Armas y vehículos</option><option>Armas</option><option>Vehículos</option></select>
+        <select value={filterTraining} onChange={e => setFilterTraining(e.target.value)} className="h-10 border border-slate-300 bg-white px-2 text-sm"><option value="">Todas las capacitaciones</option>{["M4","EDC","AK-47","SNIPER","MARY","AIR","OTRA"].map(v => <option key={v}>{v}</option>)}</select>
+        <select value={filterInstructor} onChange={e => setFilterInstructor(e.target.value)} className="h-10 border border-slate-300 bg-white px-2 text-sm"><option value="">Todos los instructores</option>{members.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select>
+      </div>
+      {visibleRecords.length ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {visibleRecords.map(row => {
           const target = members.find(m => m.id === row.pd_member_id);
           const instructor = members.find(m => m.id === row.instructor_pd_member_id);
+          const memberName = target?.nombre ?? "Agente no disponible";
           return <article key={row.id} className="overflow-hidden border border-slate-200 bg-slate-50">
-            {row.certificate_image_url ? <a href={row.certificate_image_url} target="_blank" rel="noreferrer"><img src={row.certificate_image_url} alt={"Certificado de " + (target?.nombre ?? "agente SAPD")} className="aspect-[1357/1920] w-full bg-white object-contain" /></a> : <div className="bg-white"><CertCard data={{
-              tipo: certificateTipo(row.training),
-              nombre: target?.nombre ?? "NOMBRE APELLIDO",
-              instructor: instructor?.nombre ?? "Nada",
-              comisario: "San Andreas Police Department",
-              fecha: certificateDate(row.awarded_at),
-              numero: row.id.replace(/\D/g, "").slice(-6).padStart(6, "0"),
-            }} downloadable /></div>}
-            <div className="space-y-1 p-3 text-sm"><p className="font-black text-slate-900">{target?.nombre ?? "Agente no disponible"} <span className="font-mono text-xs text-slate-500">#{target?.legajo ?? "—"}</span></p><p className="text-xs text-slate-600">{row.section} · {row.training === "OTRA" ? row.training_other : row.training}</p><p className="text-xs text-slate-500">Instructor: {instructor?.nombre ?? "Nada"} · {row.awarded_at ?? "Fecha histórica no disponible"}</p>{row.certificate_image_url && <a href={row.certificate_image_url} download className="mt-2 inline-flex text-xs font-bold text-blue-700 underline">Abrir / descargar PNG</a>}</div>
-          </article>;
-        })}</div> : <p className="py-8 text-center text-sm text-slate-400">No hay certificados que coincidan con los filtros.</p>}
-      </div>
-      {legacyRecords[legacyDone] && <LegacyCertificatePublisher key={legacyRecords[legacyDone].id} row={legacyRecords[legacyDone]} memberName={members.find(m => m.id === legacyRecords[legacyDone].pd_member_id)?.nombre ?? "NOMBRE APELLIDO"} instructorName={members.find(m => m.id === legacyRecords[legacyDone].instructor_pd_member_id)?.nombre ?? "Nada"} onDone={onLegacyDone} />}
-
-      {preview ? (
-        <div className="w-full bg-white border border-blue-200 shadow-sm p-5">
-          <CertCard data={preview} downloadable />
-        </div>
-      ) : (
-        <p className="text-slate-500 italic">
-          Todavía no generaste ningún certificado. Pulsá “Crear Certificado”.
-        </p>
-      )}
-
-      {form && (
-        <Dialog open onOpenChange={(v) => !v && setForm(null)}>
-          <DialogContent className="max-w-6xl bg-white border border-blue-200 text-slate-900 rounded-none max-h-[95vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="font-display text-2xl uppercase tracking-wide text-blue-700">
-                Crear Certificado
-              </DialogTitle>
-            </DialogHeader>
-
-            <div className="grid md:grid-cols-2 gap-6 py-2">
-              <div className="space-y-3">
-                <Field label="Tipo de certificado">
-                  <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v })}>
-                    <SelectTrigger className="rounded-none border-blue-300 bg-white text-slate-800">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-none">
-                      {TIPOS.map(t => (
-                        <SelectItem key={t.value} value={t.value}>{t.value}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field label="Persona a certificar">
-                  <Input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })}
-                    className="rounded-none border-blue-300 bg-white text-slate-800" placeholder="Nombre Apellido" />
-                </Field>
-                <Field label="Instructor">
-                  <Input value={form.instructor} onChange={e => setForm({ ...form, instructor: e.target.value })}
-                    className="rounded-none border-blue-300 bg-white text-slate-800" placeholder="Nombre Apellido" />
-                </Field>
-                <Field label="Comisario">
-                  <Input value={form.comisario} onChange={e => setForm({ ...form, comisario: e.target.value })}
-                    className="rounded-none border-blue-300 bg-white text-slate-800" placeholder="Nombre Apellido" />
-                </Field>
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Fecha (DD/MM/AAAA)">
-                    <Input value={form.fecha} onChange={e => setForm({ ...form, fecha: e.target.value })}
-                      className="rounded-none border-blue-300 bg-white text-slate-800" placeholder="01/01/2026" />
-                  </Field>
-                  <Field label="Nº de certificado">
-                    <Input value={form.numero} onChange={e => setForm({ ...form, numero: e.target.value })}
-                      className="rounded-none border-blue-300 bg-white text-slate-800" />
-                  </Field>
-                </div>
-              </div>
-
-              <div>
-                <div className="text-xs text-blue-600 uppercase tracking-wider mb-2">Vista Previa</div>
-                <CertCard data={form} />
-              </div>
+            {row.certificate_image_url ? <a href={row.certificate_image_url} target="_blank" rel="noreferrer"><img src={row.certificate_image_url} alt={"Certificado de " + memberName} className="aspect-[1357/1920] w-full bg-white object-contain" /></a> :
+              <div className="bg-white"><CertCard data={{
+                tipo: certificateTipo(row.training),
+                nombre: memberName,
+                instructor: instructor?.nombre ?? "Nada",
+                comisario: "San Andreas Police Department",
+                fecha: certificateDate(row.awarded_at),
+                numero: row.id.replace(/\\D/g, "").slice(-6).padStart(6, "0"),
+              }} downloadable /></div>}
+            <div className="space-y-1 p-3 text-sm">
+              <p className="font-black text-slate-900">{memberName} <span className="font-mono text-xs text-slate-500">#{target?.legajo ?? "—"}</span></p>
+              <p className="text-xs text-slate-600">{row.section} · {row.training === "OTRA" ? row.training_other : row.training}</p>
+              <p className="text-xs text-slate-500">Instructor: {instructor?.nombre ?? "Nada"} · {row.awarded_at ?? "Fecha histórica no disponible"}</p>
+              {row.certificate_image_url && <a href={row.certificate_image_url} download className="inline-flex text-xs font-bold text-blue-700 underline"><Download className="mr-1 h-3 w-3" /> Abrir / descargar PNG</a>}
+              <ShareCertificateButton row={row} memberName={memberName} instructorName={instructor?.nombre ?? "Nada"} onPublished={() => markPublished(row.id)} />
             </div>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setForm(null)} className="rounded-none border-blue-300">
-                Cancelar
-              </Button>
-              <Button onClick={generar} className="rounded-none bg-blue-600 hover:bg-blue-700 text-white">
-                Generar Certificado
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+          </article>;
+        })}
+      </div> : <p className="py-8 text-center text-sm text-slate-400">No hay certificados que coincidan con los filtros.</p>}
     </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="grid gap-1">
-      <Label className="text-blue-600 text-xs uppercase tracking-wider">{label}</Label>
-      {children}
-    </div>
-  );
+  </div>;
 }
 
 const NAVY = "#12294f";
