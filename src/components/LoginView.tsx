@@ -41,7 +41,7 @@ export function LoginView() {
         <main className="mx-auto max-w-7xl px-4 pb-12 pt-8 sm:px-6 lg:px-8">
           <section className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_410px]">
             <div className="text-center lg:py-8">
-              <div className="mx-auto flex h-44 w-44 items-center justify-center p-2 sm:h-56 sm:w-56">
+              <div className="mx-auto flex h-52 w-52 items-center justify-center p-1 sm:h-64 sm:w-64">
                 <img src={sapdLogo.url} alt="Logo oficial mySAPD" className="h-full w-full object-contain" />
               </div>
               <p className="mt-7 text-[11px] font-extrabold uppercase tracking-[0.34em] text-[#a17b32]">San Andreas · WestZone Roleplay</p>
