@@ -77,8 +77,8 @@ function certificateTipo(training: string) {
 function certificateDate(value: string | null) {
   if (!value) return "Nada";
   const datePart = value.trim().split("T")[0];
-  if (/^\\d{4}-\\d{2}-\\d{2}$/.test(datePart)) return datePart.split("-").reverse().join("/");
-  if (/^\\d{2}\\/\\d{2}\\/\\d{4}$/.test(datePart)) return datePart;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return datePart.split("-").reverse().join("/");
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(datePart)) return datePart;
   return value;
 }
 
