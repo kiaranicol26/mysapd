@@ -219,6 +219,46 @@ export function AscensosMasivosView({ session }: { session: Session }) {
 
       <Card className="border border-blue-200 bg-white rounded-none overflow-hidden">
         <div className="h-1 bg-blue-600" />
+        <div className="p-4 flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Settings2 className="h-5 w-5 text-blue-700" />
+            <div>
+              <p className="font-black uppercase text-slate-900 text-sm">Equivalencias de rangos</p>
+              <p className="text-xs text-slate-500">Configuración de roles externos y roles de Westzone PD.</p>
+            </div>
+          </div>
+          <Button variant="outline" onClick={() => setShowRoleConfig(value => !value)} className="ml-auto rounded-none">
+            {showRoleConfig ? "Ocultar configuración" : "Configurar equivalencias"}
+          </Button>
+        </div>
+        {showRoleConfig && (
+          <div className="border-t p-5 space-y-4">
+            <p className="text-xs text-slate-600">
+              Una línea por rango, con el formato <span className="font-mono font-bold">Rango=ID_DEL_ROL</span>. Deben estar los nueve rangos y no se pueden repetir IDs.
+            </p>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="space-y-2">
+                <h3 className="text-sm font-black uppercase text-slate-900">Discord externo (origen)</h3>
+                <Textarea value={externalRoleText} onChange={event => setExternalRoleText(event.target.value)} rows={9} className="rounded-none font-mono text-xs" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-sm font-black uppercase text-slate-900">Westzone PD (destino)</h3>
+                <Textarea value={factionRoleText} onChange={event => setFactionRoleText(event.target.value)} rows={9} className="rounded-none font-mono text-xs" />
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs text-slate-500">{roleConfigLoading ? "Cargando equivalencias…" : "Los cambios se aplican a los próximos análisis y ascensos."}</p>
+              <Button onClick={saveRoleConfig} disabled={savingRoleConfig || roleConfigLoading} className="rounded-none bg-blue-700 hover:bg-blue-800 text-white font-bold">
+                {savingRoleConfig ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
+                Guardar equivalencias
+              </Button>
+            </div>
+          </div>
+        )}
+      </Card>
+
+      <Card className="border border-blue-200 bg-white rounded-none overflow-hidden">
+        <div className="h-1 bg-blue-600" />
         <div className="p-5 space-y-3">
           <div className="flex items-center gap-2">
             <ClipboardPaste className="w-5 h-5 text-blue-700" />
