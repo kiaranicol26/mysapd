@@ -437,3 +437,191 @@ svg.lucide { stroke-width: 1.75; }
 @media (max-width: 1023px) {
   main { padding-bottom: max(1.25rem, env(safe-area-inset-bottom)); }
 }
+
+
+/* ─────────────────────────────────────────────────────────────
+   mySAPD · Institutional visual identity
+   Shared by every authenticated section; presentation only.
+   ───────────────────────────────────────────────────────────── */
+:root:not(.dark):not([data-theme="dark"]) {
+  --background: oklch(0.978 0.006 82);
+  --foreground: oklch(0.29 0.035 255);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.29 0.035 255);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.29 0.035 255);
+  --primary: oklch(0.34 0.075 255);
+  --primary-foreground: oklch(0.99 0.004 85);
+  --secondary: oklch(0.955 0.012 82);
+  --secondary-foreground: oklch(0.32 0.055 255);
+  --muted: oklch(0.955 0.009 82);
+  --muted-foreground: oklch(0.53 0.025 255);
+  --accent: oklch(0.93 0.035 82);
+  --accent-foreground: oklch(0.34 0.075 255);
+  --border: oklch(0.90 0.014 82);
+  --input: oklch(0.88 0.018 82);
+  --ring: oklch(0.68 0.11 82);
+  --sidebar: oklch(0.30 0.065 255);
+  --sidebar-foreground: oklch(0.97 0.008 82);
+  --sidebar-primary: oklch(0.76 0.12 82);
+  --sidebar-primary-foreground: oklch(0.28 0.055 255);
+  --sidebar-accent: oklch(0.37 0.065 255);
+  --sidebar-accent-foreground: oklch(0.99 0.004 85);
+  --sidebar-border: oklch(0.40 0.055 255);
+  --sidebar-ring: oklch(0.76 0.12 82);
+  --table-row: oklch(0.995 0.003 82);
+  --table-row-alt: oklch(0.975 0.008 82);
+  --primary-hover: oklch(0.40 0.075 255);
+  --link: oklch(0.42 0.085 255);
+  --subtle-brand: oklch(0.95 0.025 82);
+}
+
+.dark, [data-theme="dark"] {
+  --background: oklch(0.22 0.025 255);
+  --foreground: oklch(0.95 0.012 82);
+  --card: oklch(0.27 0.03 255);
+  --card-foreground: oklch(0.95 0.012 82);
+  --popover: oklch(0.29 0.03 255);
+  --popover-foreground: oklch(0.95 0.012 82);
+  --primary: oklch(0.74 0.12 82);
+  --primary-foreground: oklch(0.25 0.04 255);
+  --secondary: oklch(0.31 0.035 255);
+  --secondary-foreground: oklch(0.94 0.012 82);
+  --muted: oklch(0.30 0.03 255);
+  --muted-foreground: oklch(0.74 0.018 255);
+  --accent: oklch(0.37 0.045 255);
+  --accent-foreground: oklch(0.95 0.012 82);
+  --border: oklch(0.40 0.035 255);
+  --input: oklch(0.42 0.035 255);
+  --ring: oklch(0.72 0.12 82);
+  --sidebar: oklch(0.18 0.025 255);
+  --sidebar-foreground: oklch(0.95 0.012 82);
+  --sidebar-primary: oklch(0.74 0.12 82);
+  --sidebar-primary-foreground: oklch(0.22 0.035 255);
+  --sidebar-accent: oklch(0.29 0.035 255);
+  --sidebar-accent-foreground: oklch(0.97 0.01 82);
+  --sidebar-border: oklch(0.34 0.03 255);
+  --sidebar-ring: oklch(0.72 0.12 82);
+  --table-row: oklch(0.27 0.03 255);
+  --table-row-alt: oklch(0.295 0.03 255);
+  --primary-hover: oklch(0.80 0.12 82);
+  --link: oklch(0.80 0.12 82);
+  --subtle-brand: oklch(0.32 0.045 255);
+}
+
+/* Institutional navigation */
+aside {
+  background: var(--sidebar) !important;
+  color: var(--sidebar-foreground) !important;
+  box-shadow: 12px 0 36px -26px oklch(0.12 0.03 255 / 45%);
+}
+aside > div:first-child {
+  border-bottom: 1px solid var(--sidebar-border) !important;
+  box-shadow: inset 0 -2px 0 color-mix(in oklab, var(--sidebar-primary) 70%, transparent);
+}
+aside nav a {
+  min-height: 44px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+aside nav a[aria-current="page"],
+aside nav a[data-status="active"] {
+  background: var(--sidebar-primary) !important;
+  color: var(--sidebar-primary-foreground) !important;
+  box-shadow: 0 7px 18px -10px var(--sidebar-primary) !important;
+}
+aside nav a[aria-current="page"] span,
+aside nav a[data-status="active"] span {
+  border-color: color-mix(in oklab, var(--sidebar-primary-foreground) 18%, transparent) !important;
+  background: color-mix(in oklab, var(--sidebar-primary-foreground) 9%, transparent) !important;
+  color: inherit !important;
+}
+aside nav a:not([aria-current="page"]):hover,
+aside nav a:not([data-status="active"]):hover {
+  background: var(--sidebar-accent) !important;
+  color: var(--sidebar-accent-foreground) !important;
+}
+aside .bg-sidebar-accent\/60 {
+  background: color-mix(in oklab, var(--sidebar-accent) 82%, transparent) !important;
+}
+
+/* Consistent page titles, section labels and institutional accent */
+main h1 {
+  color: var(--primary);
+  font-size: clamp(1.45rem, 2vw, 1.9rem);
+  line-height: 1.2;
+}
+main h2 { color: var(--foreground); }
+main h3 { color: var(--foreground); }
+main p.text-primary,
+main .text-primary { color: var(--primary) !important; }
+main .text-blue-600,
+main .text-blue-700,
+main .text-blue-800 { color: var(--primary) !important; }
+
+/* Refined surfaces and gold details without changing page behavior */
+main .bg-card,
+main .bg-white,
+main .bg-white\/95,
+main [class*="bg-white/"],
+main [role="dialog"] {
+  border-radius: 18px !important;
+}
+main .bg-card,
+main .bg-white,
+main .bg-white\/95,
+main [class*="bg-white/"] {
+  border: 1px solid color-mix(in oklab, var(--border) 82%, transparent) !important;
+  box-shadow: 0 3px 8px oklch(0.16 0.03 255 / 4%), 0 18px 42px -30px oklch(0.16 0.03 255 / 22%) !important;
+}
+main .h-1.bg-blue-600,
+main .h-1\.5.bg-blue-700,
+main .h-1\.5.bg-blue-700,
+main .h-1.bg-indigo-700 {
+  background: var(--ring) !important;
+}
+main button.bg-primary,
+main button.bg-blue-600,
+main button.bg-blue-700,
+main button.bg-blue-800,
+main a.bg-primary {
+  background: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+  border: 1px solid color-mix(in oklab, var(--ring) 35%, var(--primary)) !important;
+  box-shadow: 0 7px 18px -12px var(--primary) !important;
+}
+main button.bg-primary:hover,
+main button.bg-blue-600:hover,
+main button.bg-blue-700:hover,
+main button.bg-blue-800:hover {
+  filter: brightness(1.09);
+  transform: translateY(-1px);
+}
+main input:focus,
+main select:focus,
+main textarea:focus,
+[role="dialog"] input:focus,
+[role="dialog"] select:focus,
+[role="dialog"] textarea:focus {
+  border-color: var(--ring) !important;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 17%, transparent) !important;
+}
+main table thead th {
+  background: color-mix(in oklab, var(--primary) 8%, var(--secondary)) !important;
+  color: var(--primary) !important;
+  border-bottom: 2px solid color-mix(in oklab, var(--ring) 58%, transparent) !important;
+}
+main table tbody tr:hover {
+  background: color-mix(in oklab, var(--ring) 7%, var(--table-row)) !important;
+}
+header.sticky {
+  border-bottom: 1px solid color-mix(in oklab, var(--ring) 28%, var(--border)) !important;
+}
+header.sticky::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--primary), var(--ring), transparent 78%);
+  pointer-events: none;
+}
