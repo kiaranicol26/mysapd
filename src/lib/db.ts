@@ -41,6 +41,7 @@ type Spec = {
   columns?: string | null;
   order?: { column: string; ascending: boolean } | null;
   limit?: number | null;
+  range?: { from: number; to: number } | null;
   filters: { type: "eq" | "neq"; column: string; value: unknown }[];
   values?: unknown;
   returning?: string | null;
@@ -77,6 +78,11 @@ class Builder implements PromiseLike<Result> {
 
   limit(n: number) {
     this.spec.limit = n;
+    return this;
+  }
+
+  range(from: number, to: number) {
+    this.spec.range = { from, to };
     return this;
   }
 
