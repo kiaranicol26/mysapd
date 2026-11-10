@@ -44,7 +44,7 @@ function randomNumero() {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-function emptyForm(session: Session): Form {
+function emptyForm(session: Session): CertificateForm {
   const d = new Date();
   const fecha = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
   return {
@@ -200,7 +200,7 @@ const PICTOS: Record<string, string> = {
 };
 
 
-export function CertCard({ data, downloadable = false }: { data: CertificateForm; downloadable?: boolean; autoGenerate?: boolean; onGenerated?: (dataUrl: string) => void }) {
+export function CertCard({ data, downloadable = false, autoGenerate = false, onGenerated }: { data: CertificateForm; downloadable?: boolean; autoGenerate?: boolean; onGenerated?: (dataUrl: string) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const tipo = TIPOS.find(t => t.value === data.tipo) ?? TIPOS[0];
 
