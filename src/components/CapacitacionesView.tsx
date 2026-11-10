@@ -146,8 +146,8 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
           <label className="space-y-1 text-xs font-bold text-slate-700">Capacitación añadida por
             <input readOnly value={session?.name ?? "Usuario actual"} className="h-10 w-full border border-slate-200 bg-slate-100 px-3 text-sm text-slate-600" />
           </label>
-          <div className="space-y-1 text-xs font-bold text-slate-700 md:col-span-2">Certificado (imagen)
-            <div className="flex min-h-16 items-center justify-center border border-dashed border-slate-300 bg-slate-50 px-3 text-xs font-medium text-slate-400">Espacio reservado · carga próximamente</div>
+          <div className="space-y-1 text-xs font-bold text-slate-700 md:col-span-2">Certificado automático
+            <div className="flex min-h-16 items-center justify-center border border-dashed border-blue-300 bg-blue-50 px-3 text-center text-xs font-medium text-blue-700">Al registrar la capacitación se generará y guardará el PNG con la plantilla institucional.</div>
           </div>
         </div>
         <div className="mt-5 flex justify-end gap-2"><button onClick={() => setShowForm(false)} disabled={saving} className="h-10 border border-slate-300 px-4 text-xs font-bold text-slate-600">Cancelar</button><button onClick={() => void register()} disabled={saving || !members.length || !instructors.length} className="h-10 bg-blue-700 px-5 text-xs font-black uppercase text-white disabled:opacity-50">{saving ? "Registrando…" : "Registrar capacitación"}</button></div>
