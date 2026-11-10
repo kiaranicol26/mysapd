@@ -249,7 +249,7 @@ export const publishTrainingCertificate = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { verifyToken, freshClaims } = await import("@/lib/dbAuth.server");
     const claims = await freshClaims(verifyToken(data.token), supabaseAdmin as any);
-    if (!claims?.capacitaciones) return { ok: false as const, error: "No tenés permisos para emitir certificados." };
+    if (!claims?.capacitaciones && !claims?.alto) return { ok: false as const, error: "No tenés permisos para emitir certificados." };
     try {
       const { publishTrainingCertificateToForum } = await import("@/lib/discordGateway.server");
       const result = await publishTrainingCertificateToForum(supabaseAdmin as any, data.trainingId, data.certificateImage);
@@ -268,11 +268,21 @@ export const syncExistingCertificatesToForum = createServerFn({ method: "POST" }
     const { verifyToken, freshClaims } = await import("@/lib/dbAuth.server");
     const claims = await freshClaims(verifyToken(data.token), supabaseAdmin as any);
     if (!claims?.alto) return { ok: false as const, error: "Solo Administrador puede iniciar la sincronización masiva." };
-    const { data: rows, error } = await (supabaseAdmin as any).from("pd_trainings").select("id, certificate_image_url");
-    if (error) return { ok: false as const, error: "No se pudieron leer los certificados." };
+    const rows: { id: string; certificate_image_url: string | null }[] = [];
+    for (let from = 0; ; from += 1000) {
+      const { data: page, error } = await (supabaseAdmin as any).from("pd_trainings")
+        .select("id, certificate_image_url")
+        .order("awarded_at", { ascending: true })
+        .range(from, from + 999);
+      if (error) return { ok: false as const, error: "No se pudieron leer todos los certificados." };
+      rows.push(...(page ?? []));
+      if (!page || page.length < 1000) break;
+    }
     const { publishTrainingCertificateToForum } = await import("@/lib/discordGateway.server");
     let sent = 0, skipped = 0, failed = 0;
-    for (const row of rows ?? []) {
+    for (const row of rows) {
+      // Certificates without an image are rebuilt in the browser, sequentially,
+      // with the official template to avoid concurrent rendering failures.
       if (!row.certificate_image_url) { skipped++; continue; }
       try {
         const publication = await publishTrainingCertificateToForum(supabaseAdmin as any, row.id, undefined, true);
