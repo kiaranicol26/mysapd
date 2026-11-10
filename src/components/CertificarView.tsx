@@ -209,6 +209,8 @@ export function CertificarView({ session }: { session: Session }) {
           </article>;
         })}</div> : <p className="py-8 text-center text-sm text-slate-400">No hay certificados que coincidan con los filtros.</p>}
       </div>
+      {legacyRecords.map(row => <LegacyCertificatePublisher key={row.id} row={row} memberName={members.find(m => m.id === row.pd_member_id)?.nombre ?? "NOMBRE APELLIDO"} instructorName={members.find(m => m.id === row.instructor_pd_member_id)?.nombre ?? "Nada"} onDone={onLegacyDone} />)}
+
       {preview ? (
         <div className="w-full bg-white border border-blue-200 shadow-sm p-5">
           <CertCard data={preview} downloadable />
