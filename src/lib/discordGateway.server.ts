@@ -271,12 +271,12 @@ export async function publishTrainingCertificateToForum(admin: { from: (table: s
     admin.from("app_settings").select("value").eq("key", "certificate_forum_channel_id").maybeSingle(),
   ]);
   const forumId = String(setting?.value ?? "").trim();
-  if (!/^\\d{17,20}$/.test(forumId)) throw new Error("Configurá un ID válido de canal Foro en Administración → Configuración Web");
+  if (!/^\d{17,20}$/.test(forumId)) throw new Error("Configurá un ID válido de canal Foro en Administración → Configuración Web");
   if (!member) throw new Error("No se encontró el SAPD asociado a la capacitación");
 
   let imageUrl = String(certificateDataUrl ?? training.certificate_image_url ?? "");
   if (imageUrl.startsWith("data:image/")) {
-    const match = imageUrl.match(/^data:image\\/png;base64,([A-Za-z0-9+/=]+)$/);
+    const match = imageUrl.match(/^data:image\/png;base64,([A-Za-z0-9+/=]+)$/);
     if (!match) throw new Error("El certificado no contiene un PNG válido");
     const bucket = "mysapd-certificados";
     const { data: buckets } = await admin.storage.listBuckets();
@@ -292,7 +292,7 @@ export async function publishTrainingCertificateToForum(admin: { from: (table: s
     const { error: updateError } = await admin.from("pd_trainings").update({ certificate_image_url: imageUrl }).eq("id", training.id);
     if (updateError) throw new Error("No se pudo guardar el enlace permanente del certificado");
   }
-  if (!/^https:\\/\\//i.test(imageUrl)) throw new Error("El certificado todavía no tiene una imagen pública para Discord");
+  if (!/^https:\/\//i.test(imageUrl)) throw new Error("El certificado todavía no tiene una imagen pública para Discord");
 
   const trainingName = training.training === "OTRA" ? training.training_other : training.training;
   const date = training.awarded_at ?? "Fecha no disponible";
