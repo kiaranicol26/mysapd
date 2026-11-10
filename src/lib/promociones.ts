@@ -12,6 +12,8 @@ export const EXTERNAL_RANK_ROLE_IDS = {
 
 export type PoliceRank = (typeof EXTERNAL_RANK_ROLE_IDS)[keyof typeof EXTERNAL_RANK_ROLE_IDS];
 
+export const POLICE_RANK_ORDER: PoliceRank[] = ["Comisario", "Inspector", "Capitan", "Teniente", "Sargento", "Cabo", "Oficial", "Cadete", "Aspirante"];
+
 export const FACTION_RANK_ROLE_IDS: Record<PoliceRank, string> = {
   Comisario: "1567296322321522748",
   Inspector: "1567296325815378101",
@@ -22,6 +24,16 @@ export const FACTION_RANK_ROLE_IDS: Record<PoliceRank, string> = {
   Oficial: "1567296344530616411",
   Cadete: "1567296347508572260",
   Aspirante: "1522748316243202192",
+};
+
+export type PromotionRoleConfig = {
+  external: Record<string, PoliceRank>;
+  faction: Record<PoliceRank, string>;
+};
+
+export const DEFAULT_PROMOTION_ROLE_CONFIG: PromotionRoleConfig = {
+  external: { ...EXTERNAL_RANK_ROLE_IDS },
+  faction: { ...FACTION_RANK_ROLE_IDS },
 };
 
 export type ParsedPromotion = {
@@ -35,8 +47,6 @@ export type ParsedPromotion = {
 const normalizeRank = (value: string) =>
   value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
 
-export const POLICE_RANK_ORDER: PoliceRank[] = ["Comisario", "Inspector", "Capitan", "Teniente", "Sargento", "Cabo", "Oficial", "Cadete", "Aspirante"];
-
 const RANK_ALIASES: Record<string, PoliceRank> = {
   comisario: "Comisario",
   inspector: "Inspector",
@@ -49,7 +59,75 @@ const RANK_ALIASES: Record<string, PoliceRank> = {
   aspirante: "Aspirante",
 };
 
-export function parsePromotionAnnouncement(raw: string) {
+export function parseRankIdLines(text: string): Record<PoliceRank, string> {
+  const result: Partial<Record<PoliceRank, string>> = {};
+  const ids = new Set<string>();
+  for (const [index, line] of text.split(/\r?\n/).entries()) {
+    if (!line.trim()) continue;
+    const match = line.match(/^\s*([^=]+?)\s*=\s*([0-9]{17,20})\s*$/);
+    if (!match) throw new Error(\`Línea \${index + 1}: usá el formato Rango=ID_DEL_ROL.\`);
+    const rank = RANK_ALIASES[normalizeRank(match[1])];
+    if (!rank) throw new Error(\`Línea \${index + 1}: rango desconocido "\${match[1]}".\`);
+    if (result[rank]) throw new Error(\`El rango \${rank} está repetido.\`);
+    if (ids.has(match[2])) throw new Error(\`El ID \${match[2]} está repetido.\`);
+    result[rank] = match[2];
+    ids.add(match[2]);
+  }
+  const missing = POLICE_RANK_ORDER.filter(rank => !result[rank]);
+  if (missing.length) throw new Error(\`Faltan rangos: \${missing.join(", ")}.\`);
+  return result as Record<PoliceRank, string>;
+}
+
+export function formatRankIdLines(byRank: Record<PoliceRank, string>) {
+  return POLICE_RANK_ORDER.map(rank => \`\${rank}=\${byRank[rank]}\`).join("\n");
+}
+
+export function parsePromotionRoleConfig(raw: string | null | undefined): PromotionRoleConfig {
+  if (!raw?.trim()) return DEFAULT_PROMOTION_ROLE_CONFIG;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error("La configuración de equivalencias de rangos no contiene JSON válido.");
+  }
+  if (!parsed || typeof parsed !== "object") throw new Error("La configuración de equivalencias de rangos está incompleta.");
+  const value = parsed as { external?: unknown; faction?: unknown };
+  if (!value.external || typeof value.external !== "object" || !value.faction || typeof value.faction !== "object") {
+    throw new Error("La configuración debe incluir los mapas external y faction.");
+  }
+
+  const external = value.external as Record<string, unknown>;
+  const faction = value.faction as Record<string, unknown>;
+  const externalByRank: Partial<Record<PoliceRank, string>> = {};
+  const externalMap: Record<string, PoliceRank> = {};
+  for (const [roleId, rankValue] of Object.entries(external)) {
+    const rank = typeof rankValue === "string" ? RANK_ALIASES[normalizeRank(rankValue)] : undefined;
+    if (!/^[0-9]{17,20}$/.test(roleId) || !rank || externalMap[roleId]) {
+      throw new Error("La equivalencia de roles externos contiene un ID o rango inválido.");
+    }
+    if (externalByRank[rank]) throw new Error(\`El rango \${rank} está repetido en los roles externos.\`);
+    externalMap[roleId] = rank;
+    externalByRank[rank] = roleId;
+  }
+  const factionMap = {} as Record<PoliceRank, string>;
+  const seenFactionIds = new Set<string>();
+  for (const rank of POLICE_RANK_ORDER) {
+    const roleId = faction[rank];
+    if (typeof roleId !== "string" || !/^[0-9]{17,20}$/.test(roleId) || seenFactionIds.has(roleId)) {
+      throw new Error(\`Falta un ID válido o hay duplicados para el rango \${rank} en Westzone PD.\`);
+    }
+    factionMap[rank] = roleId;
+    seenFactionIds.add(roleId);
+  }
+  const missingExternal = POLICE_RANK_ORDER.filter(rank => !externalByRank[rank]);
+  if (missingExternal.length) throw new Error(\`Faltan equivalencias externas: \${missingExternal.join(", ")}.\`);
+  return { external: externalMap, faction: factionMap };
+}
+
+export function parsePromotionAnnouncement(
+  raw: string,
+  externalRoleMap: Record<string, PoliceRank> = DEFAULT_PROMOTION_ROLE_CONFIG.external,
+) {
   const promotions: ParsedPromotion[] = [];
   const issues: { line: number; text: string; reason: string }[] = [];
   const seen = new Set<string>();
@@ -64,7 +142,7 @@ export function parsePromotionAnnouncement(raw: string) {
     }
 
     const [, previousRankText, discordId, externalRoleId] = match;
-    const newRank = EXTERNAL_RANK_ROLE_IDS[externalRoleId as keyof typeof EXTERNAL_RANK_ROLE_IDS];
+    const newRank = externalRoleMap[externalRoleId];
     if (!newRank) {
       issues.push({ line: index + 1, text: text.trim(), reason: "El rol de destino no pertenece a la equivalencia de rangos configurada." });
       return;
