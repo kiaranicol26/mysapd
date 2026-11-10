@@ -625,3 +625,14 @@ header.sticky::after {
   background: linear-gradient(90deg, var(--primary), var(--ring), transparent 78%);
   pointer-events: none;
 }
+
+/* Ensure sidebar brand and navigation pictograms stay high-contrast on navy. */
+aside .text-primary { color: var(--sidebar-primary) !important; }
+aside nav a > span {
+  color: var(--sidebar-foreground) !important;
+  background: color-mix(in oklab, var(--sidebar-foreground) 8%, transparent) !important;
+}
+aside nav a[aria-current="page"] > span,
+aside nav a[data-status="active"] > span {
+  color: inherit !important;
+}
