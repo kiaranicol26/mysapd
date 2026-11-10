@@ -130,12 +130,8 @@ function ShareCertificateButton({ row, memberName, instructorName, onPublished }
   async function share() {
     if (busy) return;
     if (row.discord_published_at && row.discord_published_forum_id === "1569585390355218482") return toast.info("Este certificado ya fue compartido con Discord.");
-    if (row.certificate_image_url) {
-      await send();
-    } else {
-      setBusy(true);
-      setGenerateImage(true);
-    }
+    setBusy(true);
+    setGenerateImage(true);
   }
 
   return <>
@@ -219,21 +215,19 @@ export function CertificarView({ session: _session }: { session: Session }) {
           const instructor = members.find(m => m.id === row.instructor_pd_member_id);
           const memberName = target?.nombre ?? "Agente no disponible";
           return <article key={row.id} className="overflow-hidden border border-slate-200 bg-slate-50">
-            {row.certificate_image_url ? <a href={row.certificate_image_url} target="_blank" rel="noreferrer"><img src={row.certificate_image_url} alt={"Certificado de " + memberName} className="aspect-[1.586/1] w-full bg-white object-contain" /></a> :
-              <div className="bg-white"><CertCard data={{
-                tipo: certificateTipo(row.training),
-                seccion: row.section,
-                nombre: memberName,
-                instructor: instructor?.nombre ?? "Nada",
-                comisario: row.created_by_name ?? "San Andreas Police Department",
-                fecha: certificateDate(row.awarded_at),
-                numero: row.id.replace(/\D/g, "").slice(-6).padStart(6, "0"),
-              }} downloadable /></div>}
+            <div className="bg-white"><CertCard data={{
+              tipo: certificateTipo(row.training, row.training_other),
+              seccion: row.section,
+              nombre: memberName,
+              instructor: instructor?.nombre ?? "Nada",
+              comisario: row.created_by_name ?? "San Andreas Police Department",
+              fecha: certificateDate(row.awarded_at),
+              numero: row.id.replace(/\D/g, "").slice(-6).padStart(6, "0"),
+            }} downloadable /></div>
             <div className="space-y-1 p-3 text-sm">
               <p className="font-black text-slate-900">{memberName} <span className="font-mono text-xs text-slate-500">#{target?.legajo ?? "—"}</span></p>
               <p className="text-xs text-slate-600">{row.section} · {row.training === "OTRA" ? row.training_other : row.training}</p>
               <p className="text-xs text-slate-500">Instructor: {instructor?.nombre ?? "Nada"} · {row.awarded_at ?? "Fecha histórica no disponible"}</p>
-              {row.certificate_image_url && <a href={row.certificate_image_url} download className="inline-flex text-xs font-bold text-blue-700 underline"><Download className="mr-1 h-3 w-3" /> Abrir / descargar PNG</a>}
               <ShareCertificateButton row={row} memberName={memberName} instructorName={instructor?.nombre ?? "Nada"} onPublished={() => markPublished(row.id)} />
             </div>
           </article>;
