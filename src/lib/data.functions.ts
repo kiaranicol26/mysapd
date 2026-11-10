@@ -91,7 +91,7 @@ export const applyBulkPromotions = createServerFn({ method: "POST" })
           throw new Error("El policía no pertenece al Discord de Westzone PD.");
         }
 
-        const currentRankRoleIds = Object.values(FACTION_RANK_ROLE_IDS);
+        const currentRankRoleIds = Object.values(roleConfig.faction);
         const rolesToRemove = currentRankRoleIds.filter(roleId => roleId !== targetRoleId && member.roles?.includes(roleId));
         if (!member.roles?.includes(targetRoleId)) {
           await discord(`guilds/${FACTION_GUILD_ID}/members/${item.discordId}/roles/${targetRoleId}`, { method: "PUT" });
