@@ -297,7 +297,7 @@ async function publishTrainingCertificateToForumUnlocked(
   force = false,
 ) {
   const { data: training, error: trainingError } = await admin.from("pd_trainings")
-    .select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, certificate_image_url, discord_published_at, discord_published_forum_id")
+    .select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, created_by_name, certificate_image_url, discord_published_at, discord_published_forum_id")
     .eq("id", trainingId).maybeSingle();
   if (trainingError || !training) throw new Error("No se encontró la capacitación para publicar");
   const { data: member } = await admin.from("pd_members")
@@ -346,9 +346,43 @@ async function publishTrainingCertificateToForumUnlocked(
     throw new Error("El certificado todavía no tiene una imagen pública para Discord");
   }
 
-  // Discord receives the public PNG URL as plain message content. Discord may
-  // show its native link preview, but mySAPD does not construct or send embeds.
-  const certificateMessage = [discordMention, imageUrl].filter(Boolean).join("\n");
+  // The certificate is sent as a native Discord embed, with the PNG as its
+  // image. The user mention stays in message content so Discord can notify them.
+  const discordId = String(linkedInstructor?.discord_id ?? "");
+  const trainingLabel = training.training === "OTRA"
+    ? String(training.training_other ?? "Capacitación especial")
+    : String(training.training ?? "Capacitación");
+  const certificateEmbed = {
+    title: "Certificación de capacitación",
+    color: 0x1d4ed8,
+    fields: [
+      {
+        name: "Nombre_Apellido (@ID de Discord)",
+        value: discordId
+          ? String(member.nombre ?? "SAPD") + " (@" + discordId + ")"
+          : String(member.nombre ?? "SAPD") + " (Discord no vinculado)",
+        inline: false,
+      },
+      {
+        name: "Tipo",
+        value: [String(training.section ?? ""), trainingLabel].filter(Boolean).join(" · "),
+        inline: true,
+      },
+      {
+        name: "Quién la cargó",
+        value: String(training.created_by_name ?? "No disponible"),
+        inline: true,
+      },
+    ],
+    image: { url: imageUrl },
+    footer: { text: "San Andreas Police Department • mySAPD" },
+    timestamp: new Date().toISOString(),
+  };
+  const certificateMessage = {
+    content: discordMention || undefined,
+    embeds: [certificateEmbed],
+    allowed_mentions: { parse: ["users"] },
+  };
 
   let createdThreadForThisCall = false;
   const makeThread = async (reservation: string) => {
@@ -360,10 +394,7 @@ async function publishTrainingCertificateToForumUnlocked(
       body: JSON.stringify({
         name: safeTitle,
         auto_archive_duration: 10080,
-        message: {
-          content: certificateMessage,
-          allowed_mentions: { parse: ["users"] },
-        },
+        message: certificateMessage,
       }),
     }) as { id?: string };
     } catch (error) {
@@ -451,7 +482,7 @@ async function publishTrainingCertificateToForumUnlocked(
   if (!createdThreadForThisCall) {
     await discord("channels/" + threadId + "/messages", {
       method: "POST",
-      body: JSON.stringify({ content: certificateMessage, allowed_mentions: { parse: ["users"] } }),
+      body: JSON.stringify(certificateMessage),
     });
   }
 
