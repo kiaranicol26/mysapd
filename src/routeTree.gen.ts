@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AltoMandoRouteImport } from './routes/alto-mando'
+import { Route as AscensosMasivosRouteImport } from './routes/ascensos-masivos'
 import { Route as AspirantesRouteImport } from './routes/aspirantes'
 import { Route as CapacitacionesRouteImport } from './routes/capacitaciones'
 import { Route as CertificarRouteImport } from './routes/certificar'
@@ -34,6 +35,11 @@ const IndexRoute = IndexRouteImport.update({
 const AltoMandoRoute = AltoMandoRouteImport.update({
   id: '/alto-mando',
   path: '/alto-mando',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AscensosMasivosRoute = AscensosMasivosRouteImport.update({
+  id: '/ascensos-masivos',
+  path: '/ascensos-masivos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AspirantesRoute = AspirantesRouteImport.update({
@@ -110,6 +116,7 @@ const ApiPublicForumSplatRoute = ApiPublicForumSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/alto-mando': typeof AltoMandoRoute
+  '/ascensos-masivos': typeof AscensosMasivosRoute
   '/aspirantes': typeof AspirantesRoute
   '/capacitaciones': typeof CapacitacionesRoute
   '/certificar': typeof CertificarRoute
@@ -128,6 +135,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/alto-mando': typeof AltoMandoRoute
+  '/ascensos-masivos': typeof AscensosMasivosRoute
   '/aspirantes': typeof AspirantesRoute
   '/certificar': typeof CertificarRoute
   '/exsapd': typeof ExsapdRoute
@@ -146,6 +154,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/alto-mando': typeof AltoMandoRoute
+  '/ascensos-masivos': typeof AscensosMasivosRoute
   '/aspirantes': typeof AspirantesRoute
   '/certificar': typeof CertificarRoute
   '/exsapd': typeof ExsapdRoute
@@ -165,6 +174,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/alto-mando'
+    | '/ascensos-masivos'
     | '/aspirantes'
     | '/capacitaciones'
     | '/certificar'
@@ -218,6 +228,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AltoMandoRoute: typeof AltoMandoRoute
+  AscensosMasivosRoute: typeof AscensosMasivosRoute
   AspirantesRoute: typeof AspirantesRoute
   CapacitacionesRoute: typeof CapacitacionesRoute
   CertificarRoute: typeof CertificarRoute
@@ -248,6 +259,13 @@ declare module '@tanstack/react-router' {
       path: '/alto-mando'
       fullPath: '/alto-mando'
       preLoaderRoute: typeof AltoMandoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ascensos-masivos': {
+      id: '/ascensos-masivos'
+      path: '/ascensos-masivos'
+      fullPath: '/ascensos-masivos'
+      preLoaderRoute: typeof AscensosMasivosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/aspirantes': {
@@ -354,6 +372,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AltoMandoRoute: AltoMandoRoute,
+  AscensosMasivosRoute: AscensosMasivosRoute,
   AspirantesRoute: AspirantesRoute,
   CapacitacionesRoute: CapacitacionesRoute,
   CertificarRoute: CertificarRoute,
