@@ -47,3 +47,18 @@ export function fileToCompressedDataUrl(file: File, maxWidth = 1920): Promise<st
     reader.readAsDataURL(file);
   });
 }
+
+export async function getLoginBackground(): Promise<string> {
+  const { data } = await db.from("app_settings").select("value").eq("key", LOGIN_BG_KEY).maybeSingle();
+  return (data?.value ?? "").trim();
+}
+
+export async function setLoginBackground(value: string) {
+  const { error } = await db.from("app_settings").upsert({
+    key: LOGIN_BG_KEY,
+    value: value.trim(),
+    updated_at: new Date().toISOString(),
+  });
+  if (error) throw error;
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("login-background-change"));
+}
