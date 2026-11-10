@@ -319,9 +319,15 @@ export function CertCard({ data, downloadable = false, autoGenerate = false, onG
               <p className="mt-[3px] text-[13px] font-black tracking-[0.08em]" style={{ color: NAVY }}>{data.fecha || "—"}</p>
             </div>
           </div>
-          <div className="mt-[3.4%] border-t pt-[2.3%]" style={{ borderColor: "#cbd1d2" }}>
+          <div className="mt-[3.4%] border-t pt-[2.1%]" style={{ borderColor: "#cbd1d2" }}>
             <p className="text-[7px] font-bold uppercase tracking-[0.2em]" style={{ color: "#7b8793" }}>Otorgada por</p>
             <p className="mt-[2px] text-[12px] font-black uppercase" style={{ color: NAVY }}>{data.comisario || "SAN ANDREAS POLICE DEPARTMENT"}</p>
+            <div className="mt-[2.1%]">
+              <p className="text-[6px] font-black uppercase tracking-[0.16em]" style={{ color: "#9a7b3d" }}>Declaración de aptitud y autorización</p>
+              <p className="mt-[3px] text-[6px] leading-[1.45] text-justify" style={{ color: "#435166" }}>
+                La presente credencial certifica que el agente titular ha sido evaluado y declarado apto física y psicológicamente para el uso y manejo del {isVehicle ? "vehículo" : "arma"} aquí especificado. Su otorgamiento acredita la capacitación correspondiente y concede autorización de carácter permanente dentro del San Andreas Police Department. Esta habilitación es personal e intransferible: no podrá ser cedida, prestada ni utilizada por terceros. El titular deberá cumplir en todo momento las normas, protocolos y disposiciones institucionales vigentes.
+              </p>
+            </div>
           </div>
         </div>
 
