@@ -141,7 +141,14 @@ export function CertificarView({ session }: { session: Session }) {
           const target = members.find(m => m.id === row.pd_member_id);
           const instructor = members.find(m => m.id === row.instructor_pd_member_id);
           return <article key={row.id} className="overflow-hidden border border-slate-200 bg-slate-50">
-            {row.certificate_image_url ? <a href={row.certificate_image_url} target="_blank" rel="noreferrer"><img src={row.certificate_image_url} alt={"Certificado de " + (target?.nombre ?? "agente SAPD")} className="aspect-[1357/900] w-full bg-white object-contain" /></a> : <div className="flex aspect-[1357/900] items-center justify-center bg-white text-xs font-semibold text-slate-400">Certificado histórico sin imagen</div>}
+            {row.certificate_image_url ? <a href={row.certificate_image_url} target="_blank" rel="noreferrer"><img src={row.certificate_image_url} alt={"Certificado de " + (target?.nombre ?? "agente SAPD")} className="aspect-[1357/1920] w-full bg-white object-contain" /></a> : <div className="bg-white p-2"><CertCard data={{
+              tipo: ({ M4: "Fusil M4", EDC: "Escopeta Spas12", "AK-47": "Fusil de Asalto AK-47", SNIPER: "Fusil de Precisión", MARY: "Unidad Motorizada Mary", AIR: "Unidad Aerea", OTRA: "Capacitación Especial" } as Record<string, string>)[row.training] ?? "Fusil M4",
+              nombre: target?.nombre ?? "NOMBRE APELLIDO",
+              instructor: instructor?.nombre ?? "Instructor SAPD",
+              comisario: "San Andreas Police Department",
+              fecha: row.awarded_at ? row.awarded_at.split("-").reverse().join("/") : "Fecha no registrada",
+              numero: row.id.replace(/\D/g, "").slice(-6).padStart(6, "0"),
+            }} downloadable /></div>}
             <div className="space-y-1 p-3 text-sm"><p className="font-black text-slate-900">{target?.nombre ?? "Agente no disponible"} <span className="font-mono text-xs text-slate-500">#{target?.legajo ?? "—"}</span></p><p className="text-xs text-slate-600">{row.section} · {row.training === "OTRA" ? row.training_other : row.training}</p><p className="text-xs text-slate-500">Instructor: {instructor?.nombre ?? "Nada"} · {row.awarded_at ?? "Fecha histórica no disponible"}</p>{row.certificate_image_url && <a href={row.certificate_image_url} download className="mt-2 inline-flex text-xs font-bold text-blue-700 underline">Abrir / descargar PNG</a>}</div>
           </article>;
         })}</div> : <p className="py-8 text-center text-sm text-slate-400">No hay certificados que coincidan con los filtros.</p>}
