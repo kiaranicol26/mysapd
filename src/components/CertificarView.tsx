@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import tpl from "@/assets/certificado-new-capacitacion.png";
 import pictoM4 from "@/assets/picto-m4.png.asset.json";
@@ -8,7 +8,7 @@ import pictoAk from "@/assets/picto-ak.png.asset.json";
 import pictoMary from "@/assets/picto-mary.png.asset.json";
 import pictoAir from "@/assets/picto-air.png.asset.json";
 import { db, getToken } from "@/lib/db";
-import { syncExistingCertificatesToForum } from "@/lib/data.functions";
+import { publishTrainingCertificate, syncExistingCertificatesToForum } from "@/lib/data.functions";
 import { Session, logAction } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,6 +60,32 @@ function emptyForm(session: Session): CertificateForm {
 }
 
 type CertificateRecord = { id: string; pd_member_id: string; section: string; training: string; training_other: string | null; awarded_at: string | null; instructor_pd_member_id: string | null; certificate_image_url: string | null; is_legacy?: boolean };
+
+function LegacyCertificatePublisher({ row, memberName, instructorName, onDone }: { row: CertificateRecord; memberName: string; instructorName: string; onDone: () => void }) {
+  const [finished, setFinished] = useState(false);
+  const data: CertificateForm = {
+    tipo: ({ M4: "Fusil M4", EDC: "Escopeta Spas12", "AK-47": "Fusil de Asalto AK-47", SNIPER: "Fusil de Precisión", MARY: "Unidad Motorizada Mary", AIR: "Unidad Aerea", OTRA: "Capacitación Especial" } as Record<string, string>)[row.training] ?? "Fusil M4",
+    nombre: memberName,
+    instructor: instructorName,
+    comisario: "San Andreas Police Department",
+    fecha: row.awarded_at ? row.awarded_at.split("-").reverse().join("/") : "Nada",
+    numero: row.id.replace(/\\D/g, "").slice(-6).padStart(6, "0"),
+  };
+  const publish = useCallback(async (image: string) => {
+    if (finished) return;
+    setFinished(true);
+    try {
+      const token = getToken();
+      if (!token) throw new Error("Tu sesión expiró.");
+      const result = await publishTrainingCertificate({ data: { token, trainingId: row.id, certificateImage: image } });
+      if (!result.ok) throw new Error(result.error);
+    } catch (error) {
+      toast.error("No se pudo publicar el certificado de " + memberName + ": " + (error instanceof Error ? error.message : "error"));
+    } finally { onDone(); }
+  }, [finished, row.id, memberName, onDone]);
+  if (finished) return null;
+  return <div aria-hidden="true" className="pointer-events-none fixed left-[-10000px] top-0 w-[900px]"><CertCard data={data} autoGenerate onGenerated={publish} onError={() => { setFinished(true); toast.error("No se pudo generar el certificado de " + memberName); onDone(); }} /></div>;
+}
 
 export function CertificarView({ session }: { session: Session }) {
   const [records, setRecords] = useState<CertificateRecord[]>([]);
