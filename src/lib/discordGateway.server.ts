@@ -13,6 +13,8 @@ export async function discord(path: string, init?: RequestInit) {
   });
   // Only an actual missing-member response establishes that the member left.
   if (res.status === 404 && /^guilds\/\d+\/members\/\d+$/.test(path)) return null;
+  // Discord returns 404 Unknown Channel for threads deleted manually; treat that as a confirmed missing thread.
+  if (res.status === 404 && /^channels\/\d+$/.test(path) && (!init?.method || init.method === "GET")) return null;
   if (!res.ok) throw new Error("No se pudo verificar Discord. Intentá nuevamente en unos momentos.");
   return res.status === 204 ? null : res.json();
 }
