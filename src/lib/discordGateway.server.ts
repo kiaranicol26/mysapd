@@ -290,7 +290,7 @@ export async function publishTrainingCertificateToForum(admin: { from: (table: s
 
   let imageUrl = String(certificateDataUrl ?? training.certificate_image_url ?? "");
   if (imageUrl.startsWith("data:image/")) {
-    const match = imageUrl.match(/^data:image\\/png;base64,([A-Za-z0-9+/=]+)$/);
+    const match = imageUrl.match(/^data:image\/png;base64,([A-Za-z0-9+/=]+)$/);
     if (!match) throw new Error("El certificado no contiene un PNG válido");
     const bucket = "mysapd-certificados";
     const { data: buckets } = await admin.storage.listBuckets();
@@ -306,7 +306,7 @@ export async function publishTrainingCertificateToForum(admin: { from: (table: s
     const { error: updateError } = await admin.from("pd_trainings").update({ certificate_image_url: imageUrl }).eq("id", training.id);
     if (updateError) throw new Error("No se pudo guardar el enlace permanente del certificado");
   }
-  if (!/^https:\\/\\//i.test(imageUrl)) throw new Error("El certificado todavía no tiene una imagen pública para Discord");
+  if (!/^https:\/\//i.test(imageUrl)) throw new Error("El certificado todavía no tiene una imagen pública para Discord");
 
   const trainingName = training.training === "OTRA" ? training.training_other : training.training;
   const date = training.awarded_at ?? "Fecha no disponible";
@@ -331,7 +331,7 @@ export async function publishTrainingCertificateToForum(admin: { from: (table: s
     const created = await discord("channels/" + forumId + "/threads", {
       method: "POST",
       body: JSON.stringify({
-        name: member.nombre.trim().replace(/\\s+/g, "_").slice(0, 100),
+        name: member.nombre.trim().replace(/\s+/g, "_").slice(0, 100),
         auto_archive_duration: 10080,
         message: { content: "Historial de certificados de **" + member.nombre + "** · Legajo **" + member.legajo + "**", embeds: [embed] },
       }),
