@@ -12,7 +12,7 @@ export const forceDiscordSync = createServerFn({ method: "POST" })
     try {
       const result = await syncGuildPolice(supabaseAdmin as any, { force: true });
       if (!result) return { ok: false as const, error: "No se pudo completar la sincronización. Revisá la conexión del bot y el rol Policía." };
-      return result;
+      return { ok: true as const, ...result };
     } catch (error) {
       return { ok: false as const, error: error instanceof Error ? error.message : "Error al sincronizar Discord." };
     }
