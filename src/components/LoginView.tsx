@@ -97,6 +97,7 @@ export function LoginView() {
             <div className="flex flex-col gap-2 sm:min-w-60">
               <Button asChild className="h-11 rounded-none bg-[#17345c] font-bold uppercase tracking-wider text-white hover:bg-[#254a78]"><Link to="/salario"><Coins className="mr-2 h-4 w-4" /> Salarios públicos <ArrowRight className="ml-auto h-4 w-4" /></Link></Button>
               <Button asChild variant="outline" className="h-11 rounded-none border-slate-300 bg-white font-bold uppercase tracking-wider text-[#17345c] hover:bg-slate-50"><Link to="/registro-policias"><IdCard className="mr-2 h-4 w-4" /> Registro PD <ArrowRight className="ml-auto h-4 w-4" /></Link></Button>
+              <Button asChild variant="outline" className="h-11 rounded-none border-slate-300 bg-white font-bold uppercase tracking-wider text-[#17345c] hover:bg-slate-50"><Link to="/capacitaciones"><GraduationCap className="mr-2 h-4 w-4" /> Capacitaciones <ArrowRight className="ml-auto h-4 w-4" /></Link></Button>
             </div>
           </section>
 
