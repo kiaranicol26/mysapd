@@ -218,7 +218,7 @@ export function CertificarView({ session: _session }: { session: Session }) {
           const instructor = members.find(m => m.id === row.instructor_pd_member_id);
           const memberName = target?.nombre ?? "Agente no disponible";
           return <article key={row.id} className="overflow-hidden border border-slate-200 bg-slate-50">
-            {row.certificate_image_url ? <a href={row.certificate_image_url} target="_blank" rel="noreferrer"><img src={row.certificate_image_url} alt={"Certificado de " + memberName} className="aspect-[1357/1920] w-full bg-white object-contain" /></a> :
+            {row.certificate_image_url ? <a href={row.certificate_image_url} target="_blank" rel="noreferrer"><img src={row.certificate_image_url} alt={"Certificado de " + memberName} className="aspect-[1.586/1] w-full bg-white object-contain" /></a> :
               <div className="bg-white"><CertCard data={{
                 tipo: certificateTipo(row.training),
                 seccion: row.section,
