@@ -27,6 +27,7 @@ const TIPOS = [
 
 export type CertificateForm = {
   tipo: string;
+  seccion: string;
   nombre: string;
   instructor: string;
   comisario: string;
@@ -95,6 +96,7 @@ function ShareCertificateButton({ row, memberName, instructorName, onPublished }
   const [generateImage, setGenerateImage] = useState(false);
   const formData: CertificateForm = {
     tipo: certificateTipo(row.training),
+    seccion: row.section,
     nombre: memberName,
     instructor: instructorName,
     comisario: row.created_by_name ?? "San Andreas Police Department",
@@ -219,6 +221,7 @@ export function CertificarView({ session: _session }: { session: Session }) {
             {row.certificate_image_url ? <a href={row.certificate_image_url} target="_blank" rel="noreferrer"><img src={row.certificate_image_url} alt={"Certificado de " + memberName} className="aspect-[1357/1920] w-full bg-white object-contain" /></a> :
               <div className="bg-white"><CertCard data={{
                 tipo: certificateTipo(row.training),
+                seccion: row.section,
                 nombre: memberName,
                 instructor: instructor?.nombre ?? "Nada",
                 comisario: row.created_by_name ?? "San Andreas Police Department",
@@ -251,40 +254,33 @@ const PICTOS: Record<string, string> = {
   AIR: pictoAir.url,
 };
 
-const CERTIFICATE_META: Record<string, { title: string; subtitle: string }> = {
-  M4: { title: "ARMAMENTO", subtitle: "FUSIL M4" },
-  EDC: { title: "ARMAMENTO", subtitle: "ESCOPETA SPAS-12" },
-  "AK-47": { title: "ARMAMENTO", subtitle: "FUSIL AK-47" },
-  SNIPER: { title: "ARMAMENTO", subtitle: "FUSIL DE PRECISIÓN" },
-  MARY: { title: "UNIDAD TERRESTRE", subtitle: "UNIDAD MOTORIZADA MARY" },
-  AIR: { title: "UNIDAD AÉREA", subtitle: "UNIDAD AÉREA · AIR" },
-  OTRA: { title: "FORMACIÓN ESPECIAL", subtitle: "CAPACITACIÓN ESPECIAL" },
-};
-
 export function CertCard({ data, downloadable = false, autoGenerate = false, onGenerated, onError }: { data: CertificateForm; downloadable?: boolean; autoGenerate?: boolean; onGenerated?: (dataUrl: string) => void; onError?: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const tipo = TIPOS.find(t => t.value === data.tipo) ?? TIPOS[0];
-  const meta = CERTIFICATE_META[tipo.categoria] ?? CERTIFICATE_META.OTRA;
+  const isVehicle = data.seccion === "Vehículos";
+  const certificateName = isVehicle ? "Licencia de conducción" : "Licencia de armamento";
+  const categoryLabel = isVehicle ? "AUTO" : "ARMA";
+  const detail = tipo.categoria === "OTRA" ? (data.tipo || "Capacitación especial") : tipo.categoria;
 
   useEffect(() => {
     if (!autoGenerate || !ref.current || !onGenerated) return;
     let active = true;
     const node = ref.current;
     const width = node.offsetWidth || 900;
-    toPng(node, { cacheBust: true, pixelRatio: Math.max(2, 1357 / width) })
+    toPng(node, { cacheBust: true, pixelRatio: Math.max(2, 1800 / width) })
       .then(url => { if (active) onGenerated(url); })
-      .catch(error => { if (active) { toast.error("No se pudo generar el certificado: " + (error?.message ?? "error")); onError?.(); } });
+      .catch(error => { if (active) { toast.error("No se pudo generar la credencial: " + (error?.message ?? "error")); onError?.(); } });
     return () => { active = false; };
   }, [autoGenerate, onGenerated, onError, data]);
 
   async function download() {
     if (!ref.current) return;
     try {
-      const w = ref.current.offsetWidth || 1357;
-      const dataUrl = await toPng(ref.current, { cacheBust: true, pixelRatio: Math.max(2, 1357 / w) });
+      const w = ref.current.offsetWidth || 900;
+      const dataUrl = await toPng(ref.current, { cacheBust: true, pixelRatio: Math.max(2, 1800 / w) });
       const a = document.createElement("a");
       a.href = dataUrl;
-      a.download = `Certificado_${(data.nombre || "SAPD").replace(/\\s+/g, "_")}_${tipo.categoria}.png`;
+      a.download = \`Licencia_\${(data.nombre || "SAPD").replace(/\s+/g, "_")}_\${tipo.categoria}.png\`;
       a.click();
     } catch (e: any) {
       toast.error("No se pudo descargar: " + (e?.message ?? "error"));
@@ -293,72 +289,62 @@ export function CertCard({ data, downloadable = false, autoGenerate = false, onG
 
   return (
     <div className="space-y-3">
-      <div ref={ref} className="relative mx-auto w-full overflow-hidden select-none" style={{ aspectRatio: "1357 / 960", background: "#f5f3ed", color: NAVY, fontFamily: "Arial, Helvetica, sans-serif" }}>
-        <div className="absolute inset-[2.2%] border-[3px]" style={{ borderColor: GOLD }} />
-        <div className="absolute inset-[3.2%] border" style={{ borderColor: "#d9c99f" }} />
-        <div className="absolute left-0 top-0 h-full w-[1.1%]" style={{ background: NAVY }} />
-        <div className="absolute right-0 top-0 h-full w-[1.1%]" style={{ background: NAVY }} />
-
-        <div className="absolute left-[6%] top-[7%] flex items-center gap-[1.4%]">
-          <div className="flex h-[74px] w-[74px] items-center justify-center rounded-full border-2 bg-white p-2" style={{ borderColor: GOLD }}>
+      <div ref={ref} className="relative mx-auto w-full overflow-hidden select-none" style={{ aspectRatio: "1.586 / 1", background: "#f4f5f3", color: NAVY, fontFamily: "Arial, Helvetica, sans-serif", borderRadius: "2.2%", border: "1px solid #c8cdd2", boxShadow: "0 12px 34px rgba(15,31,56,.16)" }}>
+        <div className="absolute inset-0" style={{ background: "linear-gradient(112deg, #f9faf8 0%, #eef1f0 54%, #e5e9e8 100%)" }} />
+        <div className="absolute inset-0 flex items-center justify-end pr-[4%]">
+          <img src={sapdLogo.url} alt="" aria-hidden="true" draggable={false} className="h-[88%] w-[48%] object-contain" style={{ opacity: 0.075, filter: "grayscale(1)" }} />
+        </div>
+        <div className="absolute left-0 top-0 h-[13%] w-full" style={{ background: "linear-gradient(90deg, #101f38 0%, #1c3557 72%, #263f60 100%)" }} />
+        <div className="absolute left-[3.2%] top-[2.2%] flex h-[8.5%] items-center gap-[1.2%]">
+          <div className="flex h-full aspect-square items-center justify-center rounded-full bg-white p-[2px]">
             <img src={sapdLogo.url} alt="SAPD" className="h-full w-full object-contain" draggable={false} />
           </div>
-          <div>
-            <p className="text-[17px] font-black uppercase tracking-[0.28em]" style={{ color: NAVY }}>San Andreas Police Department</p>
-            <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.34em]" style={{ color: "#8b7548" }}>Formación · Excelencia · Servicio</p>
+          <div className="leading-tight">
+            <p className="text-[13px] font-black uppercase tracking-[0.16em] text-white">San Andreas Police Department</p>
+            <p className="mt-[2px] text-[8px] font-bold uppercase tracking-[0.28em]" style={{ color: "#d6bd82" }}>Credencial oficial · mySAPD</p>
+          </div>
+        </div>
+        <div className="absolute right-[3.4%] top-[4.1%] text-right text-[8px] font-bold uppercase tracking-[0.2em]" style={{ color: "#e7d7b4" }}>Certificación institucional</div>
+
+        <div className="absolute left-[4%] top-[19%] w-[62%]">
+          <p className="text-[8px] font-black uppercase tracking-[0.28em]" style={{ color: "#9a7b3d" }}>Nombre del certificado</p>
+          <p className="mt-[3px] text-[23px] font-black uppercase tracking-[0.025em] leading-none" style={{ color: NAVY }}>{certificateName}</p>
+          <div className="mt-[3.4%] h-[1px] w-full" style={{ background: "linear-gradient(90deg, #b99a5b, rgba(185,154,91,0))" }} />
+          <div className="mt-[3.4%]">
+            <p className="text-[7px] font-bold uppercase tracking-[0.25em]" style={{ color: "#7b8793" }}>Titular de la licencia</p>
+            <p className="mt-[2px] text-[19px] font-black uppercase tracking-[0.035em]" style={{ color: "#152b48" }}>{data.nombre || "NOMBRE DEL OFICIAL"}</p>
+          </div>
+          <div className="mt-[3.2%] flex gap-[8%]">
+            <div className="min-w-0">
+              <p className="text-[7px] font-bold uppercase tracking-[0.18em]" style={{ color: "#7b8793" }}>Tipo de certificación</p>
+              <p className="mt-[3px] text-[13px] font-black uppercase" style={{ color: NAVY }}>{categoryLabel} <span style={{ color: "#a18143" }}>·</span> {detail}</p>
+            </div>
+            <div>
+              <p className="text-[7px] font-bold uppercase tracking-[0.18em]" style={{ color: "#7b8793" }}>Fecha de otorgamiento</p>
+              <p className="mt-[3px] text-[13px] font-black tracking-[0.08em]" style={{ color: NAVY }}>{data.fecha || "—"}</p>
+            </div>
+          </div>
+          <div className="mt-[3.4%] border-t pt-[2.3%]" style={{ borderColor: "#cbd1d2" }}>
+            <p className="text-[7px] font-bold uppercase tracking-[0.2em]" style={{ color: "#7b8793" }}>Otorgada por</p>
+            <p className="mt-[2px] text-[12px] font-black uppercase" style={{ color: NAVY }}>{data.comisario || "SAN ANDREAS POLICE DEPARTMENT"}</p>
           </div>
         </div>
 
-        <div className="absolute right-[6%] top-[9%] text-right">
-          <p className="text-[11px] font-bold uppercase tracking-[0.25em]" style={{ color: "#8b7548" }}>Documento oficial</p>
-          <p className="mt-1 font-mono text-[13px] font-bold tracking-wider">{data.numero || "000000"}</p>
+        <div className="absolute right-[4%] top-[21%] flex h-[59%] w-[25%] flex-col items-center justify-center rounded-[7px] border bg-white/45 px-[2%]" style={{ borderColor: "rgba(174,148,93,.55)", boxShadow: "inset 0 0 0 3px rgba(255,255,255,.3)" }}>
+          <img src={sapdLogo.url} alt="Escudo SAPD" draggable={false} className="h-[48%] w-[78%] object-contain" style={{ opacity: 0.9 }} />
+          <div className="mt-[4%] h-[1px] w-[72%]" style={{ background: "#c6a45b" }} />
+          <p className="mt-[5%] text-[8px] font-black uppercase tracking-[0.2em]" style={{ color: NAVY }}>SAPD</p>
+          <p className="mt-[2%] text-[6px] font-bold uppercase tracking-[0.16em] text-center" style={{ color: "#8a754d" }}>Licencia válida</p>
         </div>
 
-        <div className="absolute left-0 top-[24%] w-full text-center">
-          <p className="text-[13px] font-black uppercase tracking-[0.48em]" style={{ color: "#9b8048" }}>Certificado de capacitación</p>
-          <div className="mx-auto mt-3 h-[3px] w-[12%]" style={{ background: GOLD }} />
-          <p className="mt-4 text-[15px] font-medium tracking-[0.12em]" style={{ color: "#5e6877" }}>Se certifica que</p>
-          <p className="mt-2 text-[38px] font-black uppercase tracking-[0.055em]" style={{ color: NAVY }}>{data.nombre || "NOMBRE DEL OFICIAL"}</p>
-          <p className="mt-2 text-[14px] font-medium" style={{ color: "#5e6877" }}>ha completado satisfactoriamente la siguiente formación</p>
+        <div className="absolute bottom-[4.5%] left-[4%] flex w-[92%] items-center justify-between border-t pt-[1.7%]" style={{ borderColor: "#c4cbd0" }}>
+          <p className="text-[7px] font-bold uppercase tracking-[0.2em]" style={{ color: "#7b8793" }}>San Andreas Police Department · Documento de acreditación</p>
+          <p className="font-mono text-[9px] font-black tracking-[0.14em]" style={{ color: "#8d713e" }}>ID {data.numero || "000000"}</p>
         </div>
-
-        <div className="absolute left-[9%] top-[55%] flex h-[25%] w-[82%] items-center rounded-xl border bg-white/70 px-[4%]" style={{ borderColor: "#dfd5bd", boxShadow: "0 8px 24px rgba(16,31,56,.07)" }}>
-          <div className="flex h-full w-[23%] items-center justify-center border-r" style={{ borderColor: "#e4dccb" }}>
-            {PICTOS[tipo.categoria] ? <img src={PICTOS[tipo.categoria]} alt={tipo.categoria} className="max-h-[82%] max-w-[82%] object-contain" draggable={false} /> :
-              <div className="flex h-[74px] w-[74px] items-center justify-center rounded-full border-2 text-[19px] font-black" style={{ borderColor: GOLD, color: NAVY }}>SAPD</div>}
-          </div>
-          <div className="flex-1 pl-[4%]">
-            <p className="text-[12px] font-black uppercase tracking-[0.28em]" style={{ color: "#9b8048" }}>{meta.title}</p>
-            <p className="mt-2 text-[27px] font-black uppercase tracking-[0.04em]" style={{ color: NAVY }}>{tipo.categoria === "OTRA" ? (data.tipo || "CAPACITACIÓN ESPECIAL") : meta.subtitle}</p>
-            <p className="mt-2 text-[12px] font-semibold uppercase tracking-[0.16em]" style={{ color: "#697586" }}>Acreditación de competencia · SAPD</p>
-          </div>
-          <div className="mr-[1%] flex h-[90px] w-[90px] items-center justify-center rounded-full border-[3px] text-center" style={{ borderColor: "#d8c69a", color: "#9b8048" }}>
-            <div><p className="text-[10px] font-black tracking-widest">SAPD</p><p className="mt-1 text-[8px] font-bold tracking-wider">VERIFICADO</p></div>
-          </div>
-        </div>
-
-        <div className="absolute bottom-[12%] left-[9%] flex w-[82%] items-end justify-between">
-          <div className="w-[34%] border-t pt-2 text-center" style={{ borderColor: "#9d927d" }}>
-            <p className="text-[13px] font-black uppercase">{data.instructor || "INSTRUCTOR"}</p>
-            <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: "#7b8491" }}>Instructor responsable</p>
-          </div>
-          <div className="w-[25%] text-center">
-            <p className="text-[17px] font-black tracking-wider">{data.fecha || "DD/MM/AAAA"}</p>
-            <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: "#7b8491" }}>Fecha de otorgamiento</p>
-          </div>
-          <div className="w-[34%] border-t pt-2 text-center" style={{ borderColor: "#9d927d" }}>
-            <p className="text-[13px] font-black uppercase">{data.comisario || "SAN ANDREAS POLICE DEPARTMENT"}</p>
-            <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: "#7b8491" }}>Comisario · instructor que cargó la capacitación</p>
-          </div>
-        </div>
-
-        <div className="absolute bottom-[4.2%] left-0 w-full text-center text-[9px] font-bold uppercase tracking-[0.34em]" style={{ color: "#8b7548" }}>
-          San Andreas Police Department · mySAPD · Certificación institucional
-        </div>
+        <div className="absolute bottom-0 left-0 h-[1.2%] w-full" style={{ background: "linear-gradient(90deg, #101f38, #c6a45b, #101f38)" }} />
       </div>
 
-      {downloadable && <div className="flex justify-end"><Button onClick={download} className="rounded-none bg-blue-600 text-white hover:bg-blue-700"><Download className="mr-1 h-4 w-4" /> Descargar PNG</Button></div>}
+      {downloadable && <div className="flex justify-end"><Button onClick={download} className="rounded-none bg-blue-600 text-white hover:bg-blue-700"><Download className="mr-1 h-4 w-4" /> Descargar credencial PNG</Button></div>}
     </div>
   );
 }
-
