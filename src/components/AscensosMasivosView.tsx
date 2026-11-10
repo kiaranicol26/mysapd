@@ -208,7 +208,8 @@ export function AscensosMasivosView({ session }: { session: Session }) {
             </div>
             <div>
               <p className="text-xs uppercase tracking-[0.25em] font-extrabold text-blue-700">San Andreas Police Department</p>
-              <h1 className="text-2xl font-black uppercase text-slate-900 font-display">Ascensos masivos</h1>
+              <h1 className="text-2xl font-black uppercase text-slate-900 font-display">Cargas Masivas</h1>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Ascensos policiales</p>
             </div>
           </div>
           <p className="text-sm text-slate-600">
@@ -262,14 +263,14 @@ export function AscensosMasivosView({ session }: { session: Session }) {
         <div className="p-5 space-y-3">
           <div className="flex items-center gap-2">
             <ClipboardPaste className="w-5 h-5 text-blue-700" />
-            <h2 className="text-lg font-black uppercase text-slate-900">Comunicado de ascensos</h2>
+            <h2 className="text-lg font-black uppercase text-slate-900">Carga de ascensos</h2>
             <Badge variant="outline" className="ml-auto rounded-none">Discord externo</Badge>
           </div>
           <Textarea
             value={rawText}
             onChange={event => setRawText(event.target.value)}
             placeholder={"Pegá acá el comunicado completo...\n\n( <@&...> ) El **Teniente** <@1283191049874833458> asciende a <@&890703789340913675>"}
-            className="min-h-[240px] rounded-none border-blue-200 bg-white font-mono text-sm text-slate-800"
+            className="min-h-[520px] h-[520px] resize-y rounded-none border-blue-200 bg-white font-mono text-sm leading-relaxed text-slate-800"
           />
           <div className="flex flex-wrap items-center gap-2">
             <Button onClick={analyze} disabled={loading || loadingRoster || roleConfigLoading || !rawText.trim()} className="rounded-none bg-blue-700 hover:bg-blue-800 text-white font-bold">
