@@ -284,7 +284,7 @@ export function CertCard({ data, downloadable = false, autoGenerate = false, onG
 
   return (
     <div className="space-y-3">
-      <div ref={ref} className="relative mx-auto w-full overflow-hidden select-none" style={{ aspectRatio: "1.586 / 1", background: "#f4f5f3", color: NAVY, fontFamily: "Arial, Helvetica, sans-serif", borderRadius: "2.2%", border: "1px solid #c8cdd2", boxShadow: "0 12px 34px rgba(15,31,56,.16)" }}>
+      <div ref={ref} className="relative mx-auto w-full overflow-hidden select-none" style={{ aspectRatio: "1.586 / 1", background: "#f4f5f3", color: NAVY, fontFamily: "'Trebuchet MS', Arial, sans-serif", borderRadius: "2.2%", border: "1px solid #c8cdd2", boxShadow: "0 12px 34px rgba(15,31,56,.16)" }}>
         <div className="absolute inset-0" style={{ background: "linear-gradient(112deg, #f9faf8 0%, #eef1f0 54%, #e5e9e8 100%)" }} />
         <div className="absolute inset-0 flex items-center justify-end pr-[4%]">
           <img src={sapdLogo.url} alt="" aria-hidden="true" draggable={false} className="h-[88%] w-[48%] object-contain" style={{ opacity: 0.075, filter: "grayscale(1)" }} />
@@ -303,11 +303,11 @@ export function CertCard({ data, downloadable = false, autoGenerate = false, onG
 
         <div className="absolute left-[4%] top-[19%] w-[62%]">
           <p className="text-[8px] font-black uppercase tracking-[0.28em]" style={{ color: "#9a7b3d" }}>Nombre del certificado</p>
-          <p className="mt-[3px] text-[23px] font-black uppercase tracking-[0.025em] leading-none" style={{ color: NAVY }}>{certificateName}</p>
+          <p className="mt-[3px] text-[25px] font-black uppercase tracking-[0.035em] leading-none" style={{ color: NAVY, fontFamily: "Georgia, 'Times New Roman', serif", textShadow: "0 1px 0 rgba(255,255,255,.8)" }}>{certificateName}</p>
           <div className="mt-[3.4%] h-[1px] w-full" style={{ background: "linear-gradient(90deg, #b99a5b, rgba(185,154,91,0))" }} />
           <div className="mt-[3.4%]">
             <p className="text-[7px] font-bold uppercase tracking-[0.25em]" style={{ color: "#7b8793" }}>Titular de la licencia</p>
-            <p className="mt-[2px] text-[19px] font-black uppercase tracking-[0.035em]" style={{ color: "#152b48" }}>{data.nombre || "NOMBRE DEL OFICIAL"}</p>
+            <p className="mt-[2px] text-[20px] font-black uppercase tracking-[0.045em]" style={{ color: "#152b48", fontFamily: "'Trebuchet MS', Arial, sans-serif" }}>{data.nombre || "NOMBRE DEL OFICIAL"}</p>
           </div>
           <div className="mt-[3.2%] flex gap-[8%]">
             <div className="min-w-0">
@@ -326,10 +326,10 @@ export function CertCard({ data, downloadable = false, autoGenerate = false, onG
         </div>
 
         <div className="absolute right-[4%] top-[21%] flex h-[59%] w-[25%] flex-col items-center justify-center rounded-[7px] border bg-white/45 px-[2%]" style={{ borderColor: "rgba(174,148,93,.55)", boxShadow: "inset 0 0 0 3px rgba(255,255,255,.3)" }}>
-          <img src={sapdLogo.url} alt="Escudo SAPD" draggable={false} className="h-[48%] w-[78%] object-contain" style={{ opacity: 0.9 }} />
+          <img src={PICTOS[tipo.categoria] ?? sapdLogo.url} alt={detail + (isVehicle ? " vehículo" : " arma")} draggable={false} className="h-[57%] w-[88%] object-contain" style={{ opacity: 0.96, filter: "drop-shadow(0 5px 5px rgba(16,31,56,.16))" }} />
           <div className="mt-[4%] h-[1px] w-[72%]" style={{ background: "#c6a45b" }} />
-          <p className="mt-[5%] text-[8px] font-black uppercase tracking-[0.2em]" style={{ color: NAVY }}>SAPD</p>
-          <p className="mt-[2%] text-[6px] font-bold uppercase tracking-[0.16em] text-center" style={{ color: "#8a754d" }}>Licencia válida</p>
+          <p className="mt-[5%] text-[9px] font-black uppercase tracking-[0.24em]" style={{ color: NAVY, fontFamily: "Georgia, 'Times New Roman', serif" }}>{categoryLabel} · {detail}</p>
+          <p className="mt-[2%] text-[6px] font-bold uppercase tracking-[0.16em] text-center" style={{ color: "#8a754d" }}>{isVehicle ? "Habilitación vehicular" : "Habilitación de armamento"}</p>
         </div>
 
         <div className="absolute bottom-[4.5%] left-[4%] flex w-[92%] items-center justify-between border-t pt-[1.7%]" style={{ borderColor: "#c4cbd0" }}>
