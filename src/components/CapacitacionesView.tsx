@@ -32,7 +32,6 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
   const [section, setSection] = useState("Armas");
   const [training, setTraining] = useState("M4");
   const [trainingOther, setTrainingOther] = useState("");
-  const [awardedAt, setAwardedAt] = useState(today());
   const [instructorId, setInstructorId] = useState("");
   const [filterMemberId, setFilterMemberId] = useState("");
   const [filterSection, setFilterSection] = useState("");
@@ -68,7 +67,7 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
       if (published.ok) toast.success("Certificado publicado en el foro de Discord del SAPD.");
       else toast.warning("El certificado quedó guardado en mySAPD, pero no se publicó en Discord: " + published.error);
     }
-    setShowForm(false); setMemberId(""); setTraining("M4"); setTrainingOther(""); setSection("Armas"); setAwardedAt(today()); setInstructorId("");
+    setShowForm(false); setMemberId(""); setTraining("M4"); setTrainingOther(""); setSection("Armas"); setInstructorId("");
     await load();
   }, [certificateDraft]);
 
@@ -83,13 +82,14 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
   }, []);
 
   async function register() {
-    if (!memberId || !instructorId || !awardedAt || (training === "OTRA" && !trainingOther.trim())) { toast.error("Completá todos los campos obligatorios."); return; }
+    if (!memberId || !instructorId || (training === "OTRA" && !trainingOther.trim())) { toast.error("Completá todos los campos obligatorios."); return; }
     const target = members.find(m => m.id === memberId);
     const instructor = members.find(m => m.id === instructorId);
     if (!target || !instructor) return toast.error("No se pudo recuperar el agente o instructor seleccionado.");
     const tipoMap: Record<string, string> = { M4: "Fusil M4", EDC: "Escopeta Spas12", "AK-47": "Fusil de Asalto AK-47", SNIPER: "Fusil de Precisión", MARY: "Unidad Motorizada Mary", AIR: "Unidad Aerea", OTRA: "Capacitación Especial" };
+    const awardedAt = today();
     const [year, month, day] = awardedAt.split("-");
-    const form: CertificateForm = { tipo: tipoMap[training] ?? "Fusil M4", nombre: target.nombre, instructor: instructor.nombre, comisario: session?.name ?? "San Andreas Police Department", fecha: day + "/" + month + "/" + year, numero: String(Math.floor(100000 + Math.random() * 900000)) };
+    const form: CertificateForm = { tipo: tipoMap[training] ?? "Fusil M4", seccion: section, nombre: target.nombre, instructor: instructor.nombre, comisario: session?.name ?? "San Andreas Police Department", fecha: day + "/" + month + "/" + year, numero: String(Math.floor(100000 + Math.random() * 900000)) };
     setSaving(true);
     setCertificateDraft({ form, payload: { pd_member_id: memberId, section, training, training_other: training === "OTRA" ? trainingOther.trim() : null, awarded_at: awardedAt, instructor_pd_member_id: instructorId } });
   }
@@ -174,9 +174,6 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
           {training === "OTRA" && <label className="space-y-1 text-xs font-bold text-slate-700 md:col-span-2">Nombre de la capacitación
             <input value={trainingOther} onChange={e => setTrainingOther(e.target.value)} placeholder="Especificar capacitación…" className="h-10 w-full border border-slate-300 px-3 text-sm" />
           </label>}
-          <label className="space-y-1 text-xs font-bold text-slate-700">Fecha de otorgamiento
-            <input type="date" value={awardedAt} onChange={e => setAwardedAt(e.target.value)} className="h-10 w-full border border-slate-300 bg-white px-3 text-sm" />
-          </label>
           <label className="space-y-1 text-xs font-bold text-slate-700">Capacitación dictada por
             <select value={instructorId} onChange={e => setInstructorId(e.target.value)} disabled={!instructors.length} className="h-10 w-full border border-slate-300 bg-white px-3 text-sm disabled:bg-slate-100">
               <option value="">{instructors.length ? "Seleccionar instructor…" : "No hay agentes asignados a la División de Instructores"}</option>
