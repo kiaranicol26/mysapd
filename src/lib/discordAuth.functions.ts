@@ -23,7 +23,7 @@ async function findMember(username: string): Promise<{ id: string; username: str
 }
 
 /** Convierte errores de Discord en indicaciones útiles sin exponer credenciales ni respuestas internas. */
-function discordUserError(error: unknown): string {
+function discordUserError(error: unknown, stage?: string): string {
   const e = error as { status?: number; discordCode?: number; message?: string };
   if (e?.discordCode === 50007) {
     return "Discord está bloqueando los mensajes directos del bot. Activá los MD para este servidor y comprobá que no tengas bloqueado al bot SAPD.";
@@ -37,13 +37,18 @@ function discordUserError(error: unknown): string {
   if (e?.message === "El bot de Discord no está configurado") {
     return "El servicio de Discord de mySAPD no está configurado correctamente. Avisale a un administrador.";
   }
-  return "No se pudo completar el envío a Discord. Revisá los MD del servidor y, si continúa, avisale a un administrador.";
+  if (stage === "buscar") return "No se pudo localizar tu usuario dentro del servidor SAPD. Revisá que el nombre de usuario de Discord sea exacto y que sigas dentro del servidor.";
+  if (stage === "reservar") return "Discord respondió, pero mySAPD no pudo preparar la solicitud en la base de datos. Avisale a un administrador.";
+  if (stage === "abrir-md") return "El bot encontró tu usuario, pero Discord no permitió abrir el mensaje privado. Revisá los MD para este servidor y que no tengas bloqueado al bot SAPD.";
+  if (stage === "enviar-md") return "Se pudo abrir el mensaje privado, pero Discord rechazó el envío. Revisá los MD para este servidor y que no tengas bloqueado al bot SAPD.";
+  return "No se pudo completar la operación con Discord. Avisale a un administrador.";
 }
 
 /** Envía por MD un código de 6 dígitos al usuario de Discord indicado. */
 export const requestDiscordCode = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ username: usernameSchema }).parse(d))
   .handler(async ({ data }) => {
+    let stage = "buscar";
     try {
       const member = await findMember(data.username);
       if (!member) return { ok: false as const, error: REGISTRATION_MEMBERSHIP_ERROR };
@@ -51,6 +56,7 @@ export const requestDiscordCode = createServerFn({ method: "POST" })
       const { randomInt } = await import("crypto");
       const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
       const codeHash = await hashCode(member.id, code);
+      stage = "reservar";
       const { data: reserved, error } = await (supabaseAdmin as any).rpc("reserve_discord_verification", {
         p_discord_id: member.id,
         p_discord_username: member.username,
@@ -60,8 +66,10 @@ export const requestDiscordCode = createServerFn({ method: "POST" })
       if (error) throw error;
       if (!reserved) return { ok: false as const, error: "Esperá un minuto antes de pedir otro código" };
 
+      stage = "abrir-md";
       const dm = await discord("users/@me/channels", { method: "POST", body: JSON.stringify({ recipient_id: member.id }) });
-      await discord(`channels/${dm.id}/messages`, {
+      stage = "enviar-md";
+      await discord(`channels/${dm.id}/messages`,{
         method: "POST",
         body: JSON.stringify({
           embeds: [{
@@ -79,8 +87,9 @@ export const requestDiscordCode = createServerFn({ method: "POST" })
         status: diagnostic?.status,
         discordCode: diagnostic?.discordCode,
         message: diagnostic?.message,
+        stage,
       });
-      return { ok: false as const, error: discordUserError(e) };
+      return { ok: false as const, error: discordUserError(e, stage) };
     }
   });
 
@@ -153,19 +162,23 @@ export const verifyDiscordCode = createServerFn({ method: "POST" })
 export const recoverDiscordKey = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ username: usernameSchema }).parse(d))
   .handler(async ({ data }) => {
+    let stage = "buscar";
     try {
       const member = await findMember(data.username);
       if (!member) return { ok: false as const, error: REGISTRATION_MEMBERSHIP_ERROR };
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { data: row } = await supabaseAdmin.from("instructors").select("id, name").eq("discord_id", member.id).maybeSingle();
       if (!row) return { ok: false as const, error: "Todavía no tenés usuario en la web. Registrate con un código." };
+      stage = "reservar";
       const { data: allowed, error: throttleError } = await (supabaseAdmin as any).rpc("reserve_discord_recovery", {
         p_discord_id: member.id,
       });
       if (throttleError) throw throttleError;
       if (!allowed) return { ok: false as const, error: "Esperá un minuto antes de volver a solicitar ayuda." };
+      stage = "abrir-md";
       const dm = await discord("users/@me/channels", { method: "POST", body: JSON.stringify({ recipient_id: member.id }) });
-      await discord(`channels/${dm.id}/messages`, {
+      stage = "enviar-md";
+      await discord(`channels/${dm.id}/messages`,{
         method: "POST",
         body: JSON.stringify({
           embeds: [{
@@ -183,8 +196,9 @@ export const recoverDiscordKey = createServerFn({ method: "POST" })
         status: diagnostic?.status,
         discordCode: diagnostic?.discordCode,
         message: diagnostic?.message,
+        stage,
       });
-      return { ok: false as const, error: discordUserError(e) };
+      return { ok: false as const, error: discordUserError(e, stage) };
     }
   });
 
