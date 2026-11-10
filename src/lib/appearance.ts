@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 
 const BG_KEY = "site_background_url";
+const LOGIN_BG_KEY = "site_login_background_url";
 
 export async function getBackground(): Promise<string> {
   const { data } = await db
