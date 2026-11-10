@@ -253,7 +253,7 @@ export const publishTrainingCertificate = createServerFn({ method: "POST" })
     try {
       const { publishTrainingCertificateToForum } = await import("@/lib/discordGateway.server");
       const result = await publishTrainingCertificateToForum(supabaseAdmin as any, data.trainingId, data.certificateImage);
-      return { ok: true as const, ...result };
+      return result;
     } catch (error) {
       return { ok: false as const, error: error instanceof Error ? error.message : "No se pudo publicar el certificado en Discord." };
     }
