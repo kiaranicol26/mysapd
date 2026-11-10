@@ -39,14 +39,18 @@ export const applyBulkPromotions = createServerFn({ method: "POST" })
     const claims = await freshClaims(verifyToken(data.token), supabaseAdmin as any);
     if (!claims?.alto) return { ok: false as const, error: "Solo Administrador puede aplicar ascensos masivos." };
 
-    const { EXTERNAL_RANK_ROLE_IDS, FACTION_RANK_ROLE_IDS, policeRankOrder } = await import("@/lib/promociones");
+    const { parsePromotionRoleConfig, policeRankOrder } = await import("@/lib/promociones");
     const { FACTION_GUILD_ID } = await import("@/lib/discordMembership");
     const { discord } = await import("@/lib/discordGateway.server");
+    const { data: roleSettings, error: roleSettingsError } = await (supabaseAdmin as any)
+      .from("app_settings").select("value").eq("key", "bulk_promotion_role_mappings").maybeSingle();
+    if (roleSettingsError) return { ok: false as const, error: "No se pudo leer la configuración de equivalencias." };
+    const roleConfig = parsePromotionRoleConfig(roleSettings?.value);
     const seen = new Set<string>();
     for (const item of data.items) {
       if (seen.has(item.discordId)) return { ok: false as const, error: "El comunicado contiene policías duplicados." };
       seen.add(item.discordId);
-      if (!Object.hasOwn(EXTERNAL_RANK_ROLE_IDS, item.externalRoleId)) {
+      if (!Object.hasOwn(roleConfig.external, item.externalRoleId)) {
         return { ok: false as const, error: "El comunicado contiene un rol externo no configurado." };
       }
     }
@@ -60,8 +64,8 @@ export const applyBulkPromotions = createServerFn({ method: "POST" })
     }[] = [];
 
     for (const item of data.items) {
-      const rank = EXTERNAL_RANK_ROLE_IDS[item.externalRoleId as keyof typeof EXTERNAL_RANK_ROLE_IDS];
-      const targetRoleId = FACTION_RANK_ROLE_IDS[rank];
+      const rank = roleConfig.external[item.externalRoleId];
+      const targetRoleId = roleConfig.faction[rank];
       let targetRoleWasAdded = false;
       try {
         const { data: instructor, error: instructorError } = await (supabaseAdmin as any)
