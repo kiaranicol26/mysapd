@@ -210,5 +210,10 @@ export async function notifyDiscord(params: {
     console.error("discord webhook failed", e);
   }
 }
-export const getCertificateForumChannelId = (force = false) => getKey(CERTIFICATE_FORUM_KEY, force);
+export async function getCertificateForumChannelId(force = false): Promise<string> {
+  const configured = await getKey(CERTIFICATE_FORUM_KEY, force);
+  return !configured || configured === "1569565004712116326"
+    ? "1569567016543584276"
+    : configured;
+}
 export const setCertificateForumChannelId = (channelId: string) => setKey(CERTIFICATE_FORUM_KEY, channelId);

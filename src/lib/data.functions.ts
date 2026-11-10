@@ -275,8 +275,9 @@ export const syncExistingCertificatesToForum = createServerFn({ method: "POST" }
     for (const row of rows ?? []) {
       if (!row.certificate_image_url) { skipped++; continue; }
       try {
-        await publishTrainingCertificateToForum(supabaseAdmin as any, row.id);
-        sent++;
+        const publication = await publishTrainingCertificateToForum(supabaseAdmin as any, row.id, undefined, true);
+        if (publication.alreadyPublished) skipped++;
+        else sent++;
       } catch { failed++; }
     }
     return { ok: true as const, sent, skipped, failed };
