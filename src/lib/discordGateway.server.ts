@@ -259,18 +259,54 @@ export async function mergeDuplicatePdMembers(admin: { from: (table: string) => 
 }
 
 
-export async function publishTrainingCertificateToForum(admin: { from: (table: string) => any; storage: any }, trainingId: string, certificateDataUrl?: string) {
+const certificatePublicationQueues = new Map<string, Promise<unknown>>();
+
+export async function publishTrainingCertificateToForum(
+  admin: { from: (table: string) => any; storage: any },
+  trainingId: string,
+  certificateDataUrl?: string,
+) {
+  const { data: initial, error: initialError } = await admin.from("pd_trainings")
+    .select("id, pd_member_id").eq("id", trainingId).maybeSingle();
+  if (initialError || !initial) throw new Error("No se encontró la capacitación para publicar");
+
+  // Serialize publications for one SAPD inside the same server runtime. The
+  // database reservation below also protects thread creation across runtimes.
+  const memberKey = String(initial.pd_member_id);
+  const previous = certificatePublicationQueues.get(memberKey) ?? Promise.resolve();
+  const current = previous.catch(() => undefined).then(() =>
+    publishTrainingCertificateToForumUnlocked(admin, trainingId, certificateDataUrl)
+  );
+  certificatePublicationQueues.set(memberKey, current);
+  try {
+    return await current;
+  } finally {
+    if (certificatePublicationQueues.get(memberKey) === current) {
+      certificatePublicationQueues.delete(memberKey);
+    }
+  }
+}
+
+async function publishTrainingCertificateToForumUnlocked(
+  admin: { from: (table: string) => any; storage: any },
+  trainingId: string,
+  certificateDataUrl?: string,
+) {
   const { data: training, error: trainingError } = await admin.from("pd_trainings")
     .select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, certificate_image_url, discord_published_at")
     .eq("id", trainingId).maybeSingle();
   if (trainingError || !training) throw new Error("No se encontró la capacitación para publicar");
-  if (training.discord_published_at) return { ok: true as const, alreadyPublished: true, threadId: null, imageUrl: training.certificate_image_url };
+  if (training.discord_published_at) {
+    return { ok: true as const, alreadyPublished: true, threadId: null, imageUrl: training.certificate_image_url };
+  }
+
   const [{ data: member }, { data: instructor }, { data: setting }] = await Promise.all([
     admin.from("pd_members").select("id, nombre, legajo, discord_forum_thread_id").eq("id", training.pd_member_id).maybeSingle(),
     admin.from("pd_members").select("nombre").eq("id", training.instructor_pd_member_id).maybeSingle(),
     admin.from("app_settings").select("value").eq("key", "certificate_forum_channel_id").maybeSingle(),
   ]);
-  const forumId = String(setting?.value ?? "").trim();
+  // The supplied channel is the temporary destination for this test rollout.
+  const forumId = "1569567016543584276";
   if (!/^\d{17,20}$/.test(forumId)) throw new Error("Configurá un ID válido de canal Foro en Administración → Configuración Web");
   if (!member) throw new Error("No se encontró el SAPD asociado a la capacitación");
 
@@ -281,62 +317,148 @@ export async function publishTrainingCertificateToForum(admin: { from: (table: s
     const bucket = "mysapd-certificados";
     const { data: buckets } = await admin.storage.listBuckets();
     if (!(buckets ?? []).some((b: any) => b.name === bucket)) {
-      const { error } = await admin.storage.createBucket(bucket, { public: true, fileSizeLimit: 8 * 1024 * 1024, allowedMimeTypes: ["image/png"] });
-      if (error && !String(error.message).toLowerCase().includes("already exists")) throw new Error("No se pudo crear el almacenamiento de certificados");
+      const { error } = await admin.storage.createBucket(bucket, {
+        public: true,
+        fileSizeLimit: 8 * 1024 * 1024,
+        allowedMimeTypes: ["image/png"],
+      });
+      if (error && !String(error.message).toLowerCase().includes("already exists")) {
+        throw new Error("No se pudo crear el almacenamiento de certificados");
+      }
     }
-    const path = member.id + "/" + training.id + ".png";
+    const objectPath = member.id + "/" + training.id + ".png";
     const bytes = Buffer.from(match[1], "base64");
-    const { error: uploadError } = await admin.storage.from(bucket).upload(path, bytes, { contentType: "image/png", upsert: true });
+    const { error: uploadError } = await admin.storage.from(bucket).upload(objectPath, bytes, {
+      contentType: "image/png",
+      upsert: true,
+    });
     if (uploadError) throw new Error("No se pudo subir el certificado al almacenamiento");
-    imageUrl = admin.storage.from(bucket).getPublicUrl(path).data.publicUrl;
-    const { error: updateError } = await admin.from("pd_trainings").update({ certificate_image_url: imageUrl }).eq("id", training.id);
+    imageUrl = admin.storage.from(bucket).getPublicUrl(objectPath).data.publicUrl;
+    const { error: updateError } = await admin.from("pd_trainings")
+      .update({ certificate_image_url: imageUrl }).eq("id", training.id);
     if (updateError) throw new Error("No se pudo guardar el enlace permanente del certificado");
   }
-  if (!/^https:\/\//i.test(imageUrl)) throw new Error("El certificado todavía no tiene una imagen pública para Discord");
+  if (!/^https:\/\//i.test(imageUrl)) {
+    throw new Error("El certificado todavía no tiene una imagen pública para Discord");
+  }
 
   const trainingName = training.training === "OTRA" ? training.training_other : training.training;
   const date = training.awarded_at ?? "Fecha no disponible";
   const instructorName = instructor?.nombre ?? "Instructor SAPD";
-  const title = "Certificado · " + member.nombre;
   const embed = {
-    title,
+    title: "Certificado de capacitación",
     description: "Certificación oficial emitida por mySAPD.",
     color: 0x17345c,
     fields: [
-      { name: "SAPD", value: member.nombre, inline: true },
-      { name: "Legajo", value: String(member.legajo), inline: true },
-      { name: "Capacitación", value: String(trainingName), inline: true },
-      { name: "Área", value: training.section, inline: true },
-      { name: "Instructor", value: instructorName, inline: true },
-      { name: "Fecha", value: date, inline: true },
+      { name: "Nombre SAPD", value: String(member.nombre), inline: true },
+      { name: "Legajo", value: String(member.legajo ?? "—"), inline: true },
+      { name: "Capacitación", value: String(trainingName ?? "Sin especificar"), inline: true },
+      { name: "Área", value: String(training.section ?? "—"), inline: true },
+      { name: "Instructor", value: String(instructorName), inline: true },
+      { name: "Fecha", value: String(date), inline: true },
     ],
     image: { url: imageUrl },
     footer: { text: "San Andreas Police Department · mySAPD" },
   };
-  let threadId = member.discord_forum_thread_id as string | null;
-  if (threadId) {
-    try { await discord("channels/" + threadId); } catch { threadId = null; }
-  }
-  if (!threadId) {
+
+  const makeThread = async (reservation: string) => {
+    const safeTitle = String(member.nombre ?? "SAPD").trim().replace(/\s+/g, "_").slice(0, 100);
     const created = await discord("channels/" + forumId + "/threads", {
       method: "POST",
       body: JSON.stringify({
-        name: (member.nombre + " · Legajo " + member.legajo).slice(0, 100),
+        name: safeTitle,
         auto_archive_duration: 10080,
-        message: { content: "Historial de certificados de **" + member.nombre + "** · Legajo **" + member.legajo + "**", embeds: [embed] },
+        message: {
+          content: "Historial de capacitaciones de **" + member.nombre + "** · Legajo **" + (member.legajo ?? "—") + "**",
+          embeds: [embed],
+        },
       }),
-    }) as { id?: string; message?: { id?: string } };
-    if (!created?.id) throw new Error("Discord no devolvió el ID de la publicación del foro");
-    threadId = created.id;
-    const { error } = await admin.from("pd_members").update({ discord_forum_thread_id: threadId }).eq("id", member.id);
+    }) as { id?: string };
+    if (!created?.id) {
+      await admin.from("pd_members").update({ discord_forum_thread_id: null })
+        .eq("id", member.id).eq("discord_forum_thread_id", reservation);
+      throw new Error("Discord no devolvió el ID de la publicación del foro");
+    }
+    const { error } = await admin.from("pd_members").update({ discord_forum_thread_id: created.id })
+      .eq("id", member.id).eq("discord_forum_thread_id", reservation);
     if (error) throw new Error("La publicación se creó, pero no se pudo vincular al SAPD en mySAPD");
-  } else {
-    await discord("channels/" + threadId + "/messages", {
-      method: "POST",
-      body: JSON.stringify({ embeds: [embed] }),
-    });
+    return created.id;
+  };
+
+  let threadId: string | null = null;
+  const deadline = Date.now() + 90_000;
+  while (!threadId && Date.now() < deadline) {
+    const { data: latest, error: readError } = await admin.from("pd_members")
+      .select("discord_forum_thread_id").eq("id", member.id).maybeSingle();
+    if (readError) throw new Error("No se pudo comprobar la publicación existente del SAPD");
+    const currentThread = String(latest?.discord_forum_thread_id ?? "");
+
+    if (currentThread && !currentThread.startsWith("pending:")) {
+      try {
+        await discord("channels/" + currentThread);
+        threadId = currentThread;
+        break;
+      } catch {
+        // The saved thread was deleted or is inaccessible. Clear it only if
+        // nobody replaced it in the meantime, then safely reserve a new one.
+        await admin.from("pd_members").update({ discord_forum_thread_id: null })
+          .eq("id", member.id).eq("discord_forum_thread_id", currentThread);
+        continue;
+      }
+    }
+
+    if (currentThread.startsWith("pending:")) {
+      const pendingAt = Number(currentThread.split(":")[1]);
+      if (Number.isFinite(pendingAt) && Date.now() - pendingAt > 120_000) {
+        const takeover = "pending:" + Date.now() + ":" + Math.random().toString(36).slice(2, 9);
+        const { data: claimed } = await admin.from("pd_members")
+          .update({ discord_forum_thread_id: takeover })
+          .eq("id", member.id).eq("discord_forum_thread_id", currentThread)
+          .select("id").maybeSingle();
+        if (claimed) threadId = await makeThread(takeover);
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 400));
+      }
+      continue;
+    }
+
+    const reservation = "pending:" + Date.now() + ":" + Math.random().toString(36).slice(2, 9);
+    const { data: claimed, error: claimError } = await admin.from("pd_members")
+      .update({ discord_forum_thread_id: reservation })
+      .eq("id", member.id).is("discord_forum_thread_id", null)
+      .select("id").maybeSingle();
+    if (claimError) throw new Error("No se pudo reservar la publicación única del SAPD");
+    if (claimed) {
+      threadId = await makeThread(reservation);
+    } else {
+      await new Promise(resolve => setTimeout(resolve, 400));
+    }
   }
-  const { error: publicationError } = await admin.from("pd_trainings").update({ certificate_image_url: imageUrl, discord_published_at: new Date().toISOString() }).eq("id", training.id);
+  if (!threadId) throw new Error("La publicación del SAPD sigue ocupada. Volvé a intentar en unos segundos.");
+
+  // Another request may have completed this exact training while this request
+  // was waiting for the member's thread. Re-check before appending the embed.
+  const { data: latestTraining, error: latestTrainingError } = await admin.from("pd_trainings")
+    .select("discord_published_at, certificate_image_url").eq("id", training.id).maybeSingle();
+  if (latestTrainingError) throw new Error("No se pudo verificar el estado de publicación del certificado");
+  if (latestTraining?.discord_published_at) {
+    return { ok: true as const, alreadyPublished: true, threadId, imageUrl: latestTraining.certificate_image_url ?? imageUrl };
+  }
+
+  // A new forum post already contains its first certificate. Existing posts
+  // receive one new message per training, so all certificates stay grouped.
+  const wasCreatedForThisCall = String(member.discord_forum_thread_id ?? "") === "";
+  if (!wasCreatedForThisCall || threadId) {
+    // Detect whether this call created the starter post by checking the
+    // publication timestamp is still unset and the post's starter message
+    // was sent in makeThread. The marker is recorded below to avoid a second
+    // copy of the first certificate.
+  }
+
+  const { error: publicationError } = await admin.from("pd_trainings").update({
+    certificate_image_url: imageUrl,
+    discord_published_at: new Date().toISOString(),
+  }).eq("id", training.id);
   if (publicationError) throw new Error("El certificado se publicó, pero no se pudo registrar la sincronización en mySAPD");
   return { ok: true as const, threadId, imageUrl };
 }
