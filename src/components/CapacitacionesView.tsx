@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { db, getToken } from "@/lib/db";
 import { publishTrainingCertificate } from "@/lib/data.functions";
 import type { Session } from "@/lib/session";
-import { BadgeCheck, GraduationCap, Plus, RefreshCw } from "lucide-react";
+import { BadgeCheck, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { CertCard, type CertificateForm } from "@/components/CertificarView";
 
@@ -39,6 +39,7 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
   const [filterTraining, setFilterTraining] = useState("");
   const [filterInstructorId, setFilterInstructorId] = useState("");
   const canEdit = !!session?.is_alto_mando || !!session?.can_edit_capacitaciones;
+  const canDeleteTraining = session?.admin_rango === "administrador";
   const instructors = useMemo(() => members.filter(m => m.es_instructor), [members]);
 
   async function load() {
@@ -91,6 +92,32 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
     const form: CertificateForm = { tipo: tipoMap[training] ?? "Fusil M4", nombre: target.nombre, instructor: instructor.nombre, comisario: session?.name ?? "San Andreas Police Department", fecha: day + "/" + month + "/" + year, numero: String(Math.floor(100000 + Math.random() * 900000)) };
     setSaving(true);
     setCertificateDraft({ form, payload: { pd_member_id: memberId, section, training, training_other: training === "OTRA" ? trainingOther.trim() : null, awarded_at: awardedAt, instructor_pd_member_id: instructorId } });
+  }
+
+  async function deleteTraining(t: Training) {
+    if (!canDeleteTraining) return toast.error("Solo Administrador puede borrar capacitaciones.");
+    const target = memberById(t.pd_member_id);
+    const label = t.training === "OTRA" ? t.training_other : t.training;
+    if (!window.confirm(`¿Eliminar la capacitación ${label ?? t.training} de ${target?.nombre ?? "este policía"}? Esta acción no se puede deshacer.`)) return;
+    const { error } = await db.from("pd_trainings").delete().eq("id", t.id);
+    if (error) return toast.error("No se pudo eliminar la capacitación: " + error.message);
+    setTrainings(current => current.filter(row => row.id !== t.id));
+    const { error: logError } = await db.from("logs").insert({
+      action: "DELETE_PD_TRAINING",
+      details: {
+        training_id: t.id,
+        pd_member_id: t.pd_member_id,
+        target_name: target?.nombre ?? null,
+        section: t.section,
+        training: t.training,
+        training_other: t.training_other,
+        awarded_at: t.awarded_at,
+        instructor_pd_member_id: t.instructor_pd_member_id,
+        created_by_name: t.created_by_name,
+      },
+    });
+    if (logError) toast.warning("Capacitación eliminada, pero no se pudo guardar el registro de auditoría: " + logError.message);
+    else toast.success("Capacitación eliminada correctamente.");
   }
 
   const memberById = (id: string) => members.find(m => m.id === id);
@@ -202,8 +229,8 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
             </div>
           </div>
           <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm">
-            <thead className="bg-slate-900 text-[10px] uppercase tracking-wider text-white"><tr><th className="p-3">Legajo</th><th className="p-3">Agente SAPD</th><th className="p-3">Sección</th><th className="p-3">Capacitación</th><th className="p-3">Otorgamiento</th><th className="p-3">Instructor</th><th className="p-3">Añadida por</th><th className="p-3">Origen</th></tr></thead>
-            <tbody>{filteredTrainings.map(t => { const target = memberById(t.pd_member_id); const instructor = memberById(t.instructor_pd_member_id ?? ""); return <tr key={t.id} className="border-t border-slate-100"><td className="p-3 font-mono font-bold">{target ? legajoLabel(target.legajo) : "—"}</td><td className="p-3 font-semibold">{target?.nombre ?? "Agente no disponible"}</td><td className="p-3">{t.section}</td><td className="p-3 font-bold">{t.training === "OTRA" ? t.training_other : t.training}</td><td className="p-3">{t.awarded_at ?? "Nada"}</td><td className="p-3">{instructor?.nombre ?? "Nada"}</td><td className="p-3">{t.created_by_name ?? "Nada"}</td><td className="p-3">{t.is_legacy ? "Histórico" : "Nuevo registro"}</td></tr>; })}</tbody>
+            <thead className="bg-slate-900 text-[10px] uppercase tracking-wider text-white"><tr><th className="p-3">Legajo</th><th className="p-3">Agente SAPD</th><th className="p-3">Sección</th><th className="p-3">Capacitación</th><th className="p-3">Otorgamiento</th><th className="p-3">Instructor</th><th className="p-3">Añadida por</th><th className="p-3">Origen</th>{canDeleteTraining && <th className="p-3 text-right">Acciones</th>}</tr></thead>
+            <tbody>{filteredTrainings.map(t => { const target = memberById(t.pd_member_id); const instructor = memberById(t.instructor_pd_member_id ?? ""); return <tr key={t.id} className="border-t border-slate-100"><td className="p-3 font-mono font-bold">{target ? legajoLabel(target.legajo) : "—"}</td><td className="p-3 font-semibold">{target?.nombre ?? "Agente no disponible"}</td><td className="p-3">{t.section}</td><td className="p-3 font-bold">{t.training === "OTRA" ? t.training_other : t.training}</td><td className="p-3">{t.awarded_at ?? "Nada"}</td><td className="p-3">{instructor?.nombre ?? "Nada"}</td><td className="p-3">{t.created_by_name ?? "Nada"}</td><td className="p-3">{t.is_legacy ? "Histórico" : "Nuevo registro"}</td>{canDeleteTraining && <td className="p-3 text-right"><button type="button" onClick={() => void deleteTraining(t)} className="inline-flex h-8 items-center gap-1 border border-red-200 px-2 text-xs font-bold text-red-700 hover:bg-red-50"><Trash2 className="h-3.5 w-3.5" />Borrar</button></td>}</tr>; })}</tbody>
           </table></div>
           {!filteredTrainings.length && <p className="p-8 text-center text-sm text-slate-400">{hasFilters ? "No hay capacitaciones que coincidan con los filtros seleccionados." : "Todavía no hay capacitaciones registradas."}</p>}
         </Card>
