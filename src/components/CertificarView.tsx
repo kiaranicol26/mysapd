@@ -96,6 +96,8 @@ export function CertificarView({ session }: { session: Session }) {
   const [filterInstructor, setFilterInstructor] = useState("");
   const [searchText, setSearchText] = useState("");
   const [syncingDiscord, setSyncingDiscord] = useState(false);
+  const [legacyRecords, setLegacyRecords] = useState<CertificateRecord[]>([]);
+  const [legacyDone, setLegacyDone] = useState(0);
   const [form, setForm] = useState<CertificateForm | null>(null);
   const [preview, setPreview] = useState<CertificateForm | null>(null);
 
@@ -116,6 +118,32 @@ export function CertificarView({ session }: { session: Session }) {
     return (!filterMember || row.pd_member_id === filterMember) && (!filterSection || row.section === filterSection) && (!filterTraining || row.training === filterTraining) && (!filterInstructor || row.instructor_pd_member_id === filterInstructor) && (!searchText || haystack.includes(searchText.toLowerCase()));
   }), [records, members, filterMember, filterSection, filterTraining, filterInstructor, searchText]);
 
+  const onLegacyDone = useCallback(() => setLegacyDone(value => value + 1), []);
+
+  useEffect(() => {
+    if (legacyRecords.length && legacyDone >= legacyRecords.length) {
+      toast.success("Todos los certificados históricos fueron generados y publicados.");
+      setLegacyRecords([]);
+      setLegacyDone(0);
+      db.from("pd_trainings").select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, certificate_image_url, is_legacy").order("awarded_at", { ascending: false }).then(({ data }) => { if (data) setRecords(data as CertificateRecord[]); });
+    }
+  }, [legacyRecords, legacyDone]);
+
+  async function syncCertificatesToDiscord() {
+    const token = getToken();
+    if (!token) return toast.error("Tu sesión expiró.");
+    setSyncingDiscord(true);
+    try {
+      const result = await syncExistingCertificatesToForum({ data: { token } });
+      if (!result.ok) throw new Error(result.error);
+      const missing = records.filter(row => !row.certificate_image_url);
+      toast.success(result.sent + " certificados con imagen publicados. Se reconstruirán " + missing.length + " históricos sin imagen.");
+      if (missing.length) { setLegacyRecords(missing); setLegacyDone(0); }
+      else toast.success("La biblioteca ya estaba sincronizada.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo sincronizar Discord.");
+    } finally { setSyncingDiscord(false); }
+  }
   function openCreate() {
     setForm(emptyForm(session));
   }
