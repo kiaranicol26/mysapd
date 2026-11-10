@@ -302,9 +302,8 @@ async function publishTrainingCertificateToForumUnlocked(
     return { ok: true as const, alreadyPublished: true, threadId: null, imageUrl: training.certificate_image_url };
   }
 
-  const [{ data: member }, { data: instructor }, { data: setting }] = await Promise.all([
+  const [{ data: member }, { data: setting }] = await Promise.all([
     admin.from("pd_members").select("id, nombre, legajo, discord_forum_thread_id").eq("id", training.pd_member_id).maybeSingle(),
-    admin.from("pd_members").select("nombre").eq("id", training.instructor_pd_member_id).maybeSingle(),
     admin.from("app_settings").select("value").eq("key", "certificate_forum_channel_id").maybeSingle(),
   ]);
   // Move the previous configured test channel to the newly requested test forum.
@@ -314,9 +313,6 @@ async function publishTrainingCertificateToForumUnlocked(
     : configuredForumId;
   if (!/^\d{17,20}$/.test(forumId)) throw new Error("Configurá un ID válido de canal Foro en Administración → Configuración Web");
   if (!member) throw new Error("No se encontró el SAPD asociado a la capacitación");
-  if (force && training.discord_published_at && training.discord_published_forum_id === forumId) {
-    return { ok: true as const, alreadyPublished: true, threadId: member.discord_forum_thread_id, imageUrl: training.certificate_image_url };
-  }
 
   let imageUrl = String(certificateDataUrl ?? training.certificate_image_url ?? "");
   if (imageUrl.startsWith("data:image/")) {
@@ -350,24 +346,9 @@ async function publishTrainingCertificateToForumUnlocked(
     throw new Error("El certificado todavía no tiene una imagen pública para Discord");
   }
 
-  const trainingName = training.training === "OTRA" ? training.training_other : training.training;
-  const date = training.awarded_at ?? "Fecha no disponible";
-  const instructorName = instructor?.nombre ?? "Instructor SAPD";
-  const embed = {
-    title: "Certificado de capacitación",
-    description: "Certificación oficial emitida por mySAPD.",
-    color: 0x17345c,
-    fields: [
-      { name: "Nombre SAPD", value: String(member.nombre), inline: true },
-      { name: "Legajo", value: String(member.legajo ?? "—"), inline: true },
-      { name: "Capacitación", value: String(trainingName ?? "Sin especificar"), inline: true },
-      { name: "Área", value: String(training.section ?? "—"), inline: true },
-      { name: "Instructor", value: String(instructorName), inline: true },
-      { name: "Fecha", value: String(date), inline: true },
-    ],
-    image: { url: imageUrl },
-    footer: { text: "San Andreas Police Department · mySAPD" },
-  };
+  // Discord receives the public PNG URL as plain message content. Discord may
+  // show its native link preview, but mySAPD does not construct or send embeds.
+  const certificateMessage = imageUrl;
 
   let createdThreadForThisCall = false;
   const makeThread = async (reservation: string) => {
@@ -380,8 +361,7 @@ async function publishTrainingCertificateToForumUnlocked(
         name: safeTitle,
         auto_archive_duration: 10080,
         message: {
-          content: "Historial de capacitaciones de **" + member.nombre + "** · Legajo **" + (member.legajo ?? "—") + "**",
-          embeds: [embed],
+          content: certificateMessage,
         },
       }),
     }) as { id?: string };
@@ -457,7 +437,7 @@ async function publishTrainingCertificateToForumUnlocked(
   if (!threadId) throw new Error("La publicación del SAPD sigue ocupada. Volvé a intentar en unos segundos.");
 
   // Another request may have completed this exact training while this request
-  // was waiting for the member's thread. Re-check before appending the embed.
+  // was waiting for the member's thread. Re-check before appending the URL.
   const { data: latestTraining, error: latestTrainingError } = await admin.from("pd_trainings")
     .select("discord_published_at, discord_published_forum_id, certificate_image_url").eq("id", training.id).maybeSingle();
   if (latestTrainingError) throw new Error("No se pudo verificar el estado de publicación del certificado");
@@ -465,12 +445,12 @@ async function publishTrainingCertificateToForumUnlocked(
     return { ok: true as const, alreadyPublished: true, threadId, imageUrl: latestTraining.certificate_image_url ?? imageUrl };
   }
 
-  // A new forum post already contains its first certificate. Existing posts
-  // receive one new message per training, so all certificates stay grouped.
+  // A new forum post already contains its first certificate URL. Existing posts
+  // receive one plain-URL message per training, so certificates stay grouped.
   if (!createdThreadForThisCall) {
     await discord("channels/" + threadId + "/messages", {
       method: "POST",
-      body: JSON.stringify({ embeds: [embed] }),
+      body: JSON.stringify({ content: certificateMessage }),
     });
   }
 
