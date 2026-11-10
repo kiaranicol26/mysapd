@@ -61,7 +61,7 @@ function emptyForm(session: Session): CertificateForm {
 
 type CertificateRecord = { id: string; pd_member_id: string; section: string; training: string; training_other: string | null; awarded_at: string | null; instructor_pd_member_id: string | null; certificate_image_url: string | null; is_legacy?: boolean };
 
-function LegacyCertificatePublisher({ row, memberName, instructorName, onDone }: { row: CertificateRecord; memberName: string; instructorName: string; onDone: () => void }) {
+function LegacyCertificatePublisher({ row, memberName, instructorName, onDone }: { row: CertificateRecord; memberName: string; instructorName: string; onDone: (success: boolean) => void }) {
   const [finished, setFinished] = useState(false);
   const data: CertificateForm = {
     tipo: ({ M4: "Fusil M4", EDC: "Escopeta Spas12", "AK-47": "Fusil de Asalto AK-47", SNIPER: "Fusil de Precisión", MARY: "Unidad Motorizada Mary", AIR: "Unidad Aerea", OTRA: "Capacitación Especial" } as Record<string, string>)[row.training] ?? "Fusil M4",
@@ -74,17 +74,33 @@ function LegacyCertificatePublisher({ row, memberName, instructorName, onDone }:
   const publish = useCallback(async (image: string) => {
     if (finished) return;
     setFinished(true);
+    let success = false;
     try {
       const token = getToken();
       if (!token) throw new Error("Tu sesión expiró.");
       const result = await publishTrainingCertificate({ data: { token, trainingId: row.id, certificateImage: image } });
       if (!result.ok) throw new Error(result.error);
+      success = true;
     } catch (error) {
       toast.error("No se pudo publicar el certificado de " + memberName + ": " + (error instanceof Error ? error.message : "error"));
-    } finally { onDone(); }
+    } finally { onDone(success); }
   }, [finished, row.id, memberName, onDone]);
   if (finished) return null;
   return <div aria-hidden="true" className="pointer-events-none fixed left-[-10000px] top-0 w-[900px]"><CertCard data={data} autoGenerate onGenerated={publish} onError={() => { setFinished(true); toast.error("No se pudo generar el certificado de " + memberName); onDone(); }} /></div>;
+}
+
+async function loadAllCertificateRecords(): Promise<CertificateRecord[]> {
+  const all: CertificateRecord[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await db.from("pd_trainings")
+      .select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, certificate_image_url, is_legacy")
+      .order("awarded_at", { ascending: false })
+      .range(from, from + 999);
+    if (error) throw error;
+    const page = (data ?? []) as CertificateRecord[];
+    all.push(...page);
+    if (page.length < 1000) return all;
+  }
 }
 
 export function CertificarView({ session }: { session: Session }) {
@@ -98,15 +114,15 @@ export function CertificarView({ session }: { session: Session }) {
   const [syncingDiscord, setSyncingDiscord] = useState(false);
   const [legacyRecords, setLegacyRecords] = useState<CertificateRecord[]>([]);
   const [legacyDone, setLegacyDone] = useState(0);
+  const [legacyFailed, setLegacyFailed] = useState(0);
   const [form, setForm] = useState<CertificateForm | null>(null);
   const [preview, setPreview] = useState<CertificateForm | null>(null);
 
   useEffect(() => {
     Promise.all([
-      db.from("pd_trainings").select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, certificate_image_url, is_legacy").order("awarded_at", { ascending: false }),
+      loadAllCertificateRecords().then(setRecords).catch(error => toast.error(error instanceof Error ? error.message : "No se pudieron cargar todos los certificados.")),
       db.from("pd_members").select("id, nombre, legajo").order("nombre", { ascending: true }),
-    ]).then(([trainingRows, memberRows]) => {
-      if (trainingRows.error) toast.error(trainingRows.error.message); else setRecords((trainingRows.data ?? []) as CertificateRecord[]);
+    ]).then(([, memberRows]) => {
       if (memberRows.error) toast.error(memberRows.error.message); else setMembers((memberRows.data ?? []) as { id: string; nombre: string; legajo: number }[]);
     });
   }, []);
@@ -118,16 +134,21 @@ export function CertificarView({ session }: { session: Session }) {
     return (!filterMember || row.pd_member_id === filterMember) && (!filterSection || row.section === filterSection) && (!filterTraining || row.training === filterTraining) && (!filterInstructor || row.instructor_pd_member_id === filterInstructor) && (!searchText || haystack.includes(searchText.toLowerCase()));
   }), [records, members, filterMember, filterSection, filterTraining, filterInstructor, searchText]);
 
-  const onLegacyDone = useCallback(() => setLegacyDone(value => value + 1), []);
+  const onLegacyDone = useCallback((success: boolean) => {
+    setLegacyDone(value => value + 1);
+    if (!success) setLegacyFailed(value => value + 1);
+  }, []);
 
   useEffect(() => {
     if (legacyRecords.length && legacyDone >= legacyRecords.length) {
-      toast.success("Todos los certificados históricos fueron generados y publicados.");
+      if (legacyFailed) toast.warning("Se procesaron los certificados históricos: " + (legacyRecords.length - legacyFailed) + " publicados y " + legacyFailed + " con error. Podés volver a sincronizar para reintentar.");
+      else toast.success("Todos los certificados históricos fueron generados y publicados.");
       setLegacyRecords([]);
       setLegacyDone(0);
-      db.from("pd_trainings").select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, certificate_image_url, is_legacy").order("awarded_at", { ascending: false }).then(({ data }) => { if (data) setRecords(data as CertificateRecord[]); });
+      setLegacyFailed(0);
+      loadAllCertificateRecords().then(setRecords).catch(error => toast.error(error instanceof Error ? error.message : "No se pudo actualizar la biblioteca."));
     }
-  }, [legacyRecords, legacyDone]);
+  }, [legacyRecords, legacyDone, legacyFailed]);
 
   async function syncCertificatesToDiscord() {
     const token = getToken();
@@ -137,9 +158,10 @@ export function CertificarView({ session }: { session: Session }) {
       const result = await syncExistingCertificatesToForum({ data: { token } });
       if (!result.ok) throw new Error(result.error);
       const missing = records.filter(row => !row.certificate_image_url);
-      toast.success(result.sent + " certificados con imagen publicados. Se reconstruirán " + missing.length + " históricos sin imagen.");
-      if (missing.length) { setLegacyRecords(missing); setLegacyDone(0); }
-      else toast.success("La biblioteca ya estaba sincronizada.");
+      if (result.failed) toast.warning(result.sent + " certificados con imagen publicados; " + result.failed + " fallaron. Se continuará con " + missing.length + " históricos sin imagen.");
+      else toast.success(result.sent + " certificados con imagen publicados. Se reconstruirán " + missing.length + " históricos sin imagen.");
+      if (missing.length) { setLegacyRecords(missing); setLegacyDone(0); setLegacyFailed(0); }
+      else if (!result.failed) toast.success("La biblioteca ya estaba sincronizada.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo sincronizar Discord.");
     } finally { setSyncingDiscord(false); }
@@ -209,7 +231,7 @@ export function CertificarView({ session }: { session: Session }) {
           </article>;
         })}</div> : <p className="py-8 text-center text-sm text-slate-400">No hay certificados que coincidan con los filtros.</p>}
       </div>
-      {legacyRecords.map(row => <LegacyCertificatePublisher key={row.id} row={row} memberName={members.find(m => m.id === row.pd_member_id)?.nombre ?? "NOMBRE APELLIDO"} instructorName={members.find(m => m.id === row.instructor_pd_member_id)?.nombre ?? "Nada"} onDone={onLegacyDone} />)}
+      {legacyRecords[legacyDone] && <LegacyCertificatePublisher key={legacyRecords[legacyDone].id} row={legacyRecords[legacyDone]} memberName={members.find(m => m.id === legacyRecords[legacyDone].pd_member_id)?.nombre ?? "NOMBRE APELLIDO"} instructorName={members.find(m => m.id === legacyRecords[legacyDone].instructor_pd_member_id)?.nombre ?? "Nada"} onDone={onLegacyDone} />}
 
       {preview ? (
         <div className="w-full bg-white border border-blue-200 shadow-sm p-5">
