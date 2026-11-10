@@ -86,7 +86,7 @@ function LegacyCertificatePublisher({ row, memberName, instructorName, onDone }:
     } finally { onDone(success); }
   }, [finished, row.id, memberName, onDone]);
   if (finished) return null;
-  return <div aria-hidden="true" className="pointer-events-none fixed left-[-10000px] top-0 w-[900px]"><CertCard data={data} autoGenerate onGenerated={publish} onError={() => { setFinished(true); toast.error("No se pudo generar el certificado de " + memberName); onDone(); }} /></div>;
+  return <div aria-hidden="true" className="pointer-events-none fixed left-[-10000px] top-0 w-[900px]"><CertCard data={data} autoGenerate onGenerated={publish} onError={() => { setFinished(true); toast.error("No se pudo generar el certificado de " + memberName); onDone(false); }} /></div>;
 }
 
 async function loadAllCertificateRecords(): Promise<CertificateRecord[]> {
