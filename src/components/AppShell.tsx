@@ -5,7 +5,7 @@ import { logAction, setSession, type Session } from "@/lib/session";
 import { getBackground } from "@/lib/appearance";
 import {
   LogOut, LogIn, UserRound, Archive, GraduationCap, FileSearch, Award, IdCard, ListOrdered,
-  MessagesSquare, Wallet, Settings, Users, TrendingUp, PanelLeftClose, PanelLeftOpen, Menu, type LucideIcon,
+  MessagesSquare, Wallet, Settings, Users, UserCheck, TrendingUp, PanelLeftClose, PanelLeftOpen, Menu, type LucideIcon,
 } from "lucide-react";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -13,7 +13,7 @@ import { puedeVer } from "@/lib/secciones";
 import { getSalaryTabVisibility } from "@/lib/discord";
 import { ADMIN_RANGO_LABELS, normalizeRango } from "@/lib/adminRango";
 
-type Tab = { to: string; label: string; icon: LucideIcon; public: boolean; alto: boolean; sec?: string; group: string; search?: { section: "config" | "gestion" } };
+type Tab = { to: string; label: string; icon: LucideIcon; public: boolean; alto: boolean; moderator?: boolean; sec?: string; group: string; search?: { section: "config" | "gestion" } };
 
 const TABS: Tab[] = [
   { to: "/perfil", label: "myPerfil", icon: UserRound, public: false, alto: false, group: "Cuenta" },
@@ -24,6 +24,7 @@ const TABS: Tab[] = [
   { to: "/registro-policias", label: "Registro de Policías", icon: IdCard, public: true, alto: false, group: "Personal" },
   { to: "/registro-inhabilitados", label: "Pol. Inhabilitados", icon: IdCard, public: false, alto: false, sec: "registro", group: "Personal" },
   { to: "/capacitaciones", label: "Capacitaciones", icon: GraduationCap, public: true, alto: false, group: "Personal" },
+  { to: "/instructores", label: "Instructores", icon: UserCheck, public: false, alto: false, moderator: true, group: "Personal" },
   { to: "/policias", label: "Lista de Policías", icon: ListOrdered, public: false, alto: false, sec: "lista", group: "Personal" },
   { to: "/salario", label: "Salario", icon: Wallet, public: true, alto: false, group: "Personal" },
   { to: "/salarios-manuales", label: "[M] Salarios", icon: Wallet, public: false, alto: true, group: "Personal" },
@@ -67,6 +68,7 @@ export function AppShell({ session, children }: { session: Session | null; child
     if (t.to === "/salario" && salaryVisibility.hideSalary) return false;
     if (t.to === "/salarios-manuales" && salaryVisibility.hideManualSalary) return false;
     if (!session) return t.public;
+    if (t.moderator) return session.admin_rango === "moderador" || session.is_alto_mando;
     if (t.alto) return session.is_alto_mando;
     if (t.to === "/registro-inhabilitados" && session.can_edit_pd) return true;
     return t.public || puedeVer(session, t.sec);
