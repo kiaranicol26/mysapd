@@ -204,8 +204,8 @@ export function AscensosMasivosView({ session }: { session: Session }) {
         <div className="h-1.5 bg-blue-700" />
         <div className="p-5 space-y-3">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 border-2 border-blue-300 flex items-center justify-center">
-              <ArrowUpCircle className="w-6 h-6 text-blue-700" />
+            <div className="w-11 h-11 border-2 border-blue-300 bg-white flex items-center justify-center p-1">
+              <img src={sapdLogo.url} alt="SAPD" className="w-full h-full object-contain" />
             </div>
             <div>
               <p className="text-xs uppercase tracking-[0.25em] font-extrabold text-blue-700">San Andreas Police Department</p>
