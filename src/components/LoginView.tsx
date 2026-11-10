@@ -90,7 +90,7 @@ export function LoginView() {
             </div>
           </section>
 
-          <section className="mt-10 border border-[#d8c69f] bg-[#f8f5ed] px-6 py-8 text-center sm:px-10">
+          <section className="mt-10 border border-[#d8c69f] bg-white px-6 py-8 text-center sm:px-10">
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#9b7838]">Reclutamiento</p><h2 className="mt-3 text-3xl font-black uppercase text-[#17345c] sm:text-4xl">Join SAPD</h2><p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-700">¿Querés formar parte de la institución? Mantenete atento a los próximos llamados de ingreso.</p>
             <Button onClick={() => setJoinMessage("Convocatorias Cerradas, espera tu proxima oportunidad")} className="mt-6 h-12 min-w-56 rounded-none bg-[#17345c] px-8 font-black uppercase tracking-[0.18em] text-white hover:bg-[#254a78]">Consultar convocatorias <ArrowRight className="ml-2 h-4 w-4" /></Button>
             {joinMessage && <p role="status" className="mx-auto mt-4 max-w-md border border-[#d8c69f] bg-white px-4 py-3 text-sm font-bold text-[#17345c]">{joinMessage}</p>}
