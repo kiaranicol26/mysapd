@@ -173,8 +173,12 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
 
     case "pd_trainings":
       if (spec.op === "select") return spec;
+      if (spec.op === "delete") {
+        if (claims?.rango !== "administrador") deny("Solo Administrador puede borrar capacitaciones");
+        return spec;
+      }
+      if (spec.op !== "insert") deny("Las capacitaciones registradas no se pueden modificar desde esta sección");
       if (!alto && !claims?.capacitaciones) deny("No tenés permiso para registrar capacitaciones");
-      if (spec.op !== "insert") deny("Las capacitaciones registradas no se pueden modificar ni borrar desde esta sección");
       return spec;
 
     case "pd_members": {
