@@ -305,8 +305,11 @@ async function publishTrainingCertificateToForumUnlocked(
     admin.from("pd_members").select("nombre").eq("id", training.instructor_pd_member_id).maybeSingle(),
     admin.from("app_settings").select("value").eq("key", "certificate_forum_channel_id").maybeSingle(),
   ]);
-  // The supplied channel is the temporary destination for this test rollout.
-  const forumId = "1569567016543584276";
+  // Move the previous configured test channel to the newly requested test forum.
+  const configuredForumId = String(setting?.value ?? "").trim();
+  const forumId = !configuredForumId || configuredForumId === "1569565004712116326"
+    ? "1569567016543584276"
+    : configuredForumId;
   if (!/^\d{17,20}$/.test(forumId)) throw new Error("Configurá un ID válido de canal Foro en Administración → Configuración Web");
   if (!member) throw new Error("No se encontró el SAPD asociado a la capacitación");
 
