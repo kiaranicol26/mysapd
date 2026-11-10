@@ -441,7 +441,7 @@ async function publishTrainingCertificateToForumUnlocked(
   const { data: latestTraining, error: latestTrainingError } = await admin.from("pd_trainings")
     .select("discord_published_at, discord_published_forum_id, certificate_image_url").eq("id", training.id).maybeSingle();
   if (latestTrainingError) throw new Error("No se pudo verificar el estado de publicación del certificado");
-  if (latestTraining?.discord_published_at && (!force || latestTraining.discord_published_forum_id === forumId)) {
+  if (latestTraining?.discord_published_at && latestTraining.discord_published_forum_id === forumId && !force) {
     return { ok: true as const, alreadyPublished: true, threadId, imageUrl: latestTraining.certificate_image_url ?? imageUrl };
   }
 
