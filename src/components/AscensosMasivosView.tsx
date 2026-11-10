@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { db, getToken } from "@/lib/db";
 import { logAction, type Session } from "@/lib/session";
 import { applyBulkPromotions } from "@/lib/data.functions";
-import { parsePromotionAnnouncement, rankTextMatches, type ParsedPromotion, type PoliceRank } from "@/lib/promociones";
+import { parsePromotionAnnouncement, rankTextMatches, type ParsedPromotion } from "@/lib/promociones";
 
 type Instructor = { id: string; name: string; discord_id: string | null; discord_inhabilitado: boolean | null };
 type PdMember = { id: string; instructor_id: string | null; nombre: string; rango: string | null };
