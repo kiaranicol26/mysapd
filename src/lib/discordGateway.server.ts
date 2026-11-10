@@ -349,7 +349,7 @@ async function publishTrainingCertificateToForumUnlocked(
 
   // Discord receives the public PNG URL as plain message content. Discord may
   // show its native link preview, but mySAPD does not construct or send embeds.
-  const certificateMessage = [discordMention, imageUrl].filter(Boolean).join("\\n");
+  const certificateMessage = [discordMention, imageUrl].filter(Boolean).join("\n");
 
   let createdThreadForThisCall = false;
   const makeThread = async (reservation: string) => {
