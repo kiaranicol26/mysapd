@@ -57,9 +57,35 @@ function emptyForm(session: Session): CertificateForm {
   };
 }
 
+type CertificateRecord = { id: string; pd_member_id: string; section: string; training: string; training_other: string | null; awarded_at: string | null; instructor_pd_member_id: string | null; certificate_image_url: string | null; is_legacy?: boolean };
+
 export function CertificarView({ session }: { session: Session }) {
+  const [records, setRecords] = useState<CertificateRecord[]>([]);
+  const [members, setMembers] = useState<{ id: string; nombre: string; legajo: number }[]>([]);
+  const [filterMember, setFilterMember] = useState("");
+  const [filterSection, setFilterSection] = useState("");
+  const [filterTraining, setFilterTraining] = useState("");
+  const [filterInstructor, setFilterInstructor] = useState("");
+  const [searchText, setSearchText] = useState("");
   const [form, setForm] = useState<CertificateForm | null>(null);
   const [preview, setPreview] = useState<CertificateForm | null>(null);
+
+  useEffect(() => {
+    Promise.all([
+      db.from("pd_trainings").select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, certificate_image_url, is_legacy").order("awarded_at", { ascending: false }),
+      db.from("pd_members").select("id, nombre, legajo").order("nombre", { ascending: true }),
+    ]).then(([trainingRows, memberRows]) => {
+      if (trainingRows.error) toast.error(trainingRows.error.message); else setRecords((trainingRows.data ?? []) as CertificateRecord[]);
+      if (memberRows.error) toast.error(memberRows.error.message); else setMembers((memberRows.data ?? []) as { id: string; nombre: string; legajo: number }[]);
+    });
+  }, []);
+
+  const visibleRecords = useMemo(() => records.filter(row => {
+    const target = members.find(m => m.id === row.pd_member_id);
+    const instructor = members.find(m => m.id === row.instructor_pd_member_id);
+    const haystack = [target?.nombre, instructor?.nombre, String(target?.legajo ?? ""), row.training, row.training_other ?? ""].join(" ").toLowerCase();
+    return (!filterMember || row.pd_member_id === filterMember) && (!filterSection || row.section === filterSection) && (!filterTraining || row.training === filterTraining) && (!filterInstructor || row.instructor_pd_member_id === filterInstructor) && (!searchText || haystack.includes(searchText.toLowerCase()));
+  }), [records, members, filterMember, filterSection, filterTraining, filterInstructor, searchText]);
 
   function openCreate() {
     setForm(emptyForm(session));
