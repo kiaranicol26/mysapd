@@ -261,18 +261,32 @@ export async function mergeDuplicatePdMembers(admin: { from: (table: string) => 
 
 export async function publishTrainingCertificateToForum(admin: { from: (table: string) => any; storage: any }, trainingId: string, certificateDataUrl?: string) {
   const { data: training, error: trainingError } = await admin.from("pd_trainings")
-    .select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, certificate_image_url, discord_published_at")
+    .select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, certificate_image_url, discord_published_at, discord_published_channel_id")
     .eq("id", trainingId).maybeSingle();
   if (trainingError || !training) throw new Error("No se encontró la capacitación para publicar");
-  if (training.discord_published_at) return { ok: true as const, alreadyPublished: true, threadId: null, imageUrl: training.certificate_image_url };
+
   const [{ data: member }, { data: instructor }, { data: setting }] = await Promise.all([
     admin.from("pd_members").select("id, nombre, legajo, discord_forum_thread_id").eq("id", training.pd_member_id).maybeSingle(),
     admin.from("pd_members").select("nombre").eq("id", training.instructor_pd_member_id).maybeSingle(),
     admin.from("app_settings").select("value").eq("key", "certificate_forum_channel_id").maybeSingle(),
   ]);
   const forumId = String(setting?.value ?? "").trim();
-  if (!/^\d{17,20}$/.test(forumId)) throw new Error("Configurá un ID válido de canal Foro en Administración → Configuración Web");
+  if (!/^\\d{17,20}$/.test(forumId)) throw new Error("Configurá un ID válido de canal Foro en Administración → Configuración Web");
   if (!member) throw new Error("No se encontró el SAPD asociado a la capacitación");
+
+  let threadId = member.discord_forum_thread_id as string | null;
+  let threadIsInTargetForum = false;
+  if (threadId) {
+    // Never silently create a duplicate when Discord cannot verify the saved thread.
+    const existingThread = await discord("channels/" + threadId) as { id?: string; parent_id?: string };
+    threadIsInTargetForum = existingThread?.parent_id === forumId;
+    if (!threadIsInTargetForum) threadId = null;
+  }
+  // Publication markers are destination-specific: changing the forum channel
+  // republishes the existing certificates into the new forum, once each.
+  if (training.discord_published_at && training.discord_published_channel_id === forumId && threadIsInTargetForum) {
+    return { ok: true as const, alreadyPublished: true, threadId, imageUrl: training.certificate_image_url };
+  }
 
   let imageUrl = String(certificateDataUrl ?? training.certificate_image_url ?? "");
   if (imageUrl.startsWith("data:image/")) {
@@ -297,9 +311,8 @@ export async function publishTrainingCertificateToForum(admin: { from: (table: s
   const trainingName = training.training === "OTRA" ? training.training_other : training.training;
   const date = training.awarded_at ?? "Fecha no disponible";
   const instructorName = instructor?.nombre ?? "Instructor SAPD";
-  const title = "Certificado · " + member.nombre;
   const embed = {
-    title,
+    title: "Certificado · " + member.nombre,
     description: "Certificación oficial emitida por mySAPD.",
     color: 0x17345c,
     fields: [
@@ -313,15 +326,12 @@ export async function publishTrainingCertificateToForum(admin: { from: (table: s
     image: { url: imageUrl },
     footer: { text: "San Andreas Police Department · mySAPD" },
   };
-  let threadId = member.discord_forum_thread_id as string | null;
-  if (threadId) {
-    try { await discord("channels/" + threadId); } catch { threadId = null; }
-  }
+
   if (!threadId) {
     const created = await discord("channels/" + forumId + "/threads", {
       method: "POST",
       body: JSON.stringify({
-        name: (member.nombre + " · Legajo " + member.legajo).slice(0, 100),
+        name: member.nombre.trim().replace(/\s+/g, "_").slice(0, 100),
         auto_archive_duration: 10080,
         message: { content: "Historial de certificados de **" + member.nombre + "** · Legajo **" + member.legajo + "**", embeds: [embed] },
       }),
@@ -336,7 +346,11 @@ export async function publishTrainingCertificateToForum(admin: { from: (table: s
       body: JSON.stringify({ embeds: [embed] }),
     });
   }
-  const { error: publicationError } = await admin.from("pd_trainings").update({ certificate_image_url: imageUrl, discord_published_at: new Date().toISOString() }).eq("id", training.id);
+  const { error: publicationError } = await admin.from("pd_trainings").update({
+    certificate_image_url: imageUrl,
+    discord_published_at: new Date().toISOString(),
+    discord_published_channel_id: forumId,
+  }).eq("id", training.id);
   if (publicationError) throw new Error("El certificado se publicó, pero no se pudo registrar la sincronización en mySAPD");
   return { ok: true as const, threadId, imageUrl };
 }
