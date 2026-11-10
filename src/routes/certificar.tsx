@@ -5,10 +5,10 @@ import { CertificarView } from "@/components/CertificarView";
 export const Route = createFileRoute("/certificar")({
   head: () => ({
     meta: [
-      { title: "Certificar · mySAPD" },
-      { name: "description", content: "Emisión de certificados de capacitación del SAPD en alta resolución." },
-      { property: "og:title", content: "Certificar · mySAPD" },
-      { property: "og:description", content: "Emisión de certificados de capacitación del SAPD en alta resolución." },
+      { title: "Certificados · mySAPD" },
+      { name: "description", content: "Biblioteca de certificados generados desde las capacitaciones del SAPD." },
+      { property: "og:title", content: "Certificados · mySAPD" },
+      { property: "og:description", content: "Biblioteca de certificados generados desde las capacitaciones del SAPD." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
