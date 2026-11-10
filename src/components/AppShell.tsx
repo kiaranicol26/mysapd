@@ -27,7 +27,7 @@ const TABS: Tab[] = [
   { to: "/policias", label: "Lista de Policías", icon: ListOrdered, public: false, alto: false, sec: "lista", group: "Personal" },
   { to: "/salario", label: "Salario", icon: Wallet, public: true, alto: false, group: "Personal" },
   { to: "/salarios-manuales", label: "[M] Salarios", icon: Wallet, public: false, alto: true, group: "Personal" },
-  { to: "/ascensos-masivos", label: "Ascensos masivos", icon: TrendingUp, public: false, alto: true, group: "Administración" },
+  { to: "/ascensos-masivos", label: "Cargas Masivas", icon: TrendingUp, public: false, alto: true, group: "Administración" },
   { to: "/forum", label: "Foro Privado", icon: MessagesSquare, public: false, alto: false, sec: "forum", group: "Comunidad" },
   { to: "/alto-mando", label: "Configuración Web", icon: Settings, public: false, alto: true, group: "Administración", search: { section: "config" } },
   { to: "/alto-mando", label: "Gestión", icon: Users, public: false, alto: true, group: "Administración", search: { section: "gestion" } },
