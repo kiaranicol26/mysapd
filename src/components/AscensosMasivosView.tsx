@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ArrowUpCircle, CheckCircle2, ClipboardPaste, Loader2, RefreshCw, ShieldCheck, XCircle } from "lucide-react";
+import { AlertTriangle, ArrowUpCircle, CheckCircle2, ClipboardPaste, Loader2, RefreshCw, Settings2, ShieldCheck, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { db, getToken } from "@/lib/db";
 import { logAction, type Session } from "@/lib/session";
 import { applyBulkPromotions } from "@/lib/data.functions";
-import { parsePromotionAnnouncement, policeRankOrder, rankTextMatches, type ParsedPromotion } from "@/lib/promociones";
+import { DEFAULT_PROMOTION_ROLE_CONFIG, externalRoleIdsByRank, formatRankIdLines, parsePromotionAnnouncement, parsePromotionRoleConfig, parseRankIdLines, policeRankOrder, rankTextMatches, type ParsedPromotion, type PoliceRank, type PromotionRoleConfig } from "@/lib/promociones";
 
 type Instructor = { id: string; name: string; discord_id: string | null; discord_inhabilitado: boolean | null };
 type PdMember = { id: string; instructor_id: string | null; nombre: string; rango: string | null };
@@ -31,6 +31,12 @@ export function AscensosMasivosView({ session }: { session: Session }) {
   const [parsed, setParsed] = useState<ParsedPromotion[]>([]);
   const [issues, setIssues] = useState<{ line: number; text: string; reason: string }[]>([]);
   const [results, setResults] = useState<ApplyResult[]>([]);
+  const [roleConfig, setRoleConfig] = useState<PromotionRoleConfig>(DEFAULT_PROMOTION_ROLE_CONFIG);
+  const [externalRoleText, setExternalRoleText] = useState(formatRankIdLines(externalRoleIdsByRank(DEFAULT_PROMOTION_ROLE_CONFIG)));
+  const [factionRoleText, setFactionRoleText] = useState(formatRankIdLines(DEFAULT_PROMOTION_ROLE_CONFIG.faction));
+  const [roleConfigLoading, setRoleConfigLoading] = useState(true);
+  const [savingRoleConfig, setSavingRoleConfig] = useState(false);
+  const [showRoleConfig, setShowRoleConfig] = useState(false);
 
   async function loadRoster() {
     setLoadingRoster(true);
@@ -50,7 +56,51 @@ export function AscensosMasivosView({ session }: { session: Session }) {
     }
   }
 
-  useEffect(() => { void loadRoster(); }, []);
+  async function loadRoleConfig() {
+    setRoleConfigLoading(true);
+    try {
+      const { data, error } = await db.from("app_settings").select("value")
+        .eq("key", "bulk_promotion_role_mappings").maybeSingle();
+      if (error) throw new Error(error.message);
+      const config = parsePromotionRoleConfig(data?.value);
+      setRoleConfig(config);
+      setExternalRoleText(formatRankIdLines(externalRoleIdsByRank(config)));
+      setFactionRoleText(formatRankIdLines(config.faction));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo cargar la equivalencia de roles.");
+    } finally {
+      setRoleConfigLoading(false);
+    }
+  }
+
+  async function saveRoleConfig() {
+    setSavingRoleConfig(true);
+    try {
+      const externalByRank = parseRankIdLines(externalRoleText);
+      const faction = parseRankIdLines(factionRoleText);
+      const external = Object.fromEntries(
+        Object.entries(externalByRank).map(([rank, roleId]) => [roleId, rank]),
+      ) as Record<string, PoliceRank>;
+      const config: PromotionRoleConfig = { external, faction };
+      const { error } = await db.from("app_settings").upsert({
+        key: "bulk_promotion_role_mappings",
+        value: JSON.stringify(config),
+        updated_at: new Date().toISOString(),
+      });
+      if (error) throw new Error(error.message);
+      setRoleConfig(config);
+      setParsed([]);
+      setIssues([]);
+      await logAction(db, session, "UPDATE_PROMOTION_ROLE_MAPPINGS", { ranks: 9 });
+      toast.success("Equivalencias de rangos guardadas.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudieron guardar las equivalencias.");
+    } finally {
+      setSavingRoleConfig(false);
+    }
+  }
+
+  useEffect(() => { void loadRoster(); void loadRoleConfig(); }, []);
 
   const preview = useMemo<PreviewRow[]>(() => {
     return parsed.map(item => {
@@ -85,7 +135,8 @@ export function AscensosMasivosView({ session }: { session: Session }) {
     try {
       if (!rawText.trim()) throw new Error("Pegá primero el comunicado de ascensos.");
       if (loadingRoster) throw new Error("Esperá a que termine de cargar el Registro PD.");
-      const parsedResult = parsePromotionAnnouncement(rawText);
+      if (roleConfigLoading) throw new Error("Esperá a que termine de cargar la equivalencia de roles.");
+      const parsedResult = parsePromotionAnnouncement(rawText, roleConfig.external);
       if (!parsedResult.promotions.length && !parsedResult.issues.length) {
         throw new Error("No encontré líneas de ascenso con menciones de Discord válidas.");
       }
@@ -181,7 +232,7 @@ export function AscensosMasivosView({ session }: { session: Session }) {
             className="min-h-[240px] rounded-none border-blue-200 bg-white font-mono text-sm text-slate-800"
           />
           <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={analyze} disabled={loading || loadingRoster || !rawText.trim()} className="rounded-none bg-blue-700 hover:bg-blue-800 text-white font-bold">
+            <Button onClick={analyze} disabled={loading || loadingRoster || roleConfigLoading || !rawText.trim()} className="rounded-none bg-blue-700 hover:bg-blue-800 text-white font-bold">
               {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ClipboardPaste className="mr-2 h-4 w-4" />}
               Analizar comunicado
             </Button>
