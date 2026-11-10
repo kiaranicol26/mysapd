@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { db } from "@/lib/db";
+import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { Session, logAction } from "@/lib/session";
 import { activePdMembers } from "@/lib/registroActivo";
 import { calculateSalaryExtras } from "@/lib/salaryEntries";
@@ -247,7 +248,7 @@ export function ManualSalariosView({ session }: { session: Session }) {
       <div className="h-1.5 bg-blue-700" />
       <div className="p-5 space-y-3">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 border-2 border-blue-300 flex items-center justify-center"><Wallet className="w-6 h-6 text-blue-700" /></div>
+          <div className="w-11 h-11 border-2 border-blue-300 bg-white flex items-center justify-center p-1"><img src={sapdLogo.url} alt="SAPD" className="w-full h-full object-contain" /></div>
           <div><p className="text-xs uppercase tracking-[0.25em] font-extrabold text-blue-700">San Andreas Police Department</p><h1 className="text-2xl font-black uppercase text-slate-900 font-display">[M] Salarios</h1></div>
         </div>
         <p className="text-sm text-slate-600">Liquidaciones independientes y manuales. Este módulo no modifica la pestaña Salario automática.</p>

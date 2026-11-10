@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { db } from "@/lib/db";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -79,7 +80,7 @@ export function RegistroPdPublicView({ session }: { session: Session | null }) {
       <Card className="overflow-hidden border-2 border-blue-300 bg-white rounded-none">
         <div className="h-1.5 bg-blue-700" />
         <div className="p-5 flex flex-wrap items-center gap-4">
-          <div className="w-12 h-12 flex items-center justify-center border-2 border-blue-300 text-blue-700"><ShieldCheck className="w-7 h-7" /></div>
+          <div className="w-12 h-12 flex items-center justify-center border-2 border-blue-300 bg-white p-1"><img src={sapdLogo.url} alt="SAPD" className="w-full h-full object-contain" /></div>
           <div className="flex-1 min-w-[180px]">
             <p className="text-blue-700 text-xs uppercase tracking-[0.3em] font-extrabold">San Andreas Police Department</p>
             <h2 className="text-2xl font-black uppercase text-slate-900">Registro de Policías</h2>
