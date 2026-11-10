@@ -184,6 +184,7 @@ const querySchema = z.object({
     .nullable()
     .optional(),
   limit: z.number().int().min(1).max(1000).nullable().optional(),
+  range: z.object({ from: z.number().int().min(0), to: z.number().int().min(0).max(999999) }).refine(v => v.to >= v.from && v.to - v.from <= 999, "Rango de consulta inválido").nullable().optional(),
   filters: z.array(filterSchema).max(10).optional(),
   values: z.any().optional(),
   returning: z.string().max(500).nullable().optional(),
