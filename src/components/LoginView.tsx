@@ -29,7 +29,7 @@ export function LoginView() {
         <header className="border-b border-slate-200 bg-white/95 shadow-sm">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 lg:px-8">
             <div className="flex items-center gap-3">
-              <img src={sapdLogo.url} alt="Escudo SAPD" className="h-12 w-12 object-contain" />
+              <img src={sapdLogo.url} alt="Escudo SAPD" className="h-16 w-16 object-contain sm:h-[4.5rem] sm:w-[4.5rem]" />
               <div>
                 <p className="text-lg font-black tracking-[0.12em] text-[#17345c]">SAN ANDREAS <span className="text-[#b18a3b]">POLICE DEPARTMENT</span></p>
                 <p className="text-[9px] font-bold uppercase tracking-[0.28em] text-slate-700">mySAPD · Official Department Portal</p>
@@ -41,8 +41,8 @@ export function LoginView() {
 
         <main className="mx-auto max-w-7xl px-4 pb-12 pt-8 sm:px-6 lg:px-8">
           <section className="mx-auto flex max-w-3xl flex-col items-center px-2 pb-8 pt-4 text-center sm:pt-8">
-            <div className="mx-auto flex h-56 w-56 items-center justify-center sm:h-72 sm:w-72">
-              <img src={sapdLogo.url} alt="Logo oficial mySAPD" className="h-full w-full object-contain" />
+            <div className="mx-auto flex h-72 w-72 items-center justify-center sm:h-[22rem] sm:w-[22rem] lg:h-[25rem] lg:w-[25rem]">
+              <img src={sapdLogo.url} alt="Logo oficial mySAPD" className="h-full w-full object-contain drop-shadow-[0_12px_24px_rgba(23,52,92,0.18)]" />
             </div>
             <p className="mt-3 text-[11px] font-extrabold uppercase tracking-[0.34em] text-[#a17b32]">San Andreas · WestZone Roleplay</p>
             <h1 className="mt-3 text-3xl font-black uppercase leading-[1.08] tracking-tight text-[#17345c] sm:text-5xl">Servicio. <span className="text-[#9b7838]">Integridad. Compromiso.</span></h1>
