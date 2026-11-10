@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
-import { db } from "@/lib/db";
+import { db, getToken } from "@/lib/db";
+import { publishTrainingCertificate } from "@/lib/data.functions";
 import type { Session } from "@/lib/session";
 import { BadgeCheck, GraduationCap, Plus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
@@ -56,10 +57,16 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
 
   const finishRegistration = useCallback(async (certificateImage: string) => {
     if (!certificateDraft) return;
-    const { error } = await db.from("pd_trainings").insert({ ...certificateDraft.payload, certificate_image_url: certificateImage });
+    const { data, error } = await db.from("pd_trainings").insert({ ...certificateDraft.payload, certificate_image_url: certificateImage }).select("id").single();
     setSaving(false); setCertificateDraft(null); captureStarted.current = false;
     if (error) return toast.error(error.message);
-    toast.success("Capacitación registrada y certificado guardado correctamente.");
+    toast.success("Capacitación registrada y certificado generado.");
+    const token = getToken();
+    if (token && data?.id) {
+      const published = await publishTrainingCertificate({ data: { token, trainingId: data.id, certificateImage } });
+      if (published.ok) toast.success("Certificado publicado en el foro de Discord del SAPD.");
+      else toast.warning("El certificado quedó guardado en mySAPD, pero no se publicó en Discord: " + published.error);
+    }
     setShowForm(false); setMemberId(""); setTraining("M4"); setTrainingOther(""); setSection("Armas"); setAwardedAt(today()); setInstructorId("");
     await load();
   }, [certificateDraft]);

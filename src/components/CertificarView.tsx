@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import tpl from "@/assets/certificado-new-capacitacion.png";
 import pictoM4 from "@/assets/picto-m4.png.asset.json";
@@ -7,7 +7,8 @@ import pictoSniper from "@/assets/picto-sniper.png.asset.json";
 import pictoAk from "@/assets/picto-ak.png.asset.json";
 import pictoMary from "@/assets/picto-mary.png.asset.json";
 import pictoAir from "@/assets/picto-air.png.asset.json";
-import { db } from "@/lib/db";
+import { db, getToken } from "@/lib/db";
+import { publishTrainingCertificate, syncExistingCertificatesToForum } from "@/lib/data.functions";
 import { Session, logAction } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,6 +61,32 @@ function emptyForm(session: Session): CertificateForm {
 
 type CertificateRecord = { id: string; pd_member_id: string; section: string; training: string; training_other: string | null; awarded_at: string | null; instructor_pd_member_id: string | null; certificate_image_url: string | null; is_legacy?: boolean };
 
+function LegacyCertificatePublisher({ row, memberName, instructorName, onDone }: { row: CertificateRecord; memberName: string; instructorName: string; onDone: () => void }) {
+  const [finished, setFinished] = useState(false);
+  const data: CertificateForm = {
+    tipo: ({ M4: "Fusil M4", EDC: "Escopeta Spas12", "AK-47": "Fusil de Asalto AK-47", SNIPER: "Fusil de Precisión", MARY: "Unidad Motorizada Mary", AIR: "Unidad Aerea", OTRA: "Capacitación Especial" } as Record<string, string>)[row.training] ?? "Fusil M4",
+    nombre: memberName,
+    instructor: instructorName,
+    comisario: "San Andreas Police Department",
+    fecha: row.awarded_at ? row.awarded_at.split("-").reverse().join("/") : "Nada",
+    numero: row.id.replace(/\\D/g, "").slice(-6).padStart(6, "0"),
+  };
+  const publish = useCallback(async (image: string) => {
+    if (finished) return;
+    setFinished(true);
+    try {
+      const token = getToken();
+      if (!token) throw new Error("Tu sesión expiró.");
+      const result = await publishTrainingCertificate({ data: { token, trainingId: row.id, certificateImage: image } });
+      if (!result.ok) throw new Error(result.error);
+    } catch (error) {
+      toast.error("No se pudo publicar el certificado de " + memberName + ": " + (error instanceof Error ? error.message : "error"));
+    } finally { onDone(); }
+  }, [finished, row.id, memberName, onDone]);
+  if (finished) return null;
+  return <div aria-hidden="true" className="pointer-events-none fixed left-[-10000px] top-0 w-[900px]"><CertCard data={data} autoGenerate onGenerated={publish} onError={() => { setFinished(true); toast.error("No se pudo generar el certificado de " + memberName); onDone(); }} /></div>;
+}
+
 export function CertificarView({ session }: { session: Session }) {
   const [records, setRecords] = useState<CertificateRecord[]>([]);
   const [members, setMembers] = useState<{ id: string; nombre: string; legajo: number }[]>([]);
@@ -68,6 +95,9 @@ export function CertificarView({ session }: { session: Session }) {
   const [filterTraining, setFilterTraining] = useState("");
   const [filterInstructor, setFilterInstructor] = useState("");
   const [searchText, setSearchText] = useState("");
+  const [syncingDiscord, setSyncingDiscord] = useState(false);
+  const [legacyRecords, setLegacyRecords] = useState<CertificateRecord[]>([]);
+  const [legacyDone, setLegacyDone] = useState(0);
   const [form, setForm] = useState<CertificateForm | null>(null);
   const [preview, setPreview] = useState<CertificateForm | null>(null);
 
@@ -88,6 +118,32 @@ export function CertificarView({ session }: { session: Session }) {
     return (!filterMember || row.pd_member_id === filterMember) && (!filterSection || row.section === filterSection) && (!filterTraining || row.training === filterTraining) && (!filterInstructor || row.instructor_pd_member_id === filterInstructor) && (!searchText || haystack.includes(searchText.toLowerCase()));
   }), [records, members, filterMember, filterSection, filterTraining, filterInstructor, searchText]);
 
+  const onLegacyDone = useCallback(() => setLegacyDone(value => value + 1), []);
+
+  useEffect(() => {
+    if (legacyRecords.length && legacyDone >= legacyRecords.length) {
+      toast.success("Todos los certificados históricos fueron generados y publicados.");
+      setLegacyRecords([]);
+      setLegacyDone(0);
+      db.from("pd_trainings").select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, certificate_image_url, is_legacy").order("awarded_at", { ascending: false }).then(({ data }) => { if (data) setRecords(data as CertificateRecord[]); });
+    }
+  }, [legacyRecords, legacyDone]);
+
+  async function syncCertificatesToDiscord() {
+    const token = getToken();
+    if (!token) return toast.error("Tu sesión expiró.");
+    setSyncingDiscord(true);
+    try {
+      const result = await syncExistingCertificatesToForum({ data: { token } });
+      if (!result.ok) throw new Error(result.error);
+      const missing = records.filter(row => !row.certificate_image_url);
+      toast.success(result.sent + " certificados con imagen publicados. Se reconstruirán " + missing.length + " históricos sin imagen.");
+      if (missing.length) { setLegacyRecords(missing); setLegacyDone(0); }
+      else toast.success("La biblioteca ya estaba sincronizada.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo sincronizar Discord.");
+    } finally { setSyncingDiscord(false); }
+  }
   function openCreate() {
     setForm(emptyForm(session));
   }
@@ -129,7 +185,7 @@ export function CertificarView({ session }: { session: Session }) {
       </div>
 
       <div className="w-full border border-blue-200 bg-white p-5 shadow-sm space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-lg font-black uppercase text-slate-900">Biblioteca de certificados</h3><p className="text-sm text-slate-500">Certificados generados automáticamente desde Capacitaciones.</p></div><span className="text-xs font-bold text-blue-700">{visibleRecords.length} / {records.length} registros</span></div>
+        <div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-lg font-black uppercase text-slate-900">Biblioteca de certificados</h3><p className="text-sm text-slate-500">Certificados generados automáticamente desde Capacitaciones.</p></div><div className="flex flex-wrap items-center gap-3"><span className="text-xs font-bold text-blue-700">{visibleRecords.length} / {records.length} registros</span>{session.is_alto_mando && <Button onClick={syncCertificatesToDiscord} disabled={syncingDiscord || legacyRecords.length > 0} className="rounded-none bg-[#5865F2] text-white hover:bg-[#4752C4]">{syncingDiscord || legacyRecords.length > 0 ? "Sincronizando…" : "Sincronizar con Discord"}</Button>}</div></div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <Input value={searchText} onChange={e => setSearchText(e.target.value)} placeholder="Buscar agente o legajo…" className="rounded-none" />
           <select value={filterMember} onChange={e => setFilterMember(e.target.value)} className="h-10 border border-slate-300 bg-white px-2 text-sm"><option value="">Todos los SAPD</option>{members.map(m => <option key={m.id} value={m.id}>{m.nombre} · {m.legajo}</option>)}</select>
@@ -141,11 +197,20 @@ export function CertificarView({ session }: { session: Session }) {
           const target = members.find(m => m.id === row.pd_member_id);
           const instructor = members.find(m => m.id === row.instructor_pd_member_id);
           return <article key={row.id} className="overflow-hidden border border-slate-200 bg-slate-50">
-            {row.certificate_image_url ? <a href={row.certificate_image_url} target="_blank" rel="noreferrer"><img src={row.certificate_image_url} alt={"Certificado de " + (target?.nombre ?? "agente SAPD")} className="aspect-[1357/900] w-full bg-white object-contain" /></a> : <div className="flex aspect-[1357/900] items-center justify-center bg-white text-xs font-semibold text-slate-400">Certificado histórico sin imagen</div>}
+            {row.certificate_image_url ? <a href={row.certificate_image_url} target="_blank" rel="noreferrer"><img src={row.certificate_image_url} alt={"Certificado de " + (target?.nombre ?? "agente SAPD")} className="aspect-[1357/1920] w-full bg-white object-contain" /></a> : <div className="bg-white p-2"><CertCard data={{
+              tipo: ({ M4: "Fusil M4", EDC: "Escopeta Spas12", "AK-47": "Fusil de Asalto AK-47", SNIPER: "Fusil de Precisión", MARY: "Unidad Motorizada Mary", AIR: "Unidad Aerea", OTRA: "Capacitación Especial" } as Record<string, string>)[row.training] ?? "Fusil M4",
+              nombre: target?.nombre ?? "NOMBRE APELLIDO",
+              instructor: instructor?.nombre ?? "Nada",
+              comisario: "San Andreas Police Department",
+              fecha: row.awarded_at ? row.awarded_at.split("-").reverse().join("/") : "Nada",
+              numero: row.id.replace(/\D/g, "").slice(-6).padStart(6, "0"),
+            }} downloadable /></div>}
             <div className="space-y-1 p-3 text-sm"><p className="font-black text-slate-900">{target?.nombre ?? "Agente no disponible"} <span className="font-mono text-xs text-slate-500">#{target?.legajo ?? "—"}</span></p><p className="text-xs text-slate-600">{row.section} · {row.training === "OTRA" ? row.training_other : row.training}</p><p className="text-xs text-slate-500">Instructor: {instructor?.nombre ?? "Nada"} · {row.awarded_at ?? "Fecha histórica no disponible"}</p>{row.certificate_image_url && <a href={row.certificate_image_url} download className="mt-2 inline-flex text-xs font-bold text-blue-700 underline">Abrir / descargar PNG</a>}</div>
           </article>;
         })}</div> : <p className="py-8 text-center text-sm text-slate-400">No hay certificados que coincidan con los filtros.</p>}
       </div>
+      {legacyRecords.map(row => <LegacyCertificatePublisher key={row.id} row={row} memberName={members.find(m => m.id === row.pd_member_id)?.nombre ?? "NOMBRE APELLIDO"} instructorName={members.find(m => m.id === row.instructor_pd_member_id)?.nombre ?? "Nada"} onDone={onLegacyDone} />)}
+
       {preview ? (
         <div className="w-full bg-white border border-blue-200 shadow-sm p-5">
           <CertCard data={preview} downloadable />

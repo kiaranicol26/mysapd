@@ -12,6 +12,7 @@ import {
   getRnapWebhookUrl, setRnapWebhookUrl,
   getArchivoWebhookUrl, setArchivoWebhookUrl,
   getDiscordCodeLoginEnabled, setDiscordCodeLoginEnabled,
+  getCertificateForumChannelId, setCertificateForumChannelId,
   getSalaryTabVisibility, setHideSalaryTab, setHideManualSalaryTab,
 } from "@/lib/discord";
 import {
@@ -49,6 +50,8 @@ export function AltoMando({ session }: { session: Session }) {
   const [loginBg, setLoginBg] = useState("");
   const [savingLoginBg, setSavingLoginBg] = useState(false);
   const [discordCodeLoginEnabled, setDiscordCodeLoginEnabledState] = useState(true);
+  const [certificateForumChannelId, setCertificateForumChannelIdState] = useState("");
+  const [savingCertificateForum, setSavingCertificateForum] = useState(false);
   const [savingDiscordLoginSetting, setSavingDiscordLoginSetting] = useState(false);
   const [hideSalaryTab, setHideSalaryTabState] = useState(false);
   const [hideManualSalaryTab, setHideManualSalaryTabState] = useState(false);
@@ -76,6 +79,7 @@ export function AltoMando({ session }: { session: Session }) {
     getBackground().then(setBg);
     getLoginBackground().then(setLoginBg);
     getDiscordCodeLoginEnabled(true).then(setDiscordCodeLoginEnabledState);
+    getCertificateForumChannelId(true).then(setCertificateForumChannelIdState);
     getSalaryTabVisibility(true).then(v => { setHideSalaryTabState(v.hideSalary); setHideManualSalaryTabState(v.hideManualSalary); });
   }, []);
 
@@ -140,6 +144,12 @@ export function AltoMando({ session }: { session: Session }) {
     finally { setSavingArchivo(false); }
   }
 
+  async function saveCertificateForumChannel() {
+    setSavingCertificateForum(true);
+    try { await setCertificateForumChannelId(certificateForumChannelId.trim()); toast.success(certificateForumChannelId.trim() ? "Foro de certificados configurado" : "Foro de certificados desactivado"); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "No se pudo guardar el foro"); }
+    finally { setSavingCertificateForum(false); }
+  }
   async function saveDiscordCodeLoginEnabled(value: boolean) {
     setSavingDiscordLoginSetting(true);
     try {
@@ -361,6 +371,18 @@ export function AltoMando({ session }: { session: Session }) {
         </div>
       </Card>
 
+      <Card className="overflow-hidden border border-blue-200 bg-white shadow-sm rounded-none">
+        <div className="h-1 bg-[#5865F2]" />
+        <div className="space-y-3 p-5">
+          <h2 className="text-lg font-black uppercase tracking-wide text-slate-900 font-display">Foro de certificados en Discord</h2>
+          <p className="text-sm text-slate-600">Pegá el ID del canal de tipo Foro. mySAPD creará una publicación por SAPD y añadirá allí sus certificados. El bot necesita permisos para ver el canal, crear publicaciones y enviar mensajes en hilos.</p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input value={certificateForumChannelId} onChange={e => setCertificateForumChannelIdState(e.target.value)} placeholder="ID del canal Foro de Discord" className="h-11 rounded-none font-mono" />
+            <Button onClick={saveCertificateForumChannel} disabled={savingCertificateForum} className="h-11 rounded-none bg-[#5865F2] text-white hover:bg-[#4752C4]">{savingCertificateForum ? "Guardando…" : "Guardar foro"}</Button>
+          </div>
+          <p className="text-xs text-slate-500">El canal debe ser un Foro de Discord, no un canal de texto común.</p>
+        </div>
+      </Card>
       <Card className="overflow-hidden border border-blue-200 bg-white shadow-sm rounded-none">
         <div className="h-1 bg-blue-600" />
         <div className="p-5 space-y-4">

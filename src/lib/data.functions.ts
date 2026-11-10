@@ -235,3 +235,50 @@ export const loginWithId = createServerFn({ method: "POST" })
     if (!r) return { ok: false as const, error: "ID de acceso inválido." };
     return { ok: true as const, ...buildLogin(r) };
   });
+
+
+const publishCertificateSchema = z.object({
+  token: z.string().min(1).max(4096),
+  trainingId: z.string().uuid(),
+  certificateImage: z.string().startsWith("data:image/png;base64,").max(12_000_000),
+});
+
+export const publishTrainingCertificate = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => publishCertificateSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { verifyToken, freshClaims } = await import("@/lib/dbAuth.server");
+    const claims = await freshClaims(verifyToken(data.token), supabaseAdmin as any);
+    if (!claims?.capacitaciones) return { ok: false as const, error: "No tenés permisos para emitir certificados." };
+    try {
+      const { publishTrainingCertificateToForum } = await import("@/lib/discordGateway.server");
+      const result = await publishTrainingCertificateToForum(supabaseAdmin as any, data.trainingId, data.certificateImage);
+      return result;
+    } catch (error) {
+      return { ok: false as const, error: error instanceof Error ? error.message : "No se pudo publicar el certificado en Discord." };
+    }
+  });
+
+const syncCertificateForumSchema = z.object({ token: z.string().min(1).max(4096) });
+
+export const syncExistingCertificatesToForum = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => syncCertificateForumSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { verifyToken, freshClaims } = await import("@/lib/dbAuth.server");
+    const claims = await freshClaims(verifyToken(data.token), supabaseAdmin as any);
+    if (!claims?.alto) return { ok: false as const, error: "Solo Administrador puede iniciar la sincronización masiva." };
+    const { data: rows, error } = await (supabaseAdmin as any).from("pd_trainings").select("id, certificate_image_url");
+    if (error) return { ok: false as const, error: "No se pudieron leer los certificados." };
+    const { publishTrainingCertificateToForum } = await import("@/lib/discordGateway.server");
+    let sent = 0, skipped = 0, failed = 0;
+    for (const row of rows ?? []) {
+      if (!row.certificate_image_url) { skipped++; continue; }
+      try {
+        await publishTrainingCertificateToForum(supabaseAdmin as any, row.id);
+        sent++;
+      } catch { failed++; }
+    }
+    return { ok: true as const, sent, skipped, failed };
+  });
+

@@ -4,6 +4,7 @@ const CHANGES_KEY = "discord_webhook_url";
 const RNAP_KEY = "discord_rnap_webhook_url";
 const ARCHIVO_KEY = "discord_archivo_webhook_url";
 const DISCORD_LOGIN_KEY = "discord_code_login_enabled";
+const CERTIFICATE_FORUM_KEY = "certificate_forum_channel_id";
 const HIDE_SALARY_KEY = "hide_salary_tab";
 const HIDE_MANUAL_SALARY_KEY = "hide_manual_salary_tab";
 
@@ -209,3 +210,5 @@ export async function notifyDiscord(params: {
     console.error("discord webhook failed", e);
   }
 }
+export const getCertificateForumChannelId = (force = false) => getKey(CERTIFICATE_FORUM_KEY, force);
+export const setCertificateForumChannelId = (channelId: string) => setKey(CERTIFICATE_FORUM_KEY, channelId);
