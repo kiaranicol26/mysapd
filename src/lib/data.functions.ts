@@ -12,7 +12,7 @@ export const forceDiscordSync = createServerFn({ method: "POST" })
     try {
       const result = await syncGuildPolice(supabaseAdmin as any, { force: true });
       if (!result) return { ok: false as const, error: "No se pudo completar la sincronización. Revisá la conexión del bot y el rol Policía." };
-      return { ok: true as const, ...result };
+      return { ...result, ok: true as const };
     } catch (error) {
       return { ok: false as const, error: error instanceof Error ? error.message : "Error al sincronizar Discord." };
     }
@@ -268,7 +268,7 @@ export const syncExistingCertificatesToForum = createServerFn({ method: "POST" }
     const { verifyToken, freshClaims } = await import("@/lib/dbAuth.server");
     const claims = await freshClaims(verifyToken(data.token), supabaseAdmin as any);
     if (!claims?.alto) return { ok: false as const, error: "Solo Administrador puede iniciar la sincronización masiva." };
-    const { data: rows, error } = await supabaseAdmin.from("pd_trainings").select("id, certificate_image_url");
+    const { data: rows, error } = await (supabaseAdmin as any).from("pd_trainings").select("id, certificate_image_url");
     if (error) return { ok: false as const, error: "No se pudieron leer los certificados." };
     const { publishTrainingCertificateToForum } = await import("@/lib/discordGateway.server");
     let sent = 0, skipped = 0, failed = 0;
