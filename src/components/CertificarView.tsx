@@ -29,6 +29,7 @@ const TIPOS = [
   { value: "Fusil de Asalto AK-47", clase: "Fusil de Combate AK-47", categoria: "AK-47" },
   { value: "Unidad Motorizada Mary", clase: "Unidad Motorizada - Mary", categoria: "MARY" },
   { value: "Unidad Aerea", clase: "Unidad Aerea - AIR", categoria: "AIR" },
+  { value: "Capacitación Especial", clase: "Capacitación Especial", categoria: "OTRA" },
 ] as const;
 
 export type CertificateForm = {
@@ -307,12 +308,11 @@ export function CertCard({ data, downloadable = false, autoGenerate = false, onG
             transform: "translateX(-50%)",
           }}
         >
-          <img
-            src={PICTOS[tipo.categoria] ?? pictoM4.url}
-            alt={tipo.categoria}
-            className="max-w-full max-h-full object-contain"
-            draggable={false}
-          />
+          {tipo.categoria === "OTRA" ? (
+            <div className="flex h-full w-full items-center justify-center rounded-full border-4 border-[#12294f] text-[2.5cqw] font-black text-[#12294f]">SAPD</div>
+          ) : (
+            <img src={PICTOS[tipo.categoria] ?? pictoM4.url} alt={tipo.categoria} className="max-w-full max-h-full object-contain" draggable={false} />
+          )}
         </div>
 
         {/* Tapa el "CATEGORIA" impreso de la plantilla */}
