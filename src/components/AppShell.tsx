@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { logAction, setSession, type Session } from "@/lib/session";
 import { getBackground } from "@/lib/appearance";
 import {
-  LogOut, LogIn, UserRound, Archive, BookOpenCheck, FileSearch, Award, ContactRound, ListOrdered,
+  LogOut, LogIn, UserRound, Archive, BookOpenCheck, FileSearch, Award, ContactRound, ListOrdered, GraduationCap, IdCard,
   MessagesSquare, BadgeDollarSign, Settings, Users, UserRoundCheck, TrendingUp, PanelLeftClose, PanelLeftOpen, Menu, type LucideIcon,
 } from "lucide-react";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
