@@ -42,6 +42,7 @@ type CertificateRecord = {
   training_other: string | null;
   awarded_at: string | null;
   instructor_pd_member_id: string | null;
+  created_by_name: string | null;
   certificate_image_url: string | null;
   discord_published_at: string | null;
   discord_published_forum_id: string | null;
@@ -74,7 +75,7 @@ async function loadAllCertificateRecords(): Promise<CertificateRecord[]> {
   const all: CertificateRecord[] = [];
   for (let from = 0; ; from += 1000) {
     const { data, error } = await db.from("pd_trainings")
-      .select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, certificate_image_url, discord_published_at, discord_published_forum_id, is_legacy")
+      .select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, created_by_name, certificate_image_url, discord_published_at, discord_published_forum_id, is_legacy")
       .order("awarded_at", { ascending: false })
       .range(from, from + 999);
     if (error) throw error;
@@ -96,7 +97,7 @@ function ShareCertificateButton({ row, memberName, instructorName, onPublished }
     tipo: certificateTipo(row.training),
     nombre: memberName,
     instructor: instructorName,
-    comisario: "San Andreas Police Department",
+    comisario: row.created_by_name ?? "San Andreas Police Department",
     fecha: certificateDate(row.awarded_at),
     numero: row.id.replace(/\D/g, "").slice(-6).padStart(6, "0"),
   };
@@ -220,7 +221,7 @@ export function CertificarView({ session: _session }: { session: Session }) {
                 tipo: certificateTipo(row.training),
                 nombre: memberName,
                 instructor: instructor?.nombre ?? "Nada",
-                comisario: "San Andreas Police Department",
+                comisario: row.created_by_name ?? "San Andreas Police Department",
                 fecha: certificateDate(row.awarded_at),
                 numero: row.id.replace(/\D/g, "").slice(-6).padStart(6, "0"),
               }} downloadable /></div>}
@@ -347,7 +348,7 @@ export function CertCard({ data, downloadable = false, autoGenerate = false, onG
           </div>
           <div className="w-[34%] border-t pt-2 text-center" style={{ borderColor: "#9d927d" }}>
             <p className="text-[13px] font-black uppercase">{data.comisario || "SAN ANDREAS POLICE DEPARTMENT"}</p>
-            <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: "#7b8491" }}>Dirección del departamento</p>
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: "#7b8491" }}>Comisario · instructor que cargó la capacitación</p>
           </div>
         </div>
 
