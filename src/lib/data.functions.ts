@@ -259,3 +259,86 @@ export const publishTrainingCertificate = createServerFn({ method: "POST" })
       return { ok: false as const, error: error instanceof Error ? error.message : "No se pudo publicar el certificado en Discord." };
     }
   });
+
+
+const instructorManagementSchema = z.object({
+  token: z.string().min(1).max(4096),
+  action: z.enum(["add", "remove"]),
+  pdMemberId: z.string().uuid(),
+});
+
+/** Only Moderador/Administrador can manage the instructor roster. The PD flag and
+ * administrative helper rank are changed together, with a best-effort rollback. */
+export const managePdInstructor = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => instructorManagementSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { verifyToken, freshClaims } = await import("@/lib/dbAuth.server");
+    const claims = await freshClaims(verifyToken(data.token), supabaseAdmin as any);
+    if (!claims || !["moderador", "administrador"].includes(claims.rango ?? "")) {
+      return { ok: false as const, error: "Solo Moderador o Administrador puede gestionar instructores." };
+    }
+
+    const { data: pdMember, error: pdReadError } = await (supabaseAdmin as any)
+      .from("pd_members").select("id,instructor_id,nombre,es_instructor").eq("id", data.pdMemberId).maybeSingle();
+    if (pdReadError || !pdMember) return { ok: false as const, error: "No se encontró esa ficha en Registro PD." };
+
+    let account: any = null;
+    if (pdMember.instructor_id) {
+      const { data: linked, error } = await (supabaseAdmin as any)
+        .from("instructors").select("id,name,admin_rango").eq("id", pdMember.instructor_id).maybeSingle();
+      if (error) return { ok: false as const, error: "No se pudo consultar la cuenta vinculada." };
+      account = linked;
+    } else {
+      const { data: matches, error } = await (supabaseAdmin as any)
+        .from("instructors").select("id,name,admin_rango").eq("name", pdMember.nombre).limit(2);
+      if (error) return { ok: false as const, error: "No se pudo buscar la cuenta del policía." };
+      if ((matches ?? []).length !== 1) {
+        return { ok: false as const, error: "La ficha no está vinculada a una cuenta única de mySAPD. Vinculala desde Registro PD antes de continuar." };
+      }
+      account = matches[0];
+    }
+    if (!account) return { ok: false as const, error: "El policía no tiene una cuenta vinculada en mySAPD." };
+
+    const wasInstructor = !!pdMember.es_instructor;
+    if (data.action === "add" && wasInstructor) return { ok: true as const, message: "Este policía ya figura como instructor." };
+    if (data.action === "remove" && !wasInstructor) return { ok: true as const, message: "Este policía ya no figura como instructor." };
+
+    const nextFlag = data.action === "add";
+    const { error: flagError } = await (supabaseAdmin as any)
+      .from("pd_members").update({ es_instructor: nextFlag }).eq("id", pdMember.id);
+    if (flagError) return { ok: false as const, error: "No se pudo actualizar Registro PD: " + flagError.message };
+
+    const currentAdminRank = account.admin_rango ?? "usuario";
+    const nextAdminRank = data.action === "add"
+      ? (currentAdminRank === "usuario" ? "ayudante" : currentAdminRank)
+      : (currentAdminRank === "ayudante" ? "usuario" : currentAdminRank);
+    if (nextAdminRank !== currentAdminRank) {
+      const { error: rankError } = await (supabaseAdmin as any)
+        .from("instructors").update({ admin_rango: nextAdminRank }).eq("id", account.id);
+      if (rankError) {
+        await (supabaseAdmin as any).from("pd_members").update({ es_instructor: wasInstructor }).eq("id", pdMember.id);
+        return { ok: false as const, error: "No se pudo actualizar el rango administrativo; se revirtió el cambio de instructor." };
+      }
+    }
+
+    await (supabaseAdmin as any).from("logs").insert({
+      instructor_id: claims.id,
+      instructor_name: claims.name,
+      action: data.action === "add" ? "ADD_PD_INSTRUCTOR" : "REMOVE_PD_INSTRUCTOR",
+      details: {
+        pd_member_id: pdMember.id,
+        target_instructor_id: account.id,
+        target_name: pdMember.nombre,
+        previous_admin_rango: currentAdminRank,
+        new_admin_rango: nextAdminRank,
+      },
+    });
+
+    return {
+      ok: true as const,
+      message: data.action === "add"
+        ? "Instructor agregado. Se asignó rango Ayudante cuando correspondía."
+        : "Instructor quitado. Se retiró el rango Ayudante cuando correspondía.",
+    };
+  });
