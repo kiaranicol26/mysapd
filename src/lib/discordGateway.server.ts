@@ -259,7 +259,7 @@ export async function mergeDuplicatePdMembers(admin: { from: (table: string) => 
 }
 
 
-const certificatePublicationQueues = new Map<string, Promise<unknown>>();
+const certificatePublicationQueues = new Map<string, Promise<any>>();
 
 export async function publishTrainingCertificateToForum(
   admin: { from: (table: string) => any; storage: any },
@@ -471,7 +471,7 @@ async function publishTrainingCertificateToForumUnlocked(
   const { data: latestTraining, error: latestTrainingError } = await admin.from("pd_trainings")
     .select("discord_published_at, certificate_image_url").eq("id", training.id).maybeSingle();
   if (latestTrainingError) throw new Error("No se pudo verificar el estado de publicación del certificado");
-  if (latestTraining?.discord_published_at) {
+  if (latestTraining?.discord_published_at && (!force || latestTraining.discord_published_at !== training.discord_published_at)) {
     return { ok: true as const, alreadyPublished: true, threadId, imageUrl: latestTraining.certificate_image_url ?? imageUrl };
   }
 
