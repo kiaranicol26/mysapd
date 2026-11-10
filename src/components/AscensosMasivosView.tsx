@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { db, getToken } from "@/lib/db";
 import { logAction, type Session } from "@/lib/session";
 import { applyBulkPromotions } from "@/lib/data.functions";
-import { parsePromotionAnnouncement, rankTextMatches, type ParsedPromotion } from "@/lib/promociones";
+import { parsePromotionAnnouncement, policeRankOrder, rankTextMatches, type ParsedPromotion } from "@/lib/promociones";
 
 type Instructor = { id: string; name: string; discord_id: string | null; discord_inhabilitado: boolean | null };
 type PdMember = { id: string; instructor_id: string | null; nombre: string; rango: string | null };
@@ -64,6 +64,7 @@ export function AscensosMasivosView({ session }: { session: Session }) {
       else if (instructor?.discord_inhabilitado) blockedReason = "La cuenta figura inhabilitada en mySAPD.";
       else if (linked.length === 0) blockedReason = "No tiene ficha vinculada en Registro PD.";
       else if (linked.length > 1) blockedReason = "Tiene varias fichas vinculadas; requiere revisión.";
+      else if (pdMember && policeRankOrder(pdMember.rango) >= 0 && policeRankOrder(item.newRank) >= policeRankOrder(pdMember.rango)) blockedReason = "El nuevo rango no es superior al rango actual; no se aplican descensos ni cambios duplicados.";
       return {
         ...item,
         instructor,
