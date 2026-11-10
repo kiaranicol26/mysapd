@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { logAction, setSession, type Session } from "@/lib/session";
 import { getBackground } from "@/lib/appearance";
 import {
-  LogOut, Shield, LogIn, UserRound, Archive, GraduationCap, FileSearch, Award, IdCard, ListOrdered,
+  LogOut, LogIn, UserRound, Archive, GraduationCap, FileSearch, Award, IdCard, ListOrdered,
   MessagesSquare, Wallet, Settings, Users, TrendingUp, PanelLeftClose, PanelLeftOpen, Menu, type LucideIcon,
 } from "lucide-react";
 import sapdLogo from "@/assets/sapd-logo.png.asset.json";
@@ -20,7 +20,7 @@ const TABS: Tab[] = [
   { to: "/exsapd", label: "Anteriores Policías", icon: Archive, public: false, alto: false, sec: "exsapd", group: "Gestión" },
   { to: "/aspirantes", label: "Aspirantes", icon: GraduationCap, public: false, alto: false, sec: "aspirantes", group: "Gestión" },
   { to: "/rnap", label: "Antecedentes Penales", icon: FileSearch, public: false, alto: false, sec: "rnap", group: "Gestión" },
-  { to: "/certificar", label: "Crear Certificado", icon: Award, public: false, alto: false, sec: "certificar", group: "Gestión" },
+  { to: "/certificar", label: "Certificados", icon: Award, public: false, alto: false, sec: "certificar", group: "Gestión" },
   { to: "/registro-policias", label: "Registro de Policías", icon: IdCard, public: true, alto: false, group: "Personal" },
   { to: "/registro-inhabilitados", label: "Pol. Inhabilitados", icon: IdCard, public: false, alto: false, sec: "registro", group: "Personal" },
   { to: "/capacitaciones", label: "Capacitaciones", icon: GraduationCap, public: true, alto: false, group: "Personal" },
@@ -107,14 +107,14 @@ export function AppShell({ session, children }: { session: Session | null; child
 
       <div className="border-t border-sidebar-border p-2 space-y-2">
         <div className={`flex items-center gap-2 rounded-md bg-sidebar-accent/60 p-2 ${narrow ? "justify-center" : ""}`}>
-          <div className="w-9 h-9 rounded-full overflow-hidden bg-muted flex items-center justify-center shrink-0">
-            {session?.avatar_url ? <img src={session.avatar_url} alt={session.name} className="w-full h-full object-cover" /> : <UserRound className="w-4 h-4 text-muted-foreground" />}
+          <div className="w-9 h-9 rounded-full overflow-hidden bg-white flex items-center justify-center shrink-0 p-1">
+            <img src={sapdLogo.url} alt="SAPD" className="w-full h-full object-contain" />
           </div>
           {!narrow && (
             <div className="min-w-0 flex-1">
               <p className="text-sm font-extrabold truncate">{session ? session.name : "Invitado"}</p>
               <p className="text-[11px] text-muted-foreground truncate flex items-center gap-1">
-                {session?.is_alto_mando ? <><Shield className="w-3 h-3" /> Administrador</> : session ? ADMIN_RANGO_LABELS[normalizeRango(session.admin_rango)] : "Solo lectura"}
+                {session?.is_alto_mando ? <><img src={sapdLogo.url} alt="" className="h-3 w-3 object-contain" /> Administrador</> : session ? ADMIN_RANGO_LABELS[normalizeRango(session.admin_rango)] : "Solo lectura"}
               </p>
             </div>
           )}
