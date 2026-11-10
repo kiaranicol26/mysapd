@@ -78,6 +78,12 @@ export function parseRankIdLines(text: string): Record<PoliceRank, string> {
   return result as Record<PoliceRank, string>;
 }
 
+export function externalRoleIdsByRank(config: PromotionRoleConfig) {
+  const byRank = {} as Record<PoliceRank, string>;
+  for (const [roleId, rank] of Object.entries(config.external)) byRank[rank] = roleId;
+  return byRank;
+}
+
 export function formatRankIdLines(byRank: Record<PoliceRank, string>) {
   return POLICE_RANK_ORDER.map(rank => \`\${rank}=\${byRank[rank]}\`).join("\n");
 }
