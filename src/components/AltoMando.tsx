@@ -445,7 +445,7 @@ export function AltoMando({ session }: { session: Session }) {
                   <div key={user.id} className="flex flex-col gap-3 rounded-2xl bg-muted/35 p-4 sm:flex-row sm:items-center">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-semibold">{user.name}</p>
+                        <div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{user.name}</p><span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">{ADMIN_RANGO_LABELS[normalizeRango(user.admin_rango)]}</span></div>
                       </div>
                       <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
                         <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
