@@ -22,6 +22,24 @@ async function findMember(username: string): Promise<{ id: string; username: str
   return null;
 }
 
+/** Convierte errores de Discord en indicaciones útiles sin exponer credenciales ni respuestas internas. */
+function discordUserError(error: unknown): string {
+  const e = error as { status?: number; discordCode?: number; message?: string };
+  if (e?.discordCode === 50007) {
+    return "Discord está bloqueando los mensajes directos del bot. Activá los MD para este servidor y comprobá que no tengas bloqueado al bot SAPD.";
+  }
+  if (e?.discordCode === 50001 || e?.discordCode === 50013 || e?.status === 403) {
+    return "El bot SAPD no tiene acceso suficiente al servidor o a los mensajes directos. Avisale a un administrador para revisar sus permisos.";
+  }
+  if (e?.discordCode === 10013) return "Discord no reconoce ese usuario. Revisá que el nombre esté escrito exactamente como aparece en Discord.";
+  if (e?.status === 429) return "Discord está limitando temporalmente los envíos. Esperá un momento y volvé a intentarlo.";
+  if (e?.status >= 500) return "Discord está experimentando un problema temporal. Intentá nuevamente en unos minutos.";
+  if (e?.message === "El bot de Discord no está configurado") {
+    return "El servicio de Discord de mySAPD no está configurado correctamente. Avisale a un administrador.";
+  }
+  return "No se pudo completar el envío a Discord. Revisá los MD del servidor y, si continúa, avisale a un administrador.";
+}
+
 /** Envía por MD un código de 6 dígitos al usuario de Discord indicado. */
 export const requestDiscordCode = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ username: usernameSchema }).parse(d))
@@ -56,8 +74,13 @@ export const requestDiscordCode = createServerFn({ method: "POST" })
       });
       return { ok: true as const };
     } catch (e) {
-      console.error("requestDiscordCode", e);
-      return { ok: false as const, error: "No se pudo enviar el MD. Revisá que tengas los mensajes directos del servidor habilitados." };
+      const diagnostic = e as { status?: number; discordCode?: number; message?: string };
+      console.error("requestDiscordCode failed", {
+        status: diagnostic?.status,
+        discordCode: diagnostic?.discordCode,
+        message: diagnostic?.message,
+      });
+      return { ok: false as const, error: discordUserError(e) };
     }
   });
 
@@ -155,8 +178,13 @@ export const recoverDiscordKey = createServerFn({ method: "POST" })
       });
       return { ok: true as const };
     } catch (e) {
-      console.error("recoverDiscordKey", e);
-      return { ok: false as const, error: "No se pudo enviar el MD. Revisá que tengas los mensajes directos del servidor habilitados." };
+      const diagnostic = e as { status?: number; discordCode?: number; message?: string };
+      console.error("recoverDiscordKey failed", {
+        status: diagnostic?.status,
+        discordCode: diagnostic?.discordCode,
+        message: diagnostic?.message,
+      });
+      return { ok: false as const, error: discordUserError(e) };
     }
   });
 
