@@ -50,18 +50,40 @@ export function RegistroPdPublicView({ session }: { session: Session | null }) {
 
   useEffect(() => {
     let active = true;
-    Promise.all([
-      db.from("pd_members").select("id, instructor_id, nombre, rango, foto, placa, es_instructor, division, division_rango, division2, division2_rango, division3, division3_rango, cap_m4, cap_edc, cap_mary, cap_sniper, cap_air, cap_ak47").order("nombre", { ascending: true }),
-      db.from("instructors").select("id, name, avatar_url, role, placa, discord_joined_at, discord_inhabilitado").order("name", { ascending: true }),
-      db.from("pd_trainings").select("id, pd_member_id, section, training, training_other, awarded_at, is_legacy").order("awarded_at", { ascending: false, nullsFirst: false })
-    ]).then(([a, b, t]) => {
-      if (!active) return;
-      if (a.data) setMembers(a.data as Member[]);
-      if (b.data) setUsers(b.data as User[]);
-      if (t.data) setTrainings(t.data as Training[]);
-      setLoading(false);
-    }).catch(() => setLoading(false));
-    return () => { active = false };
+    let firstLoad = true;
+
+    const refreshPublicRegistry = async () => {
+      try {
+        const [a, b, t] = await Promise.all([
+          db.from("pd_members").select("id, instructor_id, nombre, rango, foto, placa, es_instructor, division, division_rango, division2, division2_rango, division3, division3_rango, cap_m4, cap_edc, cap_mary, cap_sniper, cap_air, cap_ak47").order("nombre", { ascending: true }),
+          db.from("instructors").select("id, name, avatar_url, role, placa, discord_joined_at, discord_inhabilitado").order("name", { ascending: true }),
+          db.from("pd_trainings").select("id, pd_member_id, section, training, training_other, awarded_at, is_legacy").order("awarded_at", { ascending: false, nullsFirst: false })
+        ]);
+        if (!active) return;
+        if (a.data) setMembers(a.data as Member[]);
+        if (b.data) setUsers(b.data as User[]);
+        if (t.data) setTrainings(t.data as Training[]);
+      } catch {
+        // Keep the last successfully loaded public registry during temporary errors.
+      } finally {
+        if (active && firstLoad) {
+          firstLoad = false;
+          setLoading(false);
+        }
+      }
+    };
+
+    void refreshPublicRegistry();
+    // The public view reads the same Supabase records as the private registry.
+    // Polling keeps it current even though the app uses a server-mediated DB client.
+    const refreshInterval = window.setInterval(() => {
+      void refreshPublicRegistry();
+    }, 15000);
+
+    return () => {
+      active = false;
+      window.clearInterval(refreshInterval);
+    };
   }, []);
 
   const rows = useMemo(() => users.filter(u => !u.discord_inhabilitado).map(u => {
