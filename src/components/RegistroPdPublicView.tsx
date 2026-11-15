@@ -158,21 +158,21 @@ export function RegistroPdPublicView({ session }: { session: Session | null }) {
                 <div className="border-t pt-2"><p className="text-[10px] uppercase tracking-widest text-slate-500 font-extrabold">Rango</p><p className="font-bold text-slate-900">{m?.rango || "Sin rango asignado"}</p></div>
                 {(divisions.length > 0 || m?.es_instructor) && <div><p className="text-[10px] uppercase tracking-widest text-slate-500 font-extrabold">Divisiones / Cargo</p><div className="flex flex-wrap gap-1.5 mt-1">{divisions.map((division, index) => <span key={index} className="border border-blue-200 bg-blue-50 px-2 py-1 text-[10px] font-bold text-blue-800">{division}</span>)}{m?.es_instructor && <span className="border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-800">Cargo: Instructor</span>}</div></div>}
                 <div><p className="text-[10px] uppercase tracking-widest text-slate-500 font-extrabold">Cargo</p><p className="font-bold text-slate-900">{m?.es_instructor ? "Instructor" : "Personal policial"}</p></div>
-                <div className="mt-2 border-2 border-blue-100 bg-gradient-to-br from-blue-50 to-white p-3">
+                <div className="mt-2 border-2 border-blue-100 bg-gradient-to-br from-blue-50 to-white p-3 dark:border-slate-700 dark:from-slate-900 dark:to-slate-800">
                   <div className="mb-2 flex items-center gap-2">
-                    <div className="flex h-7 w-7 items-center justify-center border border-blue-200 bg-white text-blue-700"><Award className="h-4 w-4" /></div>
-                    <div className="min-w-0"><p className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-800">Capacitaciones</p><p className="text-[9px] font-semibold text-slate-500">{caps.length} certificación{caps.length === 1 ? "" : "es"} registrada{caps.length === 1 ? "" : "s"}</p></div>
+                    <div className="flex h-7 w-7 items-center justify-center border border-blue-200 bg-white text-blue-700 dark:border-slate-600 dark:bg-slate-800 dark:text-blue-300"><Award className="h-4 w-4" /></div>
+                    <div className="min-w-0"><p className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-800 dark:text-blue-300">Capacitaciones</p><p className="text-[9px] font-semibold text-slate-500 dark:text-slate-400">{caps.length} certificación{caps.length === 1 ? "" : "es"} registrada{caps.length === 1 ? "" : "s"}</p></div>
                   </div>
                   {caps.length > 0 ? <div className="grid grid-cols-2 gap-1.5">
                     {caps.map(cap => {
                       const label = cap.training === "OTRA" ? (cap.training_other || "Especial") : cap.training;
                       const picto = trainingIcon(cap.training);
-                      return <div key={cap.id} className="flex min-w-0 items-center gap-2 border border-blue-100 bg-white px-2 py-2 shadow-sm">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center border border-slate-100 bg-slate-50 p-1">{picto ? <img src={picto} alt="" className="h-full w-full object-contain" /> : <ShieldCheck className="h-4 w-4 text-blue-700" />}</div>
-                        <div className="min-w-0"><p className="truncate text-[10px] font-black uppercase text-slate-800">{label}</p><p className="text-[9px] font-semibold text-slate-400">{cap.section}</p></div>
+                      return <div key={cap.id} className="flex min-w-0 items-center gap-2 border border-blue-100 bg-white px-2 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center border border-slate-100 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-900">{picto ? <img src={picto} alt="" className="h-full w-full object-contain" /> : <ShieldCheck className="h-4 w-4 text-blue-700 dark:text-blue-300" />}</div>
+                        <div className="min-w-0"><p className="truncate text-[10px] font-black uppercase text-slate-800 dark:text-slate-100">{label}</p><p className="text-[9px] font-semibold text-slate-400 dark:text-slate-400">{cap.section}</p></div>
                       </div>;
                     })}
-                  </div> : <p className="border border-dashed border-blue-200 bg-white/70 px-2 py-2 text-center text-[10px] font-semibold text-slate-400">Sin capacitaciones registradas</p>}
+                  </div> : <p className="border border-dashed border-blue-200 bg-white/70 px-2 py-2 text-center text-[10px] font-semibold text-slate-400 dark:border-slate-600 dark:bg-slate-800/70 dark:text-slate-400">Sin capacitaciones registradas</p>}
                 </div>
                 <div><p className="text-[10px] uppercase tracking-widest text-slate-500 font-extrabold">Antigüedad Academica</p><p className="font-bold text-slate-900">{age === null ? "Pendiente de sincronización" : age + " días"}</p></div>
               </div>
