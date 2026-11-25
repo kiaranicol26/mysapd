@@ -382,6 +382,24 @@ export async function runQuery(spec: QuerySpec, claims: Claims | null, admin: Ad
       }
     }
   }
+  // A PD row is a historical identity anchor. Never hard-delete it while
+  // salary or training records still reference it: salary FKs would be nulled
+  // and pd_trainings currently cascades on delete.
+  if (safe.table === "pd_members" && safe.op === "delete") {
+    const id = filterValue(safe, "id");
+    if (typeof id !== "string" || !id) deny("No se pudo identificar la ficha policial que se quiere eliminar.");
+    const checks = await Promise.all([
+      admin.from("salary_entries").select("id").eq("pd_member_id", id).limit(1),
+      admin.from("manual_salary_entries").select("id").eq("pd_member_id", id).limit(1),
+      admin.from("pd_trainings").select("id").eq("pd_member_id", id).limit(1),
+      admin.from("pd_trainings").select("id").eq("instructor_pd_member_id", id).limit(1),
+    ]);
+    if (checks.some(result => result.error)) deny("No se pudo verificar el historial de la ficha; no se eliminó.");
+    if (checks.some(result => result.data?.length)) {
+      deny("No se puede eliminar esta ficha porque tiene historial de salarios o capacitaciones. Conservá la ficha e inhabilitá al policía.");
+    }
+  }
+
   if (safe.table === "pd_members" && claims && !claims.alto) {
     const capOnly = safe.op === "update" && patchKeys(safe.values).length > 0 &&
       patchKeys(safe.values).every(k => k.startsWith("cap_"));
