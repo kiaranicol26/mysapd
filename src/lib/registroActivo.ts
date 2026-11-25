@@ -18,18 +18,24 @@ export function activePdMembers<T extends RegistroRow>(rows: T[], users: Registr
 
 export type SalaryRow = { id: string; pd_member_id: string | null; pagado?: boolean };
 
-/** Plan a month resync: which members to add and which rows to delete (not in registro or duplicated). */
+/** Plan a month resync. Inactive and legacy rows are historical records and must be preserved. */
 export function planMonthSync<E extends SalaryRow>(entries: E[], activeIds: string[]) {
   const active = new Set(activeIds);
   const keep = new Map<string, E>();
+  const preserve: E[] = [];
   const remove: E[] = [];
   for (const e of entries) {
-    if (!e.pd_member_id || !active.has(e.pd_member_id)) { remove.push(e); continue; }
+    // Historical rows without a linked PD ID, or whose member is no longer active,
+    // remain untouched and do not participate in current-roster duplicate checks.
+    if (!e.pd_member_id || !active.has(e.pd_member_id)) {
+      preserve.push(e);
+      continue;
+    }
     const prev = keep.get(e.pd_member_id);
     if (!prev) keep.set(e.pd_member_id, e);
     else if (!prev.pagado && e.pagado) { remove.push(prev); keep.set(e.pd_member_id, e); }
     else remove.push(e);
   }
   const missing = activeIds.filter(id => !keep.has(id));
-  return { keep: [...keep.values()], remove, missing };
+  return { keep: [...keep.values()], preserve, remove, missing };
 }
