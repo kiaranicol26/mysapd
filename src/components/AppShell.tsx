@@ -164,7 +164,7 @@ export function AppShell({ session, children }: { session: Session | null; child
           <div>
             <p className="text-primary text-[10px] uppercase font-bold tracking-[0.3em]">San Andreas Police Department</p>
             <h1 className="font-display font-black text-lg lg:text-xl leading-tight text-foreground">
-              Welcome to <span className="text-primary">mySAPD</span>
+              Centro de operaciones <span className="text-primary">mySAPD</span>
             </h1>
           </div>
         </header>
