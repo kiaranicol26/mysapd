@@ -183,7 +183,7 @@ export function authorize(spec: QuerySpec, claims: Claims | null): QuerySpec {
 
     case "pd_members": {
       if (!write) return spec;
-      const restrictedSalaryFields = new Set(["sueldo_defecto", "division", "division_rango", "division2", "division2_rango", "es_instructor"]);
+      const restrictedSalaryFields = new Set(["sueldo_defecto", "division", "division_rango", "division2", "division2_rango", "division3", "division3_rango", "es_instructor"]);
       const hasRestrictedFields = patchKeys(spec.values).some(k => restrictedSalaryFields.has(k)) ||
         (Array.isArray(spec.values) && spec.values.some(v => patchKeys(v).some(k => restrictedSalaryFields.has(k))));
       if (!alto && claims?.rango !== "moderador" && hasRestrictedFields) deny("Solo Moderador o Administrador puede modificar sueldos y divisiones");
