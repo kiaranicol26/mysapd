@@ -17,7 +17,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { getBackground, setBackground, getLoginBackground, setLoginBackground, fileToCompressedDataUrl } from "@/lib/appearance";
+import { getBackground, setBackground, getLoginBackground, setLoginBackground, fileToCompressedDataUrl, getExperimentalDesktopMode, setExperimentalDesktopMode } from "@/lib/appearance";
 import { toast } from "sonner";
 import { ADMIN_RANGOS, ADMIN_RANGO_LABELS, ADMIN_RANGO_DESC, normalizeRango, type AdminRango } from "@/lib/adminRango";
 import { Webhook, FileText, Image as ImageIcon, RefreshCw, Settings, Users, Pencil, KeyRound, MessageCircle } from "lucide-react";
@@ -53,6 +53,8 @@ export function AltoMando({ session }: { session: Session }) {
   const [hideSalaryTab, setHideSalaryTabState] = useState(false);
   const [hideManualSalaryTab, setHideManualSalaryTabState] = useState(false);
   const [savingSalaryVisibility, setSavingSalaryVisibility] = useState<"normal" | "manual" | null>(null);
+  const [experimentalDesktop, setExperimentalDesktop] = useState(false);
+  const [savingExperimentalDesktop, setSavingExperimentalDesktop] = useState(false);
   const search = useSearch({ from: "/alto-mando" });
   const navigate = useNavigate({ from: "/alto-mando" });
   const activeSection = search.section;
@@ -77,6 +79,7 @@ export function AltoMando({ session }: { session: Session }) {
     getLoginBackground().then(setLoginBg);
     getDiscordCodeLoginEnabled(true).then(setDiscordCodeLoginEnabledState);
     getSalaryTabVisibility(true).then(v => { setHideSalaryTabState(v.hideSalary); setHideManualSalaryTabState(v.hideManualSalary); });
+    getExperimentalDesktopMode().then(setExperimentalDesktop);
   }, []);
 
   async function saveBg(value: string) {
@@ -166,6 +169,17 @@ export function AltoMando({ session }: { session: Session }) {
     finally { setSavingSalaryVisibility(null); }
   }
 
+  async function saveExperimentalDesktop(value: boolean) {
+    setSavingExperimentalDesktop(true);
+    try {
+      await setExperimentalDesktopMode(value);
+      setExperimentalDesktop(value);
+      await logAction(db, session, "UPDATE_EXPERIMENTAL_DESKTOP", { enabled: value });
+      toast.success(value ? "Modo experimental Windows activado" : "Diseño habitual restaurado");
+    } catch (e: any) { toast.error(e.message ?? "No se pudo guardar el modo experimental"); }
+    finally { setSavingExperimentalDesktop(false); }
+  }
+
   async function resyncDiscord() {
     if (!confirm("¿Iniciar una resincronización completa? Se actualizarán los perfiles, rangos y estado de Instructor en la web, además de los apodos de Discord para los miembros con el rol Policía.")) return;
     setSyncingDiscord(true);
@@ -228,6 +242,20 @@ export function AltoMando({ session }: { session: Session }) {
         </div>
       </div>
       {activeSection === "config" && <>
+      <Card className="overflow-hidden border-2 border-blue-300 bg-white shadow-md">
+        <div className="h-1.5 bg-gradient-to-r from-blue-600 via-cyan-500 to-violet-600" />
+        <div className="p-5 space-y-3">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <h2 className="text-xl font-black text-slate-900 font-display">Modo experimental · Escritorio Windows</h2>
+              <p className="text-sm text-slate-600 mt-1">Activa una interfaz alternativa inspirada literalmente en Windows 11: escritorio con accesos directos, ventanas de aplicaciones, menú Inicio y barra de tareas con bandeja del sistema. Los iconos de Wi-Fi, volumen y batería son decorativos; las secciones mantienen sus funciones y permisos.</p>
+            </div>
+            <Switch checked={experimentalDesktop} disabled={savingExperimentalDesktop} onCheckedChange={saveExperimentalDesktop} />
+          </div>
+          <p className="text-xs font-semibold text-slate-500">{experimentalDesktop ? "Modo experimental activado para toda la web" : "Diseño habitual activo"}</p>
+        </div>
+      </Card>
+
       {/* WEBHOOKS */}
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="overflow-hidden border border-blue-200 bg-white shadow-sm rounded-none">
