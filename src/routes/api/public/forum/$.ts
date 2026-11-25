@@ -17,6 +17,9 @@ export const Route = createFileRoute("/api/public/forum/$")({
           headers: {
             "Content-Type": data.type || "application/octet-stream",
             "Cache-Control": "public, max-age=31536000, immutable",
+            "X-Content-Type-Options": "nosniff",
+            "Content-Security-Policy": "sandbox; default-src 'none'",
+            "Cross-Origin-Resource-Policy": "same-origin",
           },
         });
       },
