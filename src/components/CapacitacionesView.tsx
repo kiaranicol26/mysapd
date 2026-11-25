@@ -49,13 +49,19 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
     await autoDiscordSync().catch(() => null);
     const [m, users, t] = await Promise.all([
       db.from("pd_members").select("id, instructor_id, legajo, nombre, rango, es_instructor").order("nombre", { ascending: true }),
-      db.from("instructors").select("id, discord_inhabilitado"),
+      db.from("instructors").select("id, discord_id, discord_inhabilitado"),
       db.from("pd_trainings").select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, created_by_id, created_by_name, created_at, is_legacy").order("awarded_at", { ascending: false }),
     ]);
-    if (m.error) toast.error(m.error.message);
-    if (users.error) toast.error("No se pudo comprobar qué policías siguen activos en Discord: " + users.error.message);
-    else {
-      const activeIds = new Set((users.data ?? []).filter(u => !u.discord_inhabilitado).map(u => u.id));
+    if (m.error) {
+      toast.error(m.error.message);
+      setMembers([]);
+    } else if (users.error) {
+      toast.error("No se pudo comprobar qué policías siguen activos en Discord: " + users.error.message);
+      setMembers([]); // Fail closed: never offer unverified or historical accounts for a new certificate.
+    } else {
+      const activeIds = new Set((users.data ?? [])
+        .filter(u => !!u.discord_id && !u.discord_inhabilitado)
+        .map(u => u.id));
       setMembers(((m.data ?? []) as Omit<Member, "active">[]).map(member => ({
         ...member,
         active: !!member.instructor_id && activeIds.has(member.instructor_id),
