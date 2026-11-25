@@ -12,6 +12,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { puedeVer } from "@/lib/secciones";
 import { getSalaryTabVisibility } from "@/lib/discord";
 import { ADMIN_RANGO_LABELS, normalizeRango } from "@/lib/adminRango";
+import { getExperimentalDesktopMode } from "@/lib/appearance";
+import { ExperimentalDesktop } from "@/components/ExperimentalDesktop";
 
 type Tab = { to: string; label: string; icon: LucideIcon; public: boolean; alto: boolean; moderator?: boolean; sec?: string; group: string; search?: { section: "config" | "gestion" } };
 
@@ -39,17 +41,21 @@ export function AppShell({ session, children }: { session: Session | null; child
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [salaryVisibility, setSalaryVisibility] = useState({ hideSalary: false, hideManualSalary: false });
+  const [experimentalDesktop, setExperimentalDesktop] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     setCollapsed(localStorage.getItem("sapd_sidebar") === "1");
     const loadSalaryVisibility = () => getSalaryTabVisibility(true).then(setSalaryVisibility).catch(() => {});
     loadSalaryVisibility();
+    const loadExperimental = () => getExperimentalDesktopMode().then(setExperimentalDesktop).catch(() => setExperimentalDesktop(false));
+    loadExperimental();
+    window.addEventListener("experimental-desktop-change", loadExperimental);
     window.addEventListener("salary-tabs-visibility-change", loadSalaryVisibility);
     const load = () => getBackground().then(setBg).catch(() => {});
     load();
     window.addEventListener("background-change", load);
-    return () => { window.removeEventListener("background-change", load); window.removeEventListener("salary-tabs-visibility-change", loadSalaryVisibility); };
+    return () => { window.removeEventListener("background-change", load); window.removeEventListener("salary-tabs-visibility-change", loadSalaryVisibility); window.removeEventListener("experimental-desktop-change", loadExperimental); };
   }, []);
 
   function toggleCollapse() {
