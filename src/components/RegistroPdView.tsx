@@ -251,7 +251,7 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
             <div className="ml-auto flex items-center gap-3">
               <div className="flex items-center gap-2 px-3 py-2 bg-blue-700 text-white">
                 <BadgeCheck className="w-4 h-4" />
-                <span className="font-mono font-bold">{users.filter(u => onlyDisabled ? !!u.discord_inhabilitado : !u.discord_inhabilitado).length}</span>
+                <span className="font-mono font-bold">{users.filter(u => onlyDisabled ? u.discord_inhabilitado === true : u.discord_inhabilitado === false).length}</span>
                 <span className="text-[10px] uppercase tracking-widest font-bold">Carnets</span>
               </div>
               {canEdit && (
