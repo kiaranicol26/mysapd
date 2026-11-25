@@ -202,7 +202,7 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
 
   const groups = useMemo(() => {
     const rows = users
-      .filter(u => onlyDisabled ? u.discord_inhabilitado === true : u.discord_inhabilitado === false)
+      .filter(u => onlyDisabled ? u.discord_inhabilitado !== false : u.discord_inhabilitado === false)
       .map(u => ({
         u,
         m: personnelIndex.byInstructor.get(u.id) ?? personnelIndex.byLegacyName.get(u.name.trim().toLowerCase()),
