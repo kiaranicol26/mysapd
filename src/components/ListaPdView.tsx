@@ -6,6 +6,7 @@ import { Session } from "@/lib/session";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { sortByRango } from "@/lib/rangos";
+import { sueldoTotal } from "@/lib/sueldo";
 import { Users } from "lucide-react";
 
 export type PdMember = {
@@ -16,6 +17,7 @@ export type PdMember = {
   placa?: string | null;
   division?: string | null;
   division2?: string | null;
+  division3?: string | null;
   es_instructor?: boolean;
   created_at: string;
   instructor_id?: string | null;
@@ -33,7 +35,7 @@ export function ListaPdView(_props: { session: Session }) {
   async function load() {
     const [{ data }, { data: users }] = await Promise.all([
       db.from("pd_members")
-        .select("id, instructor_id, nombre, rango, sueldo_defecto, placa, division, division2, es_instructor, created_at")
+        .select("id, instructor_id, nombre, rango, sueldo_defecto, placa, division, division2, division3, es_instructor, created_at")
         .order("nombre", { ascending: true }),
       db.from("instructors").select("id, discord_inhabilitado"),
     ]);
@@ -107,13 +109,13 @@ export function ListaPdView(_props: { session: Session }) {
                     <td className="p-3 border border-blue-200 font-bold text-slate-600">{m.rango ?? "—"}</td>
                     <td className="p-3 border border-blue-200 font-mono font-bold">{Number(m.sueldo_defecto) || 0} Coins</td>
                     <td className="p-3 border border-blue-200 font-mono font-bold text-emerald-700">
-                      {((m.division && m.division !== "Ninguna" && m.division !== "N/A" ? 10 : 0) + (m.division2 && m.division2 !== "Ninguna" && m.division2 !== "N/A" ? 10 : 0) + (m.es_instructor ? 10 : 0))} Coins
+                      {(sueldoTotal(m) - (Number(m.sueldo_defecto) || 0))} Coins
                     </td>
                     <td className="p-3 border border-blue-200 font-mono font-black text-blue-800">
-                      {(Number(m.sueldo_defecto) || 0) + (m.division && m.division !== "Ninguna" && m.division !== "N/A" ? 10 : 0) + (m.division2 && m.division2 !== "Ninguna" && m.division2 !== "N/A" ? 10 : 0) + (m.es_instructor ? 10 : 0)} Coins
+                      {sueldoTotal(m)} Coins
                     </td>
                     <td className="p-3 border border-blue-200 text-xs font-semibold text-slate-600">
-                      {[m.division && m.division !== "Ninguna" && m.division !== "N/A" ? m.division : null, m.division2 && m.division2 !== "Ninguna" && m.division2 !== "N/A" ? m.division2 : null].filter(Boolean).join(" · ") || "Sin división"}{m.es_instructor ? " · Instructor" : ""}
+                      {[m.division && m.division !== "Ninguna" && m.division !== "N/A" ? m.division : null, m.division2 && m.division2 !== "Ninguna" && m.division2 !== "N/A" ? m.division2 : null, m.division3 && m.division3 !== "Ninguna" && m.division3 !== "N/A" ? m.division3 : null].filter(Boolean).join(" · ") || "Sin división"}{m.es_instructor ? " · Instructor" : ""}
                     </td>
                   </tr>
                 ))}
