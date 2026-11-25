@@ -299,9 +299,7 @@ export async function runQuery(spec: QuerySpec, claims: Claims | null, admin: Ad
     const memberIds = [...new Set(values.flatMap((value: any) =>
       [value?.pd_member_id, value?.instructor_pd_member_id].filter((id: unknown): id is string => typeof id === "string")
     ))];
-    if (memberIds.length !== new Set(values.flatMap((value: any) =>
-      [value?.pd_member_id, value?.instructor_pd_member_id].filter((id: unknown): id is string => typeof id === "string")
-    )).size || values.some((value: any) =>
+    if (values.some((value: any) =>
       typeof value?.pd_member_id !== "string" || typeof value?.instructor_pd_member_id !== "string"
     )) deny("La capacitación debe tener un policía e instructor válidos.");
 
