@@ -48,8 +48,6 @@ export const DIVISIONES = [
   "SWAT",
   "Relaciones Publicas",
   "N/A",
-  "N/A",
-  "N/A",
 ] as const;
 
 export const DIVISION_RANGOS = [
