@@ -3,13 +3,13 @@ import sapdLogo from "@/assets/sapd-logo.png.asset.json";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { db, getToken } from "@/lib/db";
-import { publishTrainingCertificate } from "@/lib/data.functions";
+import { autoDiscordSync, publishTrainingCertificate } from "@/lib/data.functions";
 import type { Session } from "@/lib/session";
 import { BadgeCheck, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { CertCard, type CertificateForm } from "@/components/CertificarView";
 
-type Member = { id: string; legajo: number; nombre: string; rango: string | null; es_instructor: boolean };
+type Member = { id: string; instructor_id: string | null; legajo: number; nombre: string; rango: string | null; es_instructor: boolean; active: boolean };
 type Training = {
   id: string; pd_member_id: string; section: string; training: string; training_other: string | null;
   awarded_at: string | null; instructor_pd_member_id: string | null; created_by_id: string | null; created_by_name: string | null;
@@ -39,16 +39,28 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
   const [filterInstructorId, setFilterInstructorId] = useState("");
   const canEdit = !!session?.is_alto_mando || !!session?.can_edit_capacitaciones;
   const canDeleteTraining = session?.admin_rango === "administrador";
-  const instructors = useMemo(() => members.filter(m => m.es_instructor), [members]);
+  const activeMembers = useMemo(() => members.filter(m => m.active), [members]);
+  const instructors = useMemo(() => activeMembers.filter(m => m.es_instructor), [activeMembers]);
 
   async function load() {
     setLoading(true);
-    const [m, t] = await Promise.all([
-      db.from("pd_members").select("id, legajo, nombre, rango, es_instructor").order("nombre", { ascending: true }),
+    // Reconcile Discord membership before building the roster used for new certificates.
+    // Historical training rows remain untouched; only active, linked PD accounts are selectable.
+    await autoDiscordSync().catch(() => null);
+    const [m, users, t] = await Promise.all([
+      db.from("pd_members").select("id, instructor_id, legajo, nombre, rango, es_instructor").order("nombre", { ascending: true }),
+      db.from("instructors").select("id, discord_inhabilitado"),
       db.from("pd_trainings").select("id, pd_member_id, section, training, training_other, awarded_at, instructor_pd_member_id, created_by_id, created_by_name, created_at, is_legacy").order("awarded_at", { ascending: false }),
     ]);
     if (m.error) toast.error(m.error.message);
-    else setMembers((m.data ?? []) as Member[]);
+    if (users.error) toast.error("No se pudo comprobar qué policías siguen activos en Discord: " + users.error.message);
+    else {
+      const activeIds = new Set((users.data ?? []).filter(u => !u.discord_inhabilitado).map(u => u.id));
+      setMembers(((m.data ?? []) as Omit<Member, "active">[]).map(member => ({
+        ...member,
+        active: !!member.instructor_id && activeIds.has(member.instructor_id),
+      })));
+    }
     if (t.error) toast.error(t.error.message);
     else setTrainings((t.data ?? []) as Training[]);
     setLoading(false);
@@ -86,6 +98,8 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
     const target = members.find(m => m.id === memberId);
     const instructor = members.find(m => m.id === instructorId);
     if (!target || !instructor) return toast.error("No se pudo recuperar el agente o instructor seleccionado.");
+    if (!target.active) return toast.error("Este policía ya no figura como miembro activo del Discord del SAPD. No se puede emitir una nueva capacitación.");
+    if (!instructor.active) return toast.error("El instructor ya no figura como miembro activo del Discord del SAPD.");
     const tipoMap: Record<string, string> = { M4: "Fusil M4", EDC: "Escopeta Spas12", "AK-47": "Fusil de Asalto AK-47", SNIPER: "Fusil de Precisión", MARY: "Unidad Motorizada Mary", AIR: "Unidad Aerea", OTRA: "Capacitación Especial" };
     const awardedAt = today();
     const [year, month, day] = awardedAt.split("-");
@@ -159,7 +173,7 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
         <div className="grid gap-4 md:grid-cols-2">
           <label className="space-y-1 text-xs font-bold text-slate-700">SAPD destinatario · Legajo
             <select value={memberId} onChange={e => setMemberId(e.target.value)} className="h-10 w-full border border-slate-300 bg-white px-3 text-sm">
-              <option value="">Seleccionar policía…</option>{members.map(m => <option key={m.id} value={m.id}>{m.nombre} · {legajoLabel(m.legajo)}{m.rango ? ` · ${m.rango}` : ""}</option>)}
+              <option value="">Seleccionar policía…</option>{activeMembers.map(m => <option key={m.id} value={m.id}>{m.nombre} · {legajoLabel(m.legajo)}{m.rango ? ` · ${m.rango}` : ""}</option>)}
             </select>
           </label>
           <label className="space-y-1 text-xs font-bold text-slate-700">Legajo (automático)
@@ -187,7 +201,7 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
             <div className="flex min-h-16 items-center justify-center border border-dashed border-blue-300 bg-blue-50 px-3 text-center text-xs font-medium text-blue-700">Al registrar la capacitación se generará y guardará el PNG con la plantilla institucional.</div>
           </div>
         </div>
-        <div className="mt-5 flex justify-end gap-2"><button onClick={() => setShowForm(false)} disabled={saving} className="h-10 border border-slate-300 px-4 text-xs font-bold text-slate-600">Cancelar</button><button onClick={() => void register()} disabled={saving || !members.length || !instructors.length} className="h-10 bg-blue-700 px-5 text-xs font-black uppercase text-white disabled:opacity-50">{saving ? "Registrando…" : "Registrar capacitación"}</button></div>
+        <div className="mt-5 flex justify-end gap-2"><button onClick={() => setShowForm(false)} disabled={saving} className="h-10 border border-slate-300 px-4 text-xs font-bold text-slate-600">Cancelar</button><button onClick={() => void register()} disabled={saving || !activeMembers.length || !instructors.length} className="h-10 bg-blue-700 px-5 text-xs font-black uppercase text-white disabled:opacity-50">{saving ? "Registrando…" : "Registrar capacitación"}</button></div>
       </Card>}
 
       {loading ? <Card className="rounded-none p-10 text-center text-slate-500">Cargando capacitaciones…</Card> :
