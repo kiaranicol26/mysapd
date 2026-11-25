@@ -59,9 +59,10 @@ export function CapacitacionesView({ session }: { session: Session | null }) {
       toast.error("No se pudo comprobar qué policías siguen activos en Discord: " + users.error.message);
       setMembers([]); // Fail closed: never offer unverified or historical accounts for a new certificate.
     } else {
-      const activeIds = new Set((users.data ?? [])
-        .filter(u => u.discord_inhabilitado === false)
-        .map(u => u.id));
+      const activeUsers = (users.data ?? []) as { id: string; discord_inhabilitado: boolean | null }[];
+      const activeIds = new Set(activeUsers
+        .filter((u: { id: string; discord_inhabilitado: boolean | null }) => u.discord_inhabilitado === false)
+        .map((u: { id: string; discord_inhabilitado: boolean | null }) => u.id));
       setMembers(((m.data ?? []) as Omit<Member, "active">[]).map(member => ({
         ...member,
         active: !!member.instructor_id && activeIds.has(member.instructor_id),
