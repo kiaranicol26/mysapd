@@ -332,7 +332,7 @@ export async function runQuery(spec: QuerySpec, claims: Claims | null, admin: Ad
     const accountById = new Map((accounts as any[]).map(account => [account.id, account]));
     const linkedAccounts = linkedIds.map(id => accountById.get(id));
     if (linkedAccounts.some(account =>
-      !account || account.discord_inhabilitado !== false || !/^\\d{17,20}$/.test(String(account.discord_id ?? ""))
+      !account || account.discord_inhabilitado !== false || !/^\d{17,20}$/.test(String(account.discord_id ?? ""))
     )) {
       deny("El policía y el instructor deben pertenecer al Discord activo del SAPD.");
     }
