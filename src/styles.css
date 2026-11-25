@@ -687,3 +687,32 @@ svg.lucide { stroke-width: 1.8; }
   main { padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); }
   header.sticky { border-radius: 0 0 15px 15px; }
 }
+
+
+/* Experimental Windows 11 desktop */
+.win-desktop { color: #172033; background-size: cover; background-position: center; background-attachment: fixed; font-family: "Segoe UI Variable","Segoe UI",Inter,system-ui,sans-serif; }
+.win-desktop-glow { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 20% 18%,rgba(91,190,255,.28),transparent 38%),radial-gradient(ellipse at 82% 15%,rgba(190,130,255,.25),transparent 36%),linear-gradient(180deg,rgba(5,24,55,.12),rgba(5,18,43,.42)); }
+.win-desktop-icon { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; min-height:104px; padding:12px 8px; color:white; font-size:12px; text-align:center; text-shadow:0 1px 4px #10203c; border:1px solid transparent; border-radius:9px; }
+.win-desktop-icon:hover { background:rgba(230,244,255,.18); border-color:rgba(255,255,255,.25); }
+.win-app-icon { display:grid; place-items:center; width:54px;height:54px;border-radius:13px;color:#fff;background:linear-gradient(145deg,rgba(255,255,255,.32),rgba(255,255,255,.12));border:1px solid rgba(255,255,255,.3);box-shadow:0 8px 24px rgba(0,0,0,.16);backdrop-filter:blur(12px); }
+.win-app-window { border:1px solid rgba(255,255,255,.7); border-radius:13px; background:rgba(248,251,255,.91); box-shadow:0 24px 80px rgba(5,18,45,.32); backdrop-filter:blur(24px) saturate(150%); }
+.win-window-titlebar { height:46px; display:flex;align-items:center;justify-content:space-between;padding:0 12px 0 16px;background:rgba(255,255,255,.75);border-bottom:1px solid rgba(35,70,110,.12);font-size:13px;font-weight:600;color:#26364c; }
+.win-window-control { display:grid;place-items:center;width:34px;height:30px;border-radius:6px;color:#4a5a70; }
+.win-window-control:hover { background:rgba(25,90,160,.1); }
+.win-window-control:last-child:hover { background:#d83b3b;color:white; }
+.win-window-content { max-height:calc(100vh - 190px);overflow:auto;padding:clamp(12px,2vw,24px);color:#1f2937; }
+.win-taskbar { position:fixed;z-index:40;bottom:0;left:0;right:0;height:58px;display:flex;align-items:center;justify-content:center;gap:8px;padding:6px 14px;background:rgba(242,247,255,.78);border-top:1px solid rgba(255,255,255,.75);box-shadow:0 -8px 30px rgba(4,18,40,.16);backdrop-filter:blur(28px) saturate(160%); }
+.win-start-button,.win-task-app { display:grid;place-items:center;width:42px;height:42px;border-radius:9px;color:#1b65b9;transition:background .15s,transform .15s; }
+.win-start-button:hover,.win-start-button.active,.win-task-app:hover,.win-task-app.selected { background:rgba(40,125,210,.13); }
+.win-start-button:active,.win-task-app:active { transform:scale(.94); }
+.win-task-apps { display:flex;align-items:center;gap:3px; }
+.win-task-app.selected { box-shadow:inset 0 -3px #2685df;border-radius:9px 9px 5px 5px; }
+.win-tray { position:absolute;right:14px;display:flex;align-items:center;gap:9px;color:#26364c;font-size:11px; }
+.win-start-menu { position:fixed;z-index:50;bottom:70px;left:50%;transform:translateX(-50%);width:min(590px,calc(100vw - 24px));padding:22px;border:1px solid rgba(255,255,255,.8);border-radius:16px;background:rgba(246,250,255,.94);box-shadow:0 22px 70px rgba(0,20,50,.32);backdrop-filter:blur(30px) saturate(160%);color:#26364c; }
+.win-start-search { width:100%;height:40px;padding:0 12px 0 36px;border:1px solid #cbd8e8;border-radius:8px;background:rgba(255,255,255,.9);outline:none;color:#172033; }
+.win-start-search:focus { border-color:#398bd7;box-shadow:0 0 0 3px rgba(57,139,215,.15); }
+.win-start-app { display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:78px;padding:8px;border-radius:9px;font-size:11px;text-align:center;color:#26364c; }
+.win-start-app:hover { background:#e5f1ff; }
+.win-power { display:grid;place-items:center;width:36px;height:36px;border-radius:8px; }
+.win-power:hover { background:#e4edf8; }
+@media(max-width:640px){.win-desktop{min-height:100dvh}.win-desktop-icon{min-height:90px}.win-app-icon{width:48px;height:48px}.win-window-content{max-height:calc(100dvh - 170px)}.win-tray{gap:5px;right:8px}.win-taskbar{justify-content:flex-start;padding-left:10px}.win-task-apps{overflow:hidden}.win-task-apps a:nth-child(n+6){display:none}.win-start-menu{padding:16px}.win-start-app{font-size:10px}}
