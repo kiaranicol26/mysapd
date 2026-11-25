@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { INSTRUCTOR_BONUS, rangoFromTag } from "./rangos";
+import { DIVISIONES, INSTRUCTOR_BONUS, rangoFromTag } from "./rangos";
 
 describe("Discord rank tags", () => {
   it("maps the extracted INS tag", () => {
@@ -29,5 +29,11 @@ describe("Discord rank tags", () => {
 describe("salary instructor bonus", () => {
   it("uses the agreed +10 Coins bonus", () => {
     expect(INSTRUCTOR_BONUS).toBe(10);
+  });
+});
+
+describe("division options", () => {
+  it("does not expose duplicate values in the division selector", () => {
+    expect(new Set(DIVISIONES).size).toBe(DIVISIONES.length);
   });
 });
