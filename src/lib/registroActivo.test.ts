@@ -9,12 +9,28 @@ test("users not in Registro (unlinked or disabled) are excluded", () => {
   expect(out.map(r => r.id)).toEqual(["a"]);
 });
 
-test("month resync removes duplicates and outsiders, adds missing, keeps paid row", () => {
+test("month resync preserves inactive and legacy history, removes only active duplicates", () => {
   const plan = planMonthSync(
-    [{ id: "1", pd_member_id: "a" }, { id: "2", pd_member_id: "a", pagado: true }, { id: "3", pd_member_id: "x" }, { id: "4", pd_member_id: null }],
+    [
+      { id: "1", pd_member_id: "a" },
+      { id: "2", pd_member_id: "a", pagado: true },
+      { id: "3", pd_member_id: "x", pagado: true },
+      { id: "4", pd_member_id: null },
+    ],
     ["a", "b"],
   );
   expect(plan.keep.map(e => e.id)).toEqual(["2"]);
-  expect(plan.remove.map(e => e.id).sort()).toEqual(["1", "3", "4"]);
+  expect(plan.preserve.map(e => e.id).sort()).toEqual(["3", "4"]);
+  expect(plan.remove.map(e => e.id)).toEqual(["1"]);
   expect(plan.missing).toEqual(["b"]);
+});
+
+test("inactive unpaid salary rows are preserved without being re-priced", () => {
+  const plan = planMonthSync(
+    [{ id: "old", pd_member_id: "departed", pagado: false }],
+    ["current"],
+  );
+  expect(plan.preserve.map(e => e.id)).toEqual(["old"]);
+  expect(plan.remove).toEqual([]);
+  expect(plan.missing).toEqual(["current"]);
 });
