@@ -6,7 +6,7 @@ export type RegistroUser = { id: string; discord_inhabilitado?: boolean | null }
 export type RegistroRow = { id: string; instructor_id?: string | null; created_at?: string | null };
 
 export function activePdMembers<T extends RegistroRow>(rows: T[], users: RegistroUser[]): T[] {
-  const enabled = new Set(users.filter(u => !u.discord_inhabilitado).map(u => u.id));
+  const enabled = new Set(users.filter(u => u.discord_inhabilitado === false).map(u => u.id));
   const byUser = new Map<string, T>();
   for (const r of rows) {
     if (!r.instructor_id || !enabled.has(r.instructor_id)) continue;
