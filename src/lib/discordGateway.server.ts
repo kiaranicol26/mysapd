@@ -213,7 +213,9 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
       }
       if (shouldDisable) disabledCount++;
     }
-    await mergeDuplicatePdMembers(admin);
+    // Do not auto-merge duplicate PD rows here. Deleting a legacy pd_members row
+    // can cascade-delete pd_trainings and can discard salary notes/payment state
+    // when both rows have entries for the same month. Keep duplicates for review.
     return { created, renamed, datesUpdated, total: police.length, disabled: disabledCount };
   } catch (e) {
     console.error("syncGuildPolice", e);
