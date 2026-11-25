@@ -3,7 +3,9 @@ import { activePdMembers, planMonthSync } from "./registroActivo";
 
 test("users not in Registro (unlinked or disabled) are excluded", () => {
   const rows = [{ id: "a", instructor_id: "U1" }, { id: "b", instructor_id: null }, { id: "c", instructor_id: "U2" }];
-  const out = activePdMembers(rows, [{ id: "U1" }, { id: "U2", discord_inhabilitado: true }]);
+  const out = activePdMembers(rows, [{ id: "U1", discord_inhabilitado: false }, { id: "U2", discord_inhabilitado: true }]);
+  const unverified = activePdMembers(rows, [{ id: "U1", discord_inhabilitado: null }, { id: "U2", discord_inhabilitado: false }]);
+  expect(unverified).toEqual([]);
   expect(out.map(r => r.id)).toEqual(["a"]);
 });
 
