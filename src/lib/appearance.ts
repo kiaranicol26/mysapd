@@ -62,3 +62,21 @@ export async function setLoginBackground(value: string) {
   if (error) throw error;
   if (typeof window !== "undefined") window.dispatchEvent(new Event("login-background-change"));
 }
+
+
+const EXPERIMENTAL_DESKTOP_KEY = "experimental_windows_desktop";
+
+export async function getExperimentalDesktopMode(): Promise<boolean> {
+  const { data } = await db.from("app_settings").select("value").eq("key", EXPERIMENTAL_DESKTOP_KEY).maybeSingle();
+  return data?.value === "true";
+}
+
+export async function setExperimentalDesktopMode(enabled: boolean) {
+  const { error } = await db.from("app_settings").upsert({
+    key: EXPERIMENTAL_DESKTOP_KEY,
+    value: enabled ? "true" : "false",
+    updated_at: new Date().toISOString(),
+  });
+  if (error) throw error;
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("experimental-desktop-change"));
+}
