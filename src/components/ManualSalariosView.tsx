@@ -88,10 +88,6 @@ export function ManualSalariosView({ session }: { session: Session }) {
     return sortByRango(parsed.map(row => {
       const found = byName.get(normalize(row.nombre)) ?? [];
       const member = found.length === 1 ? found[0] : null;
-      const hasDivision = !![member?.division, member?.division2, member?.division3].some(value => {
-        const normalized = value?.trim();
-        return !!normalized && normalized !== "Ninguna" && normalized !== "N/A";
-      });
       const baseSalary = Number(member?.sueldo_defecto) || 0;
       const autoSalary = member && baseSalary > 0
         ? baseSalary + calculateSalaryExtras(member, 10, INSTRUCTOR_BONUS)
