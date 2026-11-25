@@ -10,6 +10,11 @@ describe("Discord rank tags", () => {
     expect(rangoFromTag("[INS] INSPECTOR")).toBe("Inspector");
   });
 
+  it("maps the CDT tag to Cadete", () => {
+    expect(rangoFromTag("[CDT]")).toBe("Cadete");
+    expect(rangoFromTag("[CDT] CADETE")).toBe("Cadete");
+  });
+
   it("keeps plain three-letter codes working", () => {
     expect(rangoFromTag("INS")).toBe("Inspector");
   });
