@@ -1,4 +1,5 @@
 import { FACTION_GUILD_ID, membershipDisabled } from "./discordMembership";
+import { rangoFromTag } from "./rangos";
 
 /** Discord API failure with safe diagnostic fields for server-side handling. */
 export class DiscordApiError extends Error {
@@ -11,9 +12,6 @@ export class DiscordApiError extends Error {
     this.name = "DiscordApiError";
   }
 }
-
-/** Highest rank first: a member with several rank roles gets the highest. */
-const RANK_ORDER = ["Comisario", "Inspector", "Capitan", "Teniente", "Sargento", "Cabo", "Oficial", "Cadete", "Aspirante"];
 
 export async function discord(path: string, init?: RequestInit) {
   const lovable = process.env["LOVABLE_API_KEY"];
@@ -97,21 +95,6 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
     const policeRole = roles.find(r => r.name.toLowerCase().includes("polic"));
     if (!policeRole) return null;
 
-    // Ensure one Discord role exists per rank; create missing ones (needs "Manage Roles").
-    const normRole = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
-    const rankRoleIds = new Map<string, string>();
-    for (const rango of RANK_ORDER) {
-      let role = roles.find(r => normRole(r.name) === normRole(rango));
-      if (!role) {
-        try {
-          role = (await discord(`guilds/${FACTION_GUILD_ID}/roles`, {
-            method: "POST", body: JSON.stringify({ name: rango, hoist: false, mentionable: false }),
-          })) as { id: string; name: string };
-        } catch { role = undefined; }
-      }
-      if (role?.id) rankRoleIds.set(rango, role.id);
-    }
-
     const members: GuildMember[] = [];
     for (let after = "0";;) {
       const page = (await discord(`guilds/${FACTION_GUILD_ID}/members?limit=1000&after=${after}`)) as GuildMember[];
@@ -187,17 +170,10 @@ export async function syncGuildPolice(admin: { from: (table: string) => any }, o
         renamed++;
       }
 
-      // El estado de Instructor se administra manualmente desde Registro PD.
-      // Rank = highest Discord rank role the member holds; no default rank.
-      const rangoDiscord = RANK_ORDER.find(r => { const id = rankRoleIds.get(r); return id && m.roles?.includes(id); }) ?? null;
-      if (rangoDiscord) {
-        const base = `guilds/${FACTION_GUILD_ID}/members/${m.user!.id}/roles/`;
-        for (const [r, id] of rankRoleIds) {
-          if (r !== rangoDiscord && m.roles?.includes(id)) {
-            try { await discord(base + id, { method: "DELETE" }); } catch { /* ignore */ }
-          }
-        }
-      }
+      // El apodo/tag de Discord es la fuente de verdad del rango policial.
+      // No se crean ni se exigen roles separados por rango: [CDT] debe reflejar Cadete,
+      // [INS] Inspector, etc. Si no hay una etiqueta reconocida, se deja el rango vacío.
+      const rangoDiscord = rangoFromTag(tag);
       {
         const pdPatch: Record<string, string | null> = { rango: rangoDiscord };
         if (placa) pdPatch.placa = placa;
