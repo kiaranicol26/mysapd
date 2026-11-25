@@ -84,7 +84,7 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [saving, setSaving] = useState(false);
-  const [users, setUsers] = useState<{ id: string; name: string; avatar_url: string | null; role: string | null; admin_rango: string | null; discord_inhabilitado: boolean }[]>([]);
+  const [users, setUsers] = useState<{ id: string; name: string; avatar_url: string | null; role: string | null; admin_rango: string | null; discord_inhabilitado: boolean | null }[]>([]);
   const [capConfirm, setCapConfirm] = useState<{ m: PdMember; cap: CapKey; value: boolean } | null>(null);
   const [capSaving, setCapSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -202,7 +202,7 @@ export function RegistroPdView({ session, onlyDisabled = false }: { session: Ses
 
   const groups = useMemo(() => {
     const rows = users
-      .filter(u => onlyDisabled ? !!u.discord_inhabilitado : !u.discord_inhabilitado)
+      .filter(u => onlyDisabled ? u.discord_inhabilitado === true : u.discord_inhabilitado === false)
       .map(u => ({
         u,
         m: personnelIndex.byInstructor.get(u.id) ?? personnelIndex.byLegacyName.get(u.name.trim().toLowerCase()),
