@@ -57,7 +57,7 @@ export function RegistroPdPublicView({ session }: { session: Session | null }) {
         const [a, b, t] = await Promise.all([
           db.from("pd_members").select("id, instructor_id, nombre, rango, foto, placa, es_instructor, division, division_rango, division2, division2_rango, division3, division3_rango, cap_m4, cap_edc, cap_mary, cap_sniper, cap_air, cap_ak47").order("nombre", { ascending: true }),
           db.from("instructors").select("id, name, avatar_url, role, placa, discord_joined_at, discord_inhabilitado").order("name", { ascending: true }),
-          db.from("pd_trainings").select("id, pd_member_id, section, training, training_other, awarded_at, is_legacy").order("awarded_at", { ascending: false, nullsFirst: false })
+          db.from("pd_trainings").select("id, pd_member_id, section, training, training_other, awarded_at, is_legacy").order("awarded_at", { ascending: false })
         ]);
         if (!active) return;
         if (a.data) setMembers(a.data as Member[]);
