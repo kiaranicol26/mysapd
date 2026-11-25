@@ -437,3 +437,253 @@ svg.lucide { stroke-width: 1.75; }
 @media (max-width: 1023px) {
   main { padding-bottom: max(1.25rem, env(safe-area-inset-bottom)); }
 }
+
+
+
+/* ─────────────────────────────────────────────────────────────
+   mySAPD · Fluent refresh
+   Windows 11-inspired visual layer. Presentation only.
+   ───────────────────────────────────────────────────────────── */
+:root {
+  --radius: 1.15rem;
+  --font-display: "Segoe UI Variable", "Segoe UI", "Inter", system-ui, sans-serif;
+  --font-body: "Segoe UI Variable", "Segoe UI", "Inter", system-ui, sans-serif;
+  --font-table: "Segoe UI Variable", "Segoe UI", "Inter", system-ui, sans-serif;
+
+  --background: oklch(0.965 0.012 245);
+  --foreground: oklch(0.255 0.035 255);
+  --card: oklch(0.995 0.006 245);
+  --card-foreground: oklch(0.255 0.035 255);
+  --popover: oklch(0.995 0.006 245);
+  --popover-foreground: oklch(0.255 0.035 255);
+  --primary: oklch(0.56 0.19 255);
+  --primary-foreground: oklch(0.99 0.004 245);
+  --secondary: oklch(0.93 0.025 235);
+  --secondary-foreground: oklch(0.30 0.07 255);
+  --muted: oklch(0.94 0.015 245);
+  --muted-foreground: oklch(0.49 0.035 255);
+  --accent: oklch(0.91 0.055 220);
+  --accent-foreground: oklch(0.29 0.075 255);
+  --border: oklch(0.88 0.025 245);
+  --input: oklch(0.86 0.03 245);
+  --ring: oklch(0.63 0.18 245);
+  --sidebar: oklch(0.94 0.025 245);
+  --sidebar-foreground: oklch(0.27 0.045 255);
+  --sidebar-primary: oklch(0.56 0.19 255);
+  --sidebar-primary-foreground: oklch(0.99 0.004 245);
+  --sidebar-accent: oklch(0.89 0.055 225);
+  --sidebar-accent-foreground: oklch(0.25 0.075 255);
+  --sidebar-border: oklch(0.89 0.025 245);
+  --sidebar-ring: oklch(0.63 0.18 245);
+  --chart-1: oklch(0.59 0.20 255);
+  --chart-2: oklch(0.68 0.16 165);
+  --chart-3: oklch(0.72 0.16 75);
+  --chart-4: oklch(0.62 0.21 315);
+  --chart-5: oklch(0.65 0.20 25);
+  --table-row: oklch(0.99 0.006 245);
+  --table-row-alt: oklch(0.96 0.015 245);
+  --primary-hover: oklch(0.49 0.19 255);
+  --link: oklch(0.48 0.19 255);
+  --subtle-brand: oklch(0.91 0.055 230);
+  --overlay: oklch(0.18 0.04 255);
+}
+
+.dark, [data-theme="dark"] {
+  --background: oklch(0.22 0.025 255);
+  --foreground: oklch(0.94 0.012 240);
+  --card: oklch(0.275 0.03 255);
+  --card-foreground: oklch(0.94 0.012 240);
+  --popover: oklch(0.29 0.032 255);
+  --popover-foreground: oklch(0.94 0.012 240);
+  --primary: oklch(0.70 0.16 245);
+  --primary-foreground: oklch(0.19 0.04 255);
+  --secondary: oklch(0.31 0.035 250);
+  --secondary-foreground: oklch(0.92 0.015 240);
+  --muted: oklch(0.30 0.03 255);
+  --muted-foreground: oklch(0.73 0.025 245);
+  --accent: oklch(0.36 0.065 235);
+  --accent-foreground: oklch(0.95 0.012 240);
+  --border: oklch(0.39 0.035 255);
+  --input: oklch(0.40 0.035 255);
+  --ring: oklch(0.70 0.16 245);
+  --sidebar: oklch(0.245 0.03 255);
+  --sidebar-foreground: oklch(0.92 0.015 240);
+  --sidebar-primary: oklch(0.70 0.16 245);
+  --sidebar-primary-foreground: oklch(0.18 0.04 255);
+  --sidebar-accent: oklch(0.34 0.055 240);
+  --sidebar-accent-foreground: oklch(0.95 0.012 240);
+  --sidebar-border: oklch(0.36 0.035 255);
+  --sidebar-ring: oklch(0.70 0.16 245);
+  --chart-1: oklch(0.72 0.15 245);
+  --chart-2: oklch(0.72 0.15 165);
+  --chart-3: oklch(0.78 0.15 80);
+  --chart-4: oklch(0.72 0.17 315);
+  --chart-5: oklch(0.72 0.17 25);
+  --table-row: oklch(0.275 0.03 255);
+  --table-row-alt: oklch(0.295 0.03 255);
+  --primary-hover: oklch(0.76 0.14 245);
+  --link: oklch(0.78 0.13 240);
+  --subtle-brand: oklch(0.34 0.055 240);
+  --overlay: oklch(0.08 0.02 255);
+}
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--font-body);
+    letter-spacing: -0.012em;
+    background:
+      radial-gradient(ellipse at 4% 0%, color-mix(in oklab, oklch(0.70 0.13 220) 18%, transparent), transparent 34rem),
+      radial-gradient(ellipse at 96% 8%, color-mix(in oklab, oklch(0.72 0.13 300) 12%, transparent), transparent 30rem),
+      var(--background);
+  }
+  h1, h2, h3, h4, h5, h6, .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.035em;
+    font-weight: 650;
+  }
+  button, input, select, textarea { font: inherit; }
+  button { transition: background-color .18s ease, color .18s ease, box-shadow .18s ease, transform .18s ease; }
+  button:active { transform: translateY(1px); }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
+}
+
+aside {
+  background:
+    linear-gradient(165deg, color-mix(in oklab, var(--sidebar) 94%, oklch(0.82 0.10 225)), var(--sidebar) 58%) !important;
+  border-right: 1px solid color-mix(in oklab, var(--sidebar-border) 70%, transparent) !important;
+  box-shadow: 12px 0 42px -30px oklch(0.15 0.04 255 / 32%);
+}
+.dark aside, [data-theme="dark"] aside {
+  background: linear-gradient(165deg, oklch(0.28 0.045 250), var(--sidebar) 60%) !important;
+}
+aside nav a {
+  min-height: 42px;
+  border-radius: 13px !important;
+  margin: 3px 0;
+  font-weight: 600 !important;
+}
+aside nav a span:first-child {
+  border-color: transparent !important;
+  background: color-mix(in oklab, var(--primary) 9%, var(--sidebar)) !important;
+  box-shadow: none !important;
+}
+aside nav a:hover span:first-child {
+  background: color-mix(in oklab, var(--primary) 17%, var(--sidebar)) !important;
+}
+aside nav a.bg-primary span:first-child {
+  background: color-mix(in oklab, white 18%, var(--primary)) !important;
+  color: white !important;
+}
+header.sticky {
+  background: color-mix(in oklab, var(--card) 78%, transparent) !important;
+  border: 1px solid color-mix(in oklab, var(--border) 62%, transparent) !important;
+  border-top: 0 !important;
+  border-radius: 0 0 18px 18px;
+  box-shadow: 0 10px 30px -26px oklch(0.12 0.04 255 / 45%);
+  backdrop-filter: blur(24px) saturate(165%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(165%);
+}
+main { animation: fluent-enter .28s ease-out both; }
+@keyframes fluent-enter {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+main .bg-card, main .bg-white, main .bg-white\/95, main [class*="bg-white/"] {
+  border: 1px solid color-mix(in oklab, var(--border) 72%, transparent) !important;
+  border-radius: 20px;
+  box-shadow: 0 2px 5px oklch(0.15 0.04 255 / 3%), 0 16px 38px -28px oklch(0.15 0.04 255 / 28%);
+}
+.dark main .bg-card, .dark main .bg-white, .dark main .bg-white\/95,
+[data-theme="dark"] main .bg-card, [data-theme="dark"] main .bg-white {
+  box-shadow: 0 12px 34px -26px oklch(0 0 0 / 65%);
+}
+main [role="dialog"] {
+  border: 1px solid color-mix(in oklab, var(--border) 75%, transparent) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 28px 90px -34px oklch(0 0 0 / 38%) !important;
+}
+main button, main input, main select, main textarea,
+[role="dialog"] button, [role="dialog"] input, [role="dialog"] select, [role="dialog"] textarea {
+  border-radius: 12px;
+}
+main input, main select, main textarea,
+[role="dialog"] input, [role="dialog"] select, [role="dialog"] textarea {
+  min-height: 42px;
+  border-color: color-mix(in oklab, var(--border) 80%, transparent) !important;
+  background-color: color-mix(in oklab, var(--card) 88%, var(--background)) !important;
+}
+main input:focus, main select:focus, main textarea:focus,
+[role="dialog"] input:focus, [role="dialog"] select:focus, [role="dialog"] textarea:focus {
+  border-color: var(--ring) !important;
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--ring) 15%, transparent) !important;
+}
+main button.bg-primary, main button.bg-blue-600, main a.bg-primary {
+  box-shadow: 0 6px 18px -10px color-mix(in oklab, var(--primary) 90%, transparent);
+}
+main button.bg-primary:hover, main button.bg-blue-600:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+main table {
+  border: 1px solid color-mix(in oklab, var(--border) 65%, transparent);
+  border-radius: 16px;
+  overflow: hidden;
+}
+main table thead th {
+  background: color-mix(in oklab, var(--primary) 8%, var(--secondary));
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .075em;
+  text-transform: uppercase;
+  border: 0 !important;
+}
+main table tbody tr:hover {
+  background: color-mix(in oklab, var(--primary) 7%, var(--table-row)) !important;
+}
+[role="menu"], [role="listbox"], [data-radix-popper-content-wrapper] > *,
+[data-sonner-toaster] [data-sonner-toast] {
+  border-radius: 15px !important;
+  backdrop-filter: blur(18px);
+}
+.sapd-login {
+  background:
+    radial-gradient(ellipse at 12% 4%, oklch(0.78 0.11 220 / 38%), transparent 34rem),
+    radial-gradient(ellipse at 88% 12%, oklch(0.80 0.10 300 / 24%), transparent 32rem),
+    var(--background) !important;
+}
+.sapd-login header {
+  background: color-mix(in oklab, var(--card) 78%, transparent) !important;
+  backdrop-filter: blur(22px) saturate(160%);
+  border-color: var(--border) !important;
+}
+.sapd-login .border-slate-200,
+.sapd-login .border-slate-100 {
+  border-color: var(--border) !important;
+}
+.sapd-login article,
+.sapd-login section > .grid,
+.sapd-login #login-panel {
+  border-radius: 20px;
+}
+.sapd-login .shadow-sm,
+.sapd-login [class*="shadow-["] {
+  box-shadow: 0 16px 42px -28px oklch(0.15 0.04 255 / 34%);
+}
+.sapd-login button { border-radius: 13px !important; }
+svg.lucide { stroke-width: 1.8; }
+::selection { background: color-mix(in oklab, var(--primary) 24%, transparent); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+@media (max-width: 1023px) {
+  main { padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); }
+  header.sticky { border-radius: 0 0 15px 15px; }
+}
