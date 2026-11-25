@@ -58,7 +58,7 @@ type GuildMember = {
 };
 
 const SCAN_KEY = "guild_scan_at";
-const SCAN_INTERVAL = 60_000;
+const SCAN_INTERVAL = 10 * 60_000;
 
 function nickParts(m: GuildMember) {
   const raw = m.nick || m.user?.global_name || m.user?.username || "";
