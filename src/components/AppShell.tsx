@@ -148,6 +148,8 @@ export function AppShell({ session, children }: { session: Session | null; child
     </aside>
   );
 
+  if (experimentalDesktop) return <ExperimentalDesktop tabs={tabs} session={session} onLogout={handleLogout}>{children}</ExperimentalDesktop>;
+
   return (
     <div className="relative min-h-screen bg-background bg-center bg-cover bg-fixed font-semibold"
       style={bg ? { backgroundImage: `url(${bg})` } : undefined}>
