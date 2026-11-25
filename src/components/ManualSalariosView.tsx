@@ -93,7 +93,7 @@ export function ManualSalariosView({ session }: { session: Session }) {
         return !!normalized && normalized !== "Ninguna" && normalized !== "N/A";
       });
       const baseSalary = Number(member?.sueldo_defecto) || 0;
-      const autoSalary = member && baseSalary > 0 && hasDivision
+      const autoSalary = member && baseSalary > 0
         ? baseSalary + calculateSalaryExtras(member, 10, INSTRUCTOR_BONUS)
         : null;
       return { ...row, member, autoSalary, match: found.length === 1 ? "ok" : found.length > 1 ? "ambiguous" : "missing" };
