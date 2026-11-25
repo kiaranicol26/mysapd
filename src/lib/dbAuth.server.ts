@@ -337,12 +337,15 @@ export async function runQuery(spec: QuerySpec, claims: Claims | null, admin: Ad
       deny("El policía y el instructor deben pertenecer al Discord activo del SAPD.");
     }
 
-    const { factionMember } = await import("./discordGateway.server");
-    const { membershipDisabled } = await import("./discordMembership");
+    const { discord, factionMember } = await import("./discordGateway.server");
+    const { FACTION_GUILD_ID, membershipDisabled } = await import("./discordMembership");
+    const roles = await discord(`guilds/${FACTION_GUILD_ID}/roles`) as { id: string; name: string }[];
+    const policeRole = roles.find(role => role.name.toLowerCase().includes("polic"));
+    if (!policeRole) deny("No se pudo verificar el rol Policía del Discord SAPD.");
     for (const account of linkedAccounts as any[]) {
-      const member = await factionMember(account.discord_id);
-      if (membershipDisabled(member, account.discord_id)) {
-        deny("El policía o instructor ya no pertenece al Discord activo del SAPD.");
+      const member = await factionMember(account.discord_id) as { user?: { id?: string; bot?: boolean }; roles?: string[] } | null;
+      if (membershipDisabled(member, account.discord_id) || !member?.roles?.includes(policeRole.id)) {
+        deny("El policía o instructor ya no tiene el rol Policía activo en el Discord SAPD.");
       }
     }
   }
