@@ -289,6 +289,61 @@ export async function runQuery(spec: QuerySpec, claims: Claims | null, admin: Ad
     });
     safe = { ...safe, values: Array.isArray(safe.values) ? safe.values.map(stamp) : stamp(safe.values) };
   }
+
+  // The browser selector is only a convenience: enforce live Discord membership
+  // again here so a forged dbQuery request cannot issue certificates to departed
+  // members or use an inactive/non-instructor account as the issuing instructor.
+  if (safe.table === "pd_trainings" && safe.op === "insert") {
+    const values = Array.isArray(safe.values) ? safe.values : [safe.values];
+    if (!values.length || values.length > 100) deny("Cantidad de capacitaciones inválida");
+    const memberIds = [...new Set(values.flatMap((value: any) =>
+      [value?.pd_member_id, value?.instructor_pd_member_id].filter((id: unknown): id is string => typeof id === "string")
+    ))];
+    if (memberIds.length !== new Set(values.flatMap((value: any) =>
+      [value?.pd_member_id, value?.instructor_pd_member_id].filter((id: unknown): id is string => typeof id === "string")
+    )).size || values.some((value: any) =>
+      typeof value?.pd_member_id !== "string" || typeof value?.instructor_pd_member_id !== "string"
+    )) deny("La capacitación debe tener un policía e instructor válidos.");
+
+    const { data: pdRows, error: pdError } = await admin.from("pd_members")
+      .select("id,instructor_id,es_instructor").in("id", memberIds);
+    if (pdError || !pdRows || pdRows.length !== memberIds.length) {
+      deny("No se pudo verificar el personal vinculado a la capacitación.");
+    }
+    const byPdId = new Map((pdRows as any[]).map(row => [row.id, row]));
+    for (const value of values as any[]) {
+      const target = byPdId.get(value.pd_member_id);
+      const instructor = byPdId.get(value.instructor_pd_member_id);
+      if (!target?.instructor_id || !instructor?.instructor_id) {
+        deny("El policía y el instructor deben tener una cuenta de Discord vinculada.");
+      }
+      if (!instructor.es_instructor) {
+        deny("El instructor seleccionado ya no pertenece a la División de Instructores.");
+      }
+      const linkedIds = [...new Set([target.instructor_id, instructor.instructor_id])];
+      const { data: accounts, error: accountsError } = await admin.from("instructors")
+        .select("id,discord_id,discord_inhabilitado").in("id", linkedIds);
+      if (accountsError || !accounts || accounts.length !== linkedIds.length) {
+        deny("No se pudo verificar el estado de las cuentas de Discord.");
+      }
+      const accountById = new Map((accounts as any[]).map(account => [account.id, account]));
+      const targetAccount = accountById.get(target.instructor_id);
+      const instructorAccount = accountById.get(instructor.instructor_id);
+      if ([targetAccount, instructorAccount].some(account =>
+        !account || account.discord_inhabilitado !== false || !/^\\d{17,20}$/.test(String(account.discord_id ?? ""))
+      )) {
+        deny("El policía y el instructor deben pertenecer al Discord activo del SAPD.");
+      }
+      const { factionMember } = await import("./discordGateway.server");
+      const { membershipDisabled } = await import("./discordMembership");
+      for (const account of [targetAccount, instructorAccount]) {
+        const member = await factionMember(account.discord_id);
+        if (membershipDisabled(member, account.discord_id)) {
+          deny("El policía o instructor ya no pertenece al Discord activo del SAPD.");
+        }
+      }
+    }
+  }
   if (safe.table === "forum_posts" && safe.op === "insert" && claims) {
     const stamp = (value: unknown) => ({
       ...(value && typeof value === "object" ? value : {}),
