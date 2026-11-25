@@ -328,7 +328,7 @@ export async function runQuery(spec: QuerySpec, claims: Claims | null, admin: Ad
       const targetAccount = accountById.get(target.instructor_id);
       const instructorAccount = accountById.get(instructor.instructor_id);
       if ([targetAccount, instructorAccount].some(account =>
-        !account || account.discord_inhabilitado !== false || !/^\\d{17,20}$/.test(String(account.discord_id ?? ""))
+        !account || account.discord_inhabilitado !== false || !/^\d{17,20}$/.test(String(account.discord_id ?? ""))
       )) {
         deny("El policía y el instructor deben pertenecer al Discord activo del SAPD.");
       }
